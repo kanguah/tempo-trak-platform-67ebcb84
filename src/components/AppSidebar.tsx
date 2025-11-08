@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, UserCheck, Calendar, ClipboardCheck, CreditCard, Megaphone, TrendingUp, FileText, Bell, Settings, Music } from "lucide-react";
+import { LayoutDashboard, Users, UserCheck, Calendar, ClipboardCheck, CreditCard, Megaphone, MessageSquare, TrendingUp, FileText, Bell, Settings, Music } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -21,6 +21,7 @@ const directorItems = [
   { title: "Attendance", url: "/attendance", icon: ClipboardCheck },
   { title: "Payments", url: "/payments", icon: CreditCard },
   { title: "CRM & Leads", url: "/crm", icon: Megaphone },
+  { title: "Messaging", url: "/messaging", icon: MessageSquare },
   { title: "Business Analytics", url: "/analytics", icon: TrendingUp },
   { title: "Reports", url: "/reports", icon: FileText },
 ];

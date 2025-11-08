@@ -12,6 +12,7 @@ import Calendar from "./pages/Calendar";
 import Attendance from "./pages/Attendance";
 import Payments from "./pages/Payments";
 import CRM from "./pages/CRM";
+import Messaging from "./pages/Messaging";
 import Analytics from "./pages/Analytics";
 import Reports from "./pages/Reports";
 import Notifications from "./pages/Notifications";
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/attendance" element={<Attendance />} />
             <Route path="/payments" element={<Payments />} />
             <Route path="/crm" element={<CRM />} />
+            <Route path="/messaging" element={<Messaging />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/notifications" element={<Notifications />} />
