@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, Plus, Filter, Music, Mail, Phone, DollarSign, Calendar } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -87,6 +88,7 @@ const tutors = [
 ];
 
 export default function Tutors() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
 
   const getStatusColor = (status: string) => {
@@ -147,6 +149,7 @@ export default function Tutors() {
               key={tutor.id}
               className="shadow-card hover:shadow-primary transition-all duration-300 animate-scale-in cursor-pointer"
               style={{ animationDelay: `${index * 0.1}s` }}
+              onClick={() => navigate(`/tutors/${tutor.id}`)}
             >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">

@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import Students from "./pages/Students";
 import StudentProfile from "./pages/StudentProfile";
 import Tutors from "./pages/Tutors";
+import TutorProfile from "./pages/TutorProfile";
 import Calendar from "./pages/Calendar";
 import Attendance from "./pages/Attendance";
 import Payments from "./pages/Payments";
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/students" element={<Students />} />
             <Route path="/students/:id" element={<StudentProfile />} />
             <Route path="/tutors" element={<Tutors />} />
+            <Route path="/tutors/:id" element={<TutorProfile />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/attendance" element={<Attendance />} />
             <Route path="/payments" element={<Payments />} />
