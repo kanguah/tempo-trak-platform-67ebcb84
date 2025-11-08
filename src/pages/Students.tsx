@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, Plus, Filter, Music, Mail, Phone } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -82,6 +83,7 @@ const students = [
 
 export default function Students() {
   const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
 
   const getLevelColor = (level: string) => {
     switch (level) {
@@ -148,6 +150,7 @@ export default function Students() {
               key={student.id}
               className="shadow-card hover:shadow-primary transition-all duration-300 animate-scale-in cursor-pointer"
               style={{ animationDelay: `${index * 0.1}s` }}
+              onClick={() => navigate(`/students/${student.id}`)}
             >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
