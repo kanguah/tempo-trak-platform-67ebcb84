@@ -56,11 +56,12 @@ export default function Students() {
 
   const addStudentMutation = useMutation({
     mutationFn: async (newStudent: any) => {
+      const { instrument, ...studentData } = newStudent;
       const { data, error } = await supabase
         .from('students')
         .insert([{
-          ...newStudent,
-          subjects: [newStudent.instrument], // Convert instrument to subjects array
+          ...studentData,
+          subjects: [instrument], // Convert instrument to subjects array
           user_id: user?.id,
         }])
         .select()
