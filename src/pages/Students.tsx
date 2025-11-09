@@ -12,8 +12,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from "@/components/ui/pagination";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,13 +45,19 @@ const studentSchema = z.object({
   instrument: z.string().min(1, "Please select an instrument"),
   date_of_birth: z.string().optional(),
   parent_name: z.string().trim().max(100, "Parent name must be less than 100 characters").optional().or(z.literal("")),
-  parent_email: z.string().trim().email("Invalid parent email").max(255, "Parent email must be less than 255 characters").optional().or(z.literal("")),
+  parent_email: z
+    .string()
+    .trim()
+    .email("Invalid parent email")
+    .max(255, "Parent email must be less than 255 characters")
+    .optional()
+    .or(z.literal("")),
   parent_phone: z.string().trim().max(20, "Parent phone must be less than 20 characters").optional().or(z.literal("")),
-  address: z.string().trim().max(200, "Address must be less than 200 characters").optional().or(z.literal(""))
+  address: z.string().trim().max(200, "Address must be less than 200 characters").optional().or(z.literal("")),
 });
 const instruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Cello", "Trumpet", "Bass"];
-type SortField = 'name' | 'grade' | 'created_at';
-type SortDirection = 'asc' | 'desc';
+type SortField = "name" | "grade" | "created_at";
+type SortDirection = "asc" | "desc";
 
 export default function Students() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -49,55 +72,51 @@ export default function Students() {
     parent_name: "",
     parent_email: "",
     parent_phone: "",
-    address: ""
+    address: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortField, setSortField] = useState<SortField>('created_at');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const itemsPerPage = 20;
-  
+
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
-  const {
-    data: students = [],
-    isLoading
-  } = useQuery({
-    queryKey: ['students'],
+  const { data: students = [], isLoading } = useQuery({
+    queryKey: ["students"],
     queryFn: async () => {
-      const {
-        data,
-        error
-      } = await supabase.from('students').select('*').eq('user_id', user?.id).order('created_at', {
-        ascending: false
+      const { data, error } = await supabase.from("students").select("*").eq("user_id", user?.id).order("created_at", {
+        ascending: false,
       });
       if (error) throw error;
       return data;
     },
-    enabled: !!user
+    enabled: !!user,
   });
   const addStudentMutation = useMutation({
     mutationFn: async (newStudent: any) => {
       const { instrument, ...studentData } = newStudent;
       const { data, error } = await supabase
-        .from('students')
-        .insert([{
-          ...studentData,
-          subjects: [instrument],
-          user_id: user?.id
-        }])
+        .from("students")
+        .insert([
+          {
+            ...studentData,
+            subjects: [instrument],
+            user_id: user?.id,
+          },
+        ])
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
       setDialogOpen(false);
       setFormData({
         name: "",
@@ -109,34 +128,31 @@ export default function Students() {
         parent_name: "",
         parent_email: "",
         parent_phone: "",
-        address: ""
+        address: "",
       });
       setErrors({});
       toast.success("Student added successfully!");
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to add student");
-    }
+    },
   });
 
   const deleteStudentsMutation = useMutation({
     mutationFn: async (studentIds: string[]) => {
-      const { error } = await supabase
-        .from('students')
-        .delete()
-        .in('id', studentIds);
-      
+      const { error } = await supabase.from("students").delete().in("id", studentIds);
+
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
       setSelectedStudents(new Set());
       setDeleteDialogOpen(false);
       toast.success("Students deleted successfully!");
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to delete students");
-    }
+    },
   });
   const handleAddStudent = () => {
     try {
@@ -145,7 +161,7 @@ export default function Students() {
     } catch (error) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
-        error.errors.forEach(err => {
+        error.errors.forEach((err) => {
           if (err.path[0]) {
             newErrors[err.path[0].toString()] = err.message;
           }
@@ -173,17 +189,17 @@ export default function Students() {
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
       setSortField(field);
-      setSortDirection('asc');
+      setSortDirection("asc");
     }
     setCurrentPage(1);
   };
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedStudents(new Set(paginatedStudents.map(s => s.id)));
+      setSelectedStudents(new Set(paginatedStudents.map((s) => s.id)));
     } else {
       setSelectedStudents(new Set());
     }
@@ -209,23 +225,24 @@ export default function Students() {
   };
 
   // Filter and sort
-  const filteredStudents = students.filter(student => 
-    student.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    student.email.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    (student.subjects && student.subjects.some((s: string) => s.toLowerCase().includes(searchQuery.toLowerCase())))
+  const filteredStudents = students.filter(
+    (student) =>
+      student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (student.subjects && student.subjects.some((s: string) => s.toLowerCase().includes(searchQuery.toLowerCase()))),
   );
 
   const sortedStudents = [...filteredStudents].sort((a, b) => {
     let aValue: any = a[sortField];
     let bValue: any = b[sortField];
-    
-    if (sortField === 'name') {
+
+    if (sortField === "name") {
       aValue = a.name.toLowerCase();
       bValue = b.name.toLowerCase();
     }
-    
-    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+
+    if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+    if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
     return 0;
   });
 
@@ -234,7 +251,7 @@ export default function Students() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedStudents = sortedStudents.slice(startIndex, startIndex + itemsPerPage);
 
-  const allSelected = paginatedStudents.length > 0 && paginatedStudents.every(s => selectedStudents.has(s.id));
+  const allSelected = paginatedStudents.length > 0 && paginatedStudents.every((s) => selectedStudents.has(s.id));
   return (
     <div className="min-h-screen bg-background">
       <div className="p-4 md:p-8 space-y-6 md:space-y-8 animate-fade-in">
@@ -254,160 +271,204 @@ export default function Students() {
                   <span className="sm:hidden">Add</span>
                 </Button>
               </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>Add New Student</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" placeholder="Enter student's full name" value={formData.name} onChange={e => setFormData({
-                    ...formData,
-                    name: e.target.value
-                  })} />
-                  {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="student@email.com" value={formData.email} onChange={e => setFormData({
-                    ...formData,
-                    email: e.target.value
-                  })} />
-                  {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input id="phone" placeholder="+233 24 123 4567" value={formData.phone} onChange={e => setFormData({
-                    ...formData,
-                    phone: e.target.value
-                  })} />
-                  {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="grade">Grade</Label>
-                  <Select value={formData.grade} onValueChange={value => setFormData({
-                    ...formData,
-                    grade: value
-                  })}>
-                    <SelectTrigger id="grade">
-                      <SelectValue placeholder="Select grade" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Beginner">Beginner</SelectItem>
-                      <SelectItem value="Intermediate">Intermediate</SelectItem>
-                      <SelectItem value="Advanced">Advanced</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.grade && <p className="text-sm text-destructive">{errors.grade}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="instrument">Instrument</Label>
-                  <Select value={formData.instrument} onValueChange={value => setFormData({
-                    ...formData,
-                    instrument: value
-                  })}>
-                    <SelectTrigger id="instrument">
-                      <SelectValue placeholder="Select instrument" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background z-50">
-                      {instruments.map(instrument => <SelectItem key={instrument} value={instrument}>
-                          {instrument}
-                        </SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  {errors.instrument && <p className="text-sm text-destructive">{errors.instrument}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="date_of_birth">Date of Birth (Optional)</Label>
-                  <Input 
-                    id="date_of_birth" 
-                    type="date"
-                    value={formData.date_of_birth}
-                    onChange={e => setFormData({
-                      ...formData,
-                      date_of_birth: e.target.value
-                    })}
-                  />
-                  {errors.date_of_birth && <p className="text-sm text-destructive">{errors.date_of_birth}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="address">Address (Optional)</Label>
-                  <Input 
-                    id="address" 
-                    placeholder="123 Music Street, Accra"
-                    value={formData.address}
-                    onChange={e => setFormData({
-                      ...formData,
-                      address: e.target.value
-                    })}
-                  />
-                  {errors.address && <p className="text-sm text-destructive">{errors.address}</p>}
-                </div>
-
-                <div className="border-t pt-4 space-y-4">
-                  <h3 className="text-sm font-semibold">Parent/Guardian Information (Optional)</h3>
-                  
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Add New Student</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label htmlFor="parent_name">Parent/Guardian Name</Label>
-                    <Input 
-                      id="parent_name" 
-                      placeholder="Jennifer Johnson"
-                      value={formData.parent_name}
-                      onChange={e => setFormData({
-                        ...formData,
-                        parent_name: e.target.value
-                      })}
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input
+                      id="name"
+                      placeholder="Enter student's full name"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          name: e.target.value,
+                        })
+                      }
                     />
-                    {errors.parent_name && <p className="text-sm text-destructive">{errors.parent_name}</p>}
+                    {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="parent_email">Parent/Guardian Email</Label>
-                    <Input 
-                      id="parent_email" 
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
                       type="email"
-                      placeholder="parent@email.com"
-                      value={formData.parent_email}
-                      onChange={e => setFormData({
-                        ...formData,
-                        parent_email: e.target.value
-                      })}
+                      placeholder="student@email.com"
+                      value={formData.email}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          email: e.target.value,
+                        })
+                      }
                     />
-                    {errors.parent_email && <p className="text-sm text-destructive">{errors.parent_email}</p>}
+                    {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="parent_phone">Parent/Guardian Phone</Label>
-                    <Input 
-                      id="parent_phone" 
-                      placeholder="+233 24 123 4560"
-                      value={formData.parent_phone}
-                      onChange={e => setFormData({
-                        ...formData,
-                        parent_phone: e.target.value
-                      })}
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input
+                      id="phone"
+                      placeholder="+233 24 123 4567"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          phone: e.target.value,
+                        })
+                      }
                     />
-                    {errors.parent_phone && <p className="text-sm text-destructive">{errors.parent_phone}</p>}
+                    {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="grade">Grade</Label>
+                    <Select
+                      value={formData.grade}
+                      onValueChange={(value) =>
+                        setFormData({
+                          ...formData,
+                          grade: value,
+                        })
+                      }
+                    >
+                      <SelectTrigger id="grade">
+                        <SelectValue placeholder="Select grade" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Beginner">Beginner</SelectItem>
+                        <SelectItem value="Intermediate">Intermediate</SelectItem>
+                        <SelectItem value="Advanced">Advanced</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors.grade && <p className="text-sm text-destructive">{errors.grade}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="instrument">Instrument</Label>
+                    <Select
+                      value={formData.instrument}
+                      onValueChange={(value) =>
+                        setFormData({
+                          ...formData,
+                          instrument: value,
+                        })
+                      }
+                    >
+                      <SelectTrigger id="instrument">
+                        <SelectValue placeholder="Select instrument" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background z-50">
+                        {instruments.map((instrument) => (
+                          <SelectItem key={instrument} value={instrument}>
+                            {instrument}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.instrument && <p className="text-sm text-destructive">{errors.instrument}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="date_of_birth">Date of Birth (Optional)</Label>
+                    <Input
+                      id="date_of_birth"
+                      type="date"
+                      value={formData.date_of_birth}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          date_of_birth: e.target.value,
+                        })
+                      }
+                    />
+                    {errors.date_of_birth && <p className="text-sm text-destructive">{errors.date_of_birth}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Address (Optional)</Label>
+                    <Input
+                      id="address"
+                      placeholder="123 Music Street, Accra"
+                      value={formData.address}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          address: e.target.value,
+                        })
+                      }
+                    />
+                    {errors.address && <p className="text-sm text-destructive">{errors.address}</p>}
+                  </div>
+
+                  <div className="border-t pt-4 space-y-4">
+                    <h3 className="text-sm font-semibold">Parent/Guardian Information (Optional)</h3>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="parent_name">Parent/Guardian Name</Label>
+                      <Input
+                        id="parent_name"
+                        placeholder="Jennifer Johnson"
+                        value={formData.parent_name}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            parent_name: e.target.value,
+                          })
+                        }
+                      />
+                      {errors.parent_name && <p className="text-sm text-destructive">{errors.parent_name}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="parent_email">Parent/Guardian Email</Label>
+                      <Input
+                        id="parent_email"
+                        type="email"
+                        placeholder="parent@email.com"
+                        value={formData.parent_email}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            parent_email: e.target.value,
+                          })
+                        }
+                      />
+                      {errors.parent_email && <p className="text-sm text-destructive">{errors.parent_email}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="parent_phone">Parent/Guardian Phone</Label>
+                      <Input
+                        id="parent_phone"
+                        placeholder="+233 24 123 4560"
+                        value={formData.parent_phone}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            parent_phone: e.target.value,
+                          })
+                        }
+                      />
+                      {errors.parent_phone && <p className="text-sm text-destructive">{errors.parent_phone}</p>}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <Button variant="outline" className="flex-1" onClick={() => setDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button className="flex-1 gradient-primary text-primary-foreground" onClick={handleAddStudent}>
+                      Add Student
+                    </Button>
                   </div>
                 </div>
-
-                <div className="flex gap-3 pt-4">
-                  <Button variant="outline" className="flex-1" onClick={() => setDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button className="flex-1 gradient-primary text-primary-foreground" onClick={handleAddStudent}>
-                    Add Student
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
@@ -417,23 +478,19 @@ export default function Students() {
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input 
-                  placeholder="Search students..." 
-                  value={searchQuery} 
-                  onChange={e => {
+                <Input
+                  placeholder="Search students..."
+                  value={searchQuery}
+                  onChange={(e) => {
                     setSearchQuery(e.target.value);
                     setCurrentPage(1);
-                  }} 
-                  className="pl-10" 
+                  }}
+                  className="pl-10"
                 />
               </div>
               <div className="flex gap-2">
                 {selectedStudents.size > 0 && (
-                  <Button 
-                    variant="destructive" 
-                    size="default"
-                    onClick={handleBulkDelete}
-                  >
+                  <Button variant="destructive" size="default" onClick={handleBulkDelete}>
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete ({selectedStudents.size})
                   </Button>
@@ -473,7 +530,9 @@ export default function Students() {
                 <div>
                   <h3 className="text-xl font-semibold mb-2">No students yet</h3>
                   <p className="text-muted-foreground mb-6">
-                    {searchQuery ? "No students match your search." : "Get started by adding your first student or importing from CSV."}
+                    {searchQuery
+                      ? "No students match your search."
+                      : "Get started by adding your first student or importing from CSV."}
                   </p>
                   {!searchQuery && (
                     <Button onClick={() => setDialogOpen(true)} className="gradient-primary text-primary-foreground">
@@ -489,8 +548,8 @@ export default function Students() {
           // Mobile: Card View
           <div className="space-y-4">
             {paginatedStudents.map((student, index) => (
-              <Card 
-                key={student.id} 
+              <Card
+                key={student.id}
                 className="shadow-card hover:shadow-lg transition-shadow cursor-pointer"
                 onClick={() => navigate(`/students/${student.id}`)}
               >
@@ -507,9 +566,7 @@ export default function Students() {
                           <h3 className="font-semibold text-lg">{student.name}</h3>
                           <p className="text-sm text-muted-foreground">{student.email}</p>
                         </div>
-                        <Badge variant={student.status === "active" ? "default" : "secondary"}>
-                          {student.status}
-                        </Badge>
+                        <Badge variant={student.status === "active" ? "default" : "secondary"}>{student.status}</Badge>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>
@@ -518,13 +575,22 @@ export default function Students() {
                         </div>
                         <div>
                           <span className="text-muted-foreground">Grade:</span>
-                          <p><Badge className={getLevelColor(student.grade || "Beginner")}>{student.grade || "Beginner"}</Badge></p>
+                          <p>
+                            <Badge className={getLevelColor(student.grade || "Beginner")}>
+                              {student.grade || "Beginner"}
+                            </Badge>
+                          </p>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm" className="w-full" onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/students/${student.id}`);
-                      }}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/students/${student.id}`);
+                        }}
+                      >
                         <Eye className="h-4 w-4 mr-2" />
                         View Profile
                       </Button>
@@ -542,19 +608,16 @@ export default function Students() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[50px]">
-                      <Checkbox
-                        checked={allSelected}
-                        onCheckedChange={handleSelectAll}
-                      />
+                      <Checkbox checked={allSelected} onCheckedChange={handleSelectAll} />
                     </TableHead>
-                    <TableHead className="w-[250px] cursor-pointer" onClick={() => handleSort('name')}>
+                    <TableHead className="w-[250px] cursor-pointer" onClick={() => handleSort("name")}>
                       <div className="flex items-center gap-2">
                         Student
                         <ArrowUpDown className="h-4 w-4" />
                       </div>
                     </TableHead>
                     <TableHead>Instrument</TableHead>
-                    <TableHead className="cursor-pointer" onClick={() => handleSort('grade')}>
+                    <TableHead className="cursor-pointer" onClick={() => handleSort("grade")}>
                       <div className="flex items-center gap-2">
                         Grade
                         <ArrowUpDown className="h-4 w-4" />
@@ -563,13 +626,12 @@ export default function Students() {
                     <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedStudents.map((student) => (
-                    <TableRow 
-                      key={student.id} 
+                    <TableRow
+                      key={student.id}
                       className="cursor-pointer hover:bg-muted/50 transition-colors"
                       onClick={() => navigate(`/students/${student.id}`)}
                     >
@@ -601,14 +663,12 @@ export default function Students() {
                         <span className="text-sm">{student.phone || "N/A"}</span>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={student.status === "active" ? "default" : "secondary"}>
-                          {student.status}
-                        </Badge>
+                        <Badge variant={student.status === "active" ? "default" : "secondary"}>{student.status}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
                             navigate(`/students/${student.id}`);
@@ -631,19 +691,15 @@ export default function Students() {
           <Pagination>
             <PaginationContent>
               <PaginationItem>
-                <PaginationPrevious 
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                <PaginationPrevious
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                 />
               </PaginationItem>
-              
+
               {[...Array(totalPages)].map((_, i) => {
                 const page = i + 1;
-                if (
-                  page === 1 ||
-                  page === totalPages ||
-                  (page >= currentPage - 1 && page <= currentPage + 1)
-                ) {
+                if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
                   return (
                     <PaginationItem key={page}>
                       <PaginationLink
@@ -660,10 +716,10 @@ export default function Students() {
                 }
                 return null;
               })}
-              
+
               <PaginationItem>
-                <PaginationNext 
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                <PaginationNext
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
                 />
               </PaginationItem>
@@ -678,12 +734,16 @@ export default function Students() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete {selectedStudents.size} student{selectedStudents.size > 1 ? 's' : ''}. This action cannot be undone.
+              This will permanently delete {selectedStudents.size} student{selectedStudents.size > 1 ? "s" : ""}. This
+              action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
