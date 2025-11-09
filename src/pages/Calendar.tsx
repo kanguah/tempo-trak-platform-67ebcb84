@@ -132,6 +132,7 @@ export default function Calendar() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [matchDialogOpen, setMatchDialogOpen] = useState(false);
+  const [selectedInstrument, setSelectedInstrument] = useState<string | null>(null);
   const [newLesson, setNewLesson] = useState({
     studentId: "",
     tutorId: "",
@@ -205,6 +206,15 @@ export default function Calendar() {
     duration: lesson.duration / 60, // Convert minutes to hours
     room: lesson.room,
   }));
+
+  // Filter lessons by selected instrument
+  const filteredLessons = selectedInstrument
+    ? lessons.filter((lesson) => lesson.instrument === selectedInstrument)
+    : lessons;
+
+  const handleInstrumentClick = (instrument: string) => {
+    setSelectedInstrument(selectedInstrument === instrument ? null : instrument);
+  };
 
   // Add lesson mutation
   const addLessonMutation = useMutation({
@@ -317,7 +327,7 @@ export default function Calendar() {
     updatedLesson: { day: number; time: string; tutorId: string; studentId: string; room?: string },
     excludeId?: string,
   ) => {
-    return lessons.some((lesson) => {
+    return filteredLessons.some((lesson) => {
       if (excludeId && lesson.id === excludeId) return false;
       if (lesson.day !== updatedLesson.day || lesson.time !== updatedLesson.time) return false;
       return (
@@ -340,7 +350,7 @@ export default function Calendar() {
 
     const lessonId = active.id as string;
     const [dayIndex, time] = (over.id as string).split("-");
-    const lesson = lessons.find((l) => l.id === lessonId);
+    const lesson = filteredLessons.find((l) => l.id === lessonId);
 
     if (!lesson) return;
 
@@ -377,7 +387,7 @@ export default function Calendar() {
     }, 2000);
   };
 
-  const activeDragLesson = activeId ? lessons.find((l) => l.id === activeId) : null;
+  const activeDragLesson = activeId ? filteredLessons.find((l) => l.id === activeId) : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -733,7 +743,7 @@ export default function Calendar() {
                       <div key={time} className="grid grid-cols-8 gap-2">
                         <div className="text-sm text-muted-foreground text-center py-4 font-medium">{time}</div>
                         {daysOfWeek.map((_, dayIndex) => {
-                          const lesson = lessons.find((l) => l.day === dayIndex && l.time === time);
+                          const lesson = filteredLessons.find((l) => l.day === dayIndex && l.time === time);
 
                           return (
                             <DroppableSlot key={`${dayIndex}-${time}`} dayIndex={dayIndex} time={time}>
@@ -798,16 +808,37 @@ export default function Calendar() {
               <CardTitle className="text-lg flex items-center gap-2">
                 <Music className="h-5 w-5 text-primary" />
                 Instrument Legend
+                {selectedInstrument && (
+                  <Badge variant="outline" className="ml-auto">
+                    Filtering: {selectedInstrument}
+                  </Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-3">
                 {["Piano", "Guitar", "Violin", "Drums", "Voice"].map((instrument) => (
-                  <Badge key={instrument} className={getInstrumentColor(instrument)}>
+                  <Badge
+                    key={instrument}
+                    className={`${getInstrumentColor(instrument)} cursor-pointer transition-all hover:scale-105 ${
+                      selectedInstrument === instrument ? "ring-2 ring-foreground ring-offset-2" : ""
+                    }`}
+                    onClick={() => handleInstrumentClick(instrument)}
+                  >
                     {instrument}
                   </Badge>
                 ))}
               </div>
+              {selectedInstrument && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-3 w-full"
+                  onClick={() => setSelectedInstrument(null)}
+                >
+                  Clear Filter
+                </Button>
+              )}
             </CardContent>
           </Card>
         </div>
