@@ -1,273 +1,182 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Mail, Phone, Music, Calendar, DollarSign, Award, MessageSquare } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Music, Calendar, DollarSign, CheckCircle, XCircle, Clock, Edit, Trash2, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
+
 const editStudentSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
   phone: z.string().trim().min(1, "Phone is required").max(20, "Phone must be less than 20 characters"),
-  instrument: z.string().min(1, "Instrument is required"),
-  level: z.string().min(1, "Level is required"),
-  parentName: z.string().trim().max(100, "Parent name must be less than 100 characters").optional(),
-  parentEmail: z.string().trim().email("Invalid parent email").max(255, "Parent email must be less than 255 characters").optional().or(z.literal("")),
-  parentPhone: z.string().trim().max(20, "Parent phone must be less than 20 characters").optional(),
-  dateOfBirth: z.string().min(1, "Date of birth is required"),
-  address: z.string().trim().max(200, "Address must be less than 200 characters")
+  grade: z.string().min(1, "Grade is required"),
+  status: z.string().min(1, "Status is required")
 });
 
-// Mock data - replace with actual data fetching
-const studentData = {
-  "1": {
-    id: 1,
-    name: "Sarah Johnson",
-    instrument: "Piano",
-    level: "Advanced",
-    email: "sarah.j@email.com",
-    phone: "+233 24 123 4567",
-    status: "Active",
-    avatar: "SJ",
-    parentName: "Jennifer Johnson",
-    parentEmail: "jennifer.j@email.com",
-    parentPhone: "+233 24 123 4560",
-    enrollmentDate: "Jan 15, 2023",
-    address: "123 Music Street, Accra",
-    dateOfBirth: "March 12, 2008"
-  }
-};
-const enrollmentHistory = [{
-  date: "Jan 15, 2023",
-  package: "Piano - Beginner Package",
-  status: "Completed",
-  duration: "6 months"
-}, {
-  date: "Jul 20, 2023",
-  package: "Piano - Intermediate Package",
-  status: "Completed",
-  duration: "6 months"
-}, {
-  date: "Jan 10, 2024",
-  package: "Piano - Advanced Package",
-  status: "Active",
-  duration: "Ongoing"
-}];
-const paymentRecords = [{
-  date: "Nov 15, 2024",
-  amount: "GH₵ 800",
-  method: "MTN MoMo",
-  status: "Paid",
-  invoiceNo: "INV-2024-1145"
-}, {
-  date: "Oct 15, 2024",
-  amount: "GH₵ 800",
-  method: "Bank Transfer",
-  status: "Paid",
-  invoiceNo: "INV-2024-1098"
-}, {
-  date: "Sep 15, 2024",
-  amount: "GH₵ 800",
-  method: "Cash",
-  status: "Paid",
-  invoiceNo: "INV-2024-1052"
-}, {
-  date: "Dec 15, 2024",
-  amount: "GH₵ 800",
-  method: "Pending",
-  status: "Pending",
-  invoiceNo: "INV-2024-1189"
-}];
-const attendanceTimeline = [{
-  date: "Nov 20, 2024",
-  time: "9:00 AM",
-  tutor: "Mr. David",
-  status: "Present",
-  topic: "Sonata in C Major"
-}, {
-  date: "Nov 18, 2024",
-  time: "9:00 AM",
-  tutor: "Mr. David",
-  status: "Present",
-  topic: "Bach Prelude No. 1"
-}, {
-  date: "Nov 15, 2024",
-  time: "9:00 AM",
-  tutor: "Mr. David",
-  status: "Present",
-  topic: "Scales & Arpeggios"
-}, {
-  date: "Nov 13, 2024",
-  time: "9:00 AM",
-  tutor: "Mr. David",
-  status: "Absent",
-  topic: "Chord Progressions"
-}, {
-  date: "Nov 11, 2024",
-  time: "9:00 AM",
-  tutor: "Mr. David",
-  status: "Present",
-  topic: "Sight Reading"
-}];
-const progressReports = [{
-  term: "Term 3, 2024",
-  date: "Oct 31, 2024",
-  technicalSkills: 95,
-  musicTheory: 88,
-  performance: 92,
-  practice: 85,
-  comments: "Exceptional progress! Sarah demonstrates outstanding technique and musicality. Her performance of Chopin's Nocturne was remarkable."
-}, {
-  term: "Term 2, 2024",
-  date: "Jul 31, 2024",
-  technicalSkills: 90,
-  musicTheory: 85,
-  performance: 88,
-  practice: 80,
-  comments: "Consistent improvement across all areas. Sarah needs to focus more on sight-reading exercises."
-}];
-const communications = [{
-  date: "Nov 22, 2024",
-  type: "Email",
-  from: "Admin",
-  subject: "Upcoming Recital",
-  message: "Reminder about the annual recital on Dec 15th. Sarah will perform Moonlight Sonata."
-}, {
-  date: "Nov 10, 2024",
-  type: "WhatsApp",
-  from: "Mr. David",
-  subject: "Practice Recommendation",
-  message: "Please encourage Sarah to practice scales for 15 minutes daily."
-}, {
-  date: "Oct 28, 2024",
-  type: "Phone",
-  from: "Parent",
-  subject: "Schedule Change Request",
-  message: "Requested to move lesson from Monday to Wednesday."
-}, {
-  date: "Oct 15, 2024",
-  type: "Email",
-  from: "Admin",
-  subject: "Payment Confirmation",
-  message: "Payment received for October tuition. Thank you!"
-}];
+const instruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Cello", "Trumpet", "Bass"];
+
 export default function StudentProfile() {
-  const {
-    id
-  } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [students, setStudents] = useState(() => {
-    const savedStudents = localStorage.getItem("academy-students");
-    return savedStudents ? JSON.parse(savedStudents) : [];
-  });
-  const student = students.find((s: any) => s.id === Number(id)) || studentData[id as keyof typeof studentData];
-  const parseDateOfBirth = (dob: string) => {
-    if (!dob) return {
-      day: "",
-      month: "",
-      year: ""
-    };
-    const date = new Date(dob);
-    if (!isNaN(date.getTime())) {
-      return {
-        day: date.getDate().toString(),
-        month: (date.getMonth() + 1).toString(),
-        year: date.getFullYear().toString()
-      };
-    }
-    return {
-      day: "",
-      month: "",
-      year: ""
-    };
-  };
-  const [hasParent, setHasParent] = useState(true);
-  const [formData, setFormData] = useState({
-    name: student?.name || "",
-    email: student?.email || "",
-    phone: student?.phone || "",
-    instrument: student?.instrument || "",
-    level: student?.level || "",
-    parentName: student?.parentName || "",
-    parentEmail: student?.parentEmail || "",
-    parentPhone: student?.parentPhone || "",
-    dateOfBirth: student?.dateOfBirth || "",
-    address: student?.address || "",
-    dobDay: parseDateOfBirth(student?.dateOfBirth || "").day,
-    dobMonth: parseDateOfBirth(student?.dateOfBirth || "").month,
-    dobYear: parseDateOfBirth(student?.dateOfBirth || "").year
-  });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  useEffect(() => {
-    localStorage.setItem("academy-students", JSON.stringify(students));
-  }, [students]);
+
+  // Fetch student data
+  const { data: student, isLoading: studentLoading } = useQuery({
+    queryKey: ['student', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('students')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', user?.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user && !!id,
+  });
+
+  // Fetch attendance records
+  const { data: attendanceRecords = [] } = useQuery({
+    queryKey: ['attendance', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('student_id', id)
+        .eq('user_id', user?.id)
+        .order('lesson_date', { ascending: false })
+        .limit(20);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user && !!id,
+  });
+
+  // Fetch payment records
+  const { data: paymentRecords = [] } = useQuery({
+    queryKey: ['payments', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('student_id', id)
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user && !!id,
+  });
+
+  // Fetch lessons
+  const { data: lessons = [] } = useQuery({
+    queryKey: ['lessons', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('lessons')
+        .select('*')
+        .eq('student_id', id)
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user && !!id,
+  });
+
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    grade: "",
+    status: "active"
+  });
+
   useEffect(() => {
     if (student) {
-      const parsed = parseDateOfBirth(student.dateOfBirth || "");
       setFormData({
         name: student.name || "",
         email: student.email || "",
         phone: student.phone || "",
-        instrument: student.instrument || "",
-        level: student.level || "",
-        parentName: student.parentName || "",
-        parentEmail: student.parentEmail || "",
-        parentPhone: student.parentPhone || "",
-        dateOfBirth: student.dateOfBirth || "",
-        address: student.address || "",
-        dobDay: parsed.day,
-        dobMonth: parsed.month,
-        dobYear: parsed.year
+        grade: student.grade || "",
+        status: student.status || "active"
       });
     }
   }, [student]);
-  if (!student) {
-    return <div className="p-8">Student not found</div>;
-  }
-  const handleUpdateStudent = () => {
-    try {
-      const combinedDob = formData.dobDay && formData.dobMonth && formData.dobYear ? `${new Date(parseInt(formData.dobYear), parseInt(formData.dobMonth) - 1, parseInt(formData.dobDay)).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      })}` : formData.dateOfBirth;
-      const dataToValidate = {
-        ...formData,
-        dateOfBirth: combinedDob,
-        parentName: hasParent ? formData.parentName : "",
-        parentEmail: hasParent ? formData.parentEmail : "",
-        parentPhone: hasParent ? formData.parentPhone : ""
-      };
-      const validated = editStudentSchema.parse(dataToValidate);
-      const updatedStudents = students.map((s: any) => s.id === Number(id) ? {
-        ...s,
-        name: validated.name,
-        email: validated.email,
-        phone: validated.phone,
-        instrument: validated.instrument,
-        level: validated.level,
-        parentName: validated.parentName,
-        parentEmail: validated.parentEmail,
-        parentPhone: validated.parentPhone,
-        dateOfBirth: validated.dateOfBirth,
-        address: validated.address,
-        avatar: validated.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
-      } : s);
-      setStudents(updatedStudents);
+
+  const updateStudentMutation = useMutation({
+    mutationFn: async (updatedData: any) => {
+      const { data, error } = await supabase
+        .from('students')
+        .update(updatedData)
+        .eq('id', id)
+        .eq('user_id', user?.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['student', id] });
+      queryClient.invalidateQueries({ queryKey: ['students'] });
       setDialogOpen(false);
       setErrors({});
-      toast.success(`${validated.name}'s profile updated successfully!`);
+      toast.success("Student profile updated successfully!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update student");
+    }
+  });
+
+  const deleteStudentMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('students')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user?.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      toast.success("Student deleted successfully!");
+      navigate('/students');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to delete student");
+    }
+  });
+
+  const handleUpdateStudent = () => {
+    try {
+      const validated = editStudentSchema.parse(formData);
+      updateStudentMutation.mutate(validated);
     } catch (error) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
@@ -280,288 +189,168 @@ export default function StudentProfile() {
       }
     }
   };
+
+  const handleDelete = () => {
+    deleteStudentMutation.mutate();
+  };
+
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Present":
-      case "Paid":
-      case "Active":
+    switch (status?.toLowerCase()) {
+      case "present":
+      case "completed":
+      case "active":
+        return "bg-green-500/10 text-green-600 border-green-500/20";
+      case "absent":
+      case "pending":
+        return "bg-orange-500/10 text-orange-600 border-orange-500/20";
+      case "inactive":
+      case "failed":
+        return "bg-red-500/10 text-red-600 border-red-500/20";
+      default:
+        return "bg-muted text-muted-foreground";
+    }
+  };
+
+  const getLevelColor = (level: string) => {
+    switch (level) {
+      case "Advanced":
         return "bg-accent text-accent-foreground";
-      case "Absent":
-      case "Pending":
+      case "Intermediate":
+        return "bg-primary text-primary-foreground";
+      case "Beginner":
         return "bg-secondary text-secondary-foreground";
       default:
         return "bg-muted text-muted-foreground";
     }
   };
-  return <div className="min-h-screen bg-background">
-      <div className="p-8 space-y-8 animate-fade-in">
+
+  const calculateAttendanceRate = () => {
+    if (attendanceRecords.length === 0) return 0;
+    const present = attendanceRecords.filter(r => r.status === 'present').length;
+    return Math.round((present / attendanceRecords.length) * 100);
+  };
+
+  const calculateTotalPaid = () => {
+    return paymentRecords
+      .filter(p => p.status === 'completed')
+      .reduce((sum, p) => sum + Number(p.amount), 0);
+  };
+
+  const calculateOutstanding = () => {
+    return paymentRecords
+      .filter(p => p.status === 'pending')
+      .reduce((sum, p) => sum + Number(p.amount), 0);
+  };
+
+  if (studentLoading) {
+    return (
+      <div className="min-h-screen bg-background p-4 md:p-8">
+        <div className="space-y-6">
+          <Skeleton className="h-12 w-64" />
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-96 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!student) {
+    return (
+      <div className="min-h-screen bg-background p-4 md:p-8">
+        <Card>
+          <CardContent className="p-12 text-center">
+            <p className="text-muted-foreground mb-4">Student not found</p>
+            <Button onClick={() => navigate('/students')}>
+              Back to Students
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const getInitials = (name: string) => {
+    return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="p-4 md:p-8 space-y-6 md:space-y-8 animate-fade-in">
         {/* Header */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/students")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-4xl font-bold text-foreground">Student Profile</h1>
-            <p className="text-muted-foreground">Comprehensive student information and history</p>
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground">Student Profile</h1>
+            <p className="text-muted-foreground">Comprehensive student information</p>
           </div>
-          <Button className="gradient-primary text-primary-foreground shadow-primary" onClick={() => setDialogOpen(true)}>
-            Edit Profile
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="icon" onClick={() => setDeleteDialogOpen(true)}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+            <Button className="gradient-primary text-primary-foreground shadow-primary" onClick={() => setDialogOpen(true)}>
+              <Edit className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Edit</span>
+            </Button>
+          </div>
         </div>
-
-        {/* Edit Student Dialog */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Edit Student Profile</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2 col-span-2">
-                  <Label htmlFor="edit-name">Full Name</Label>
-                  <Input id="edit-name" placeholder="Enter student's full name" value={formData.name} onChange={e => setFormData({
-                  ...formData,
-                  name: e.target.value
-                })} />
-                  {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="edit-email">Email</Label>
-                  <Input id="edit-email" type="email" placeholder="student@email.com" value={formData.email} onChange={e => setFormData({
-                  ...formData,
-                  email: e.target.value
-                })} />
-                  {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-phone">Phone</Label>
-                  <Input id="edit-phone" placeholder="+233 24 123 4567" value={formData.phone} onChange={e => setFormData({
-                  ...formData,
-                  phone: e.target.value
-                })} />
-                  {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-instrument">Instrument</Label>
-                  <Select value={formData.instrument} onValueChange={value => setFormData({
-                  ...formData,
-                  instrument: value
-                })}>
-                    <SelectTrigger id="edit-instrument">
-                      <SelectValue placeholder="Select instrument" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Piano">Piano</SelectItem>
-                      <SelectItem value="Guitar">Guitar</SelectItem>
-                      <SelectItem value="Violin">Violin</SelectItem>
-                      <SelectItem value="Drums">Drums</SelectItem>
-                      <SelectItem value="Voice">Voice</SelectItem>
-                      <SelectItem value="Saxophone">Saxophone</SelectItem>
-                      <SelectItem value="Flute">Flute</SelectItem>
-                      <SelectItem value="Bass">Bass</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.instrument && <p className="text-sm text-destructive">{errors.instrument}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-level">Level</Label>
-                  <Select value={formData.level} onValueChange={value => setFormData({
-                  ...formData,
-                  level: value
-                })}>
-                    <SelectTrigger id="edit-level">
-                      <SelectValue placeholder="Select level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Beginner">Beginner</SelectItem>
-                      <SelectItem value="Intermediate">Intermediate</SelectItem>
-                      <SelectItem value="Advanced">Advanced</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.level && <p className="text-sm text-destructive">{errors.level}</p>}
-                </div>
-
-                <div className="space-y-2 col-span-2">
-                  <Label>Date of Birth</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <Select value={formData.dobMonth} onValueChange={value => setFormData({
-                    ...formData,
-                    dobMonth: value
-                  })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Month" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">January</SelectItem>
-                        <SelectItem value="2">February</SelectItem>
-                        <SelectItem value="3">March</SelectItem>
-                        <SelectItem value="4">April</SelectItem>
-                        <SelectItem value="5">May</SelectItem>
-                        <SelectItem value="6">June</SelectItem>
-                        <SelectItem value="7">July</SelectItem>
-                        <SelectItem value="8">August</SelectItem>
-                        <SelectItem value="9">September</SelectItem>
-                        <SelectItem value="10">October</SelectItem>
-                        <SelectItem value="11">November</SelectItem>
-                        <SelectItem value="12">December</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    
-                    <Select value={formData.dobDay} onValueChange={value => setFormData({
-                    ...formData,
-                    dobDay: value
-                  })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Day" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.from({
-                        length: 31
-                      }, (_, i) => i + 1).map(day => <SelectItem key={day} value={day.toString()}>{day}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    
-                    <Select value={formData.dobYear} onValueChange={value => setFormData({
-                    ...formData,
-                    dobYear: value
-                  })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Year" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.from({
-                        length: 100
-                      }, (_, i) => new Date().getFullYear() - i).map(year => <SelectItem key={year} value={year.toString()}>{year}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {errors.dateOfBirth && <p className="text-sm text-destructive">{errors.dateOfBirth}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-address">Address</Label>
-                  <Input id="edit-address" placeholder="123 Music Street, Accra" value={formData.address} onChange={e => setFormData({
-                  ...formData,
-                  address: e.target.value
-                })} />
-                  {errors.address && <p className="text-sm text-destructive">{errors.address}</p>}
-                </div>
-
-                <div className="col-span-2 pt-2">
-                  <div className="flex items-center justify-between mb-3">
-                    
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="parent-toggle" className="cursor-pointer">
-                        Add parent/guardian
-                      </Label>
-                      <Switch id="parent-toggle" checked={hasParent} onCheckedChange={setHasParent} />
-                    </div>
-                  </div>
-                </div>
-
-                {hasParent && <>
-                    <div className="space-y-2 col-span-2">
-                      <Label htmlFor="edit-parent-name">Parent/Guardian Name</Label>
-                      <Input id="edit-parent-name" placeholder="Parent's full name" value={formData.parentName} onChange={e => setFormData({
-                    ...formData,
-                    parentName: e.target.value
-                  })} />
-                      {errors.parentName && <p className="text-sm text-destructive">{errors.parentName}</p>}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-parent-email">Parent Email</Label>
-                      <Input id="edit-parent-email" type="email" placeholder="parent@email.com" value={formData.parentEmail} onChange={e => setFormData({
-                    ...formData,
-                    parentEmail: e.target.value
-                  })} />
-                      {errors.parentEmail && <p className="text-sm text-destructive">{errors.parentEmail}</p>}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-parent-phone">Parent Phone</Label>
-                      <Input id="edit-parent-phone" placeholder="+233 24 123 4560" value={formData.parentPhone} onChange={e => setFormData({
-                    ...formData,
-                    parentPhone: e.target.value
-                  })} />
-                      {errors.parentPhone && <p className="text-sm text-destructive">{errors.parentPhone}</p>}
-                    </div>
-                  </>}
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <Button variant="outline" className="flex-1" onClick={() => setDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button className="flex-1 gradient-primary text-primary-foreground" onClick={handleUpdateStudent}>
-                  Save Changes
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
 
         {/* Student Overview Card */}
         <Card className="shadow-card">
           <CardContent className="p-6">
-            <div className="flex items-start gap-6">
-              <Avatar className="h-24 w-24">
-                <AvatarFallback className="gradient-primary text-white text-2xl font-bold">
-                  {student.avatar}
-                </AvatarFallback>
-              </Avatar>
+            <div className="flex flex-col md:flex-row gap-6">
+              <div className="flex flex-col items-center md:items-start gap-4">
+                <Avatar className="h-24 w-24 gradient-primary text-3xl">
+                  <AvatarFallback className="text-primary-foreground font-bold">
+                    {getInitials(student.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <Badge variant="outline" className={getStatusColor(student.status)}>
+                  {student.status}
+                </Badge>
+              </div>
               
-              <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="flex-1 space-y-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground mb-2">{student.name}</h2>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Music className="h-4 w-4" />
-                      {student.instrument} - {student.level}
-                    </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Mail className="h-4 w-4" />
-                      {student.email}
-                    </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Phone className="h-4 w-4" />
-                      {student.phone}
-                    </div>
-                  </div>
+                  <h2 className="text-2xl md:text-3xl font-bold text-foreground">{student.name}</h2>
+                  <Badge className={getLevelColor(student.grade || "Beginner")} variant="outline">
+                    {student.grade || "Beginner"}
+                  </Badge>
                 </div>
 
-                <div>
-                  <h3 className="font-semibold text-foreground mb-2">Parent/Guardian</h3>
-                  <div className="space-y-2 text-sm">
-                    <p className="text-foreground">{student.parentName}</p>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Mail className="h-4 w-4" />
-                      {student.parentEmail}
-                    </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Phone className="h-4 w-4" />
-                      {student.parentPhone}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3">
+                    <Mail className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Email</p>
+                      <p className="text-sm font-medium">{student.email}</p>
                     </div>
                   </div>
-                </div>
 
-                <div>
-                  <h3 className="font-semibold text-foreground mb-2">Details</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">Status:</span>
-                      <Badge className={getStatusColor(student.status)}>{student.status}</Badge>
+                  <div className="flex items-center gap-3">
+                    <Phone className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Phone</p>
+                      <p className="text-sm font-medium">{student.phone || "N/A"}</p>
                     </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      DOB: {student.dateOfBirth}
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Music className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Instruments</p>
+                      <p className="text-sm font-medium">{student.subjects?.join(", ") || "None"}</p>
                     </div>
-                    <div className="text-muted-foreground">
-                      Enrolled: {student.enrollmentDate}
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Calendar className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Enrolled</p>
+                      <p className="text-sm font-medium">
+                        {format(new Date(student.enrollment_date), 'MMM dd, yyyy')}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -570,217 +359,319 @@ export default function StudentProfile() {
           </CardContent>
         </Card>
 
-        {/* Tabbed Content */}
-        <Tabs defaultValue="enrollment" className="space-y-6">
-          <TabsList className="w-full justify-start overflow-x-auto flex-wrap h-auto">
-            <TabsTrigger value="enrollment">Enrollment History</TabsTrigger>
-            <TabsTrigger value="payments">Payment Records</TabsTrigger>
-            <TabsTrigger value="attendance">Attendance Timeline</TabsTrigger>
-            <TabsTrigger value="progress">Progress Reports</TabsTrigger>
-            <TabsTrigger value="communications">Communications</TabsTrigger>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+          <Card className="shadow-card">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Attendance Rate
+              </CardTitle>
+              <CheckCircle className="h-5 w-5 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{calculateAttendanceRate()}%</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {attendanceRecords.filter(r => r.status === 'present').length} of {attendanceRecords.length} lessons
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-card">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total Paid
+              </CardTitle>
+              <DollarSign className="h-5 w-5 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">GH₵ {calculateTotalPaid().toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {paymentRecords.filter(p => p.status === 'completed').length} payments completed
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-card">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Outstanding
+              </CardTitle>
+              <Clock className="h-5 w-5 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">GH₵ {calculateOutstanding().toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {paymentRecords.filter(p => p.status === 'pending').length} pending payments
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Tabs for Details */}
+        <Tabs defaultValue="lessons" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="lessons">Lessons</TabsTrigger>
+            <TabsTrigger value="attendance">Attendance</TabsTrigger>
+            <TabsTrigger value="payments">Payments</TabsTrigger>
           </TabsList>
 
-          {/* Enrollment History */}
-          <TabsContent value="enrollment">
+          {/* Lessons Tab */}
+          <TabsContent value="lessons" className="space-y-4">
             <Card className="shadow-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-primary" />
-                  Enrollment History
+                  <BookOpen className="h-5 w-5" />
+                  Scheduled Lessons
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Package</TableHead>
-                      <TableHead>Duration</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {enrollmentHistory.map((record, index) => <TableRow key={index}>
-                        <TableCell className="font-medium">{record.date}</TableCell>
-                        <TableCell>{record.package}</TableCell>
-                        <TableCell>{record.duration}</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(record.status)}>{record.status}</Badge>
-                        </TableCell>
-                      </TableRow>)}
-                  </TableBody>
-                </Table>
+                {lessons.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">No lessons scheduled</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Day</TableHead>
+                        <TableHead>Time</TableHead>
+                        <TableHead>Subject</TableHead>
+                        <TableHead>Duration</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {lessons.map((lesson) => (
+                        <TableRow key={lesson.id}>
+                          <TableCell>
+                            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][lesson.day_of_week]}
+                          </TableCell>
+                          <TableCell>{lesson.start_time}</TableCell>
+                          <TableCell>{lesson.subject}</TableCell>
+                          <TableCell>{lesson.duration} min</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={getStatusColor(lesson.status)}>
+                              {lesson.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Payment Records */}
-          <TabsContent value="payments">
+          {/* Attendance Tab */}
+          <TabsContent value="attendance" className="space-y-4">
             <Card className="shadow-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-primary" />
-                  Payment Records
+                  <Calendar className="h-5 w-5" />
+                  Attendance History
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Invoice No.</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Method</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paymentRecords.map((payment, index) => <TableRow key={index}>
-                        <TableCell className="font-medium">{payment.invoiceNo}</TableCell>
-                        <TableCell>{payment.date}</TableCell>
-                        <TableCell className="font-semibold text-primary">{payment.amount}</TableCell>
-                        <TableCell>{payment.method}</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(payment.status)}>{payment.status}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="outline" size="sm">View Receipt</Button>
-                        </TableCell>
-                      </TableRow>)}
-                  </TableBody>
-                </Table>
+                {attendanceRecords.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">No attendance records</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Time</TableHead>
+                        <TableHead>Subject</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Feedback</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {attendanceRecords.map((record) => (
+                        <TableRow key={record.id}>
+                          <TableCell>
+                            {format(new Date(record.lesson_date), 'MMM dd, yyyy')}
+                          </TableCell>
+                          <TableCell>{record.start_time}</TableCell>
+                          <TableCell>{record.subject}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={getStatusColor(record.status)}>
+                              {record.status === 'present' ? (
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                              ) : (
+                                <XCircle className="h-3 w-3 mr-1" />
+                              )}
+                              {record.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="max-w-xs truncate">
+                            {record.feedback || "No feedback"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Attendance Timeline */}
-          <TabsContent value="attendance">
+          {/* Payments Tab */}
+          <TabsContent value="payments" className="space-y-4">
             <Card className="shadow-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-primary" />
-                  Attendance Timeline
+                  <DollarSign className="h-5 w-5" />
+                  Payment History
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Time</TableHead>
-                      <TableHead>Tutor</TableHead>
-                      <TableHead>Topic</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {attendanceTimeline.map((record, index) => <TableRow key={index}>
-                        <TableCell className="font-medium">{record.date}</TableCell>
-                        <TableCell>{record.time}</TableCell>
-                        <TableCell>{record.tutor}</TableCell>
-                        <TableCell>{record.topic}</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(record.status)}>{record.status}</Badge>
-                        </TableCell>
-                      </TableRow>)}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Progress Reports */}
-          <TabsContent value="progress">
-            <div className="space-y-6">
-              {progressReports.map((report, index) => <Card key={index} className="shadow-card">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-2">
-                        <Award className="h-5 w-5 text-primary" />
-                        {report.term}
-                      </CardTitle>
-                      <span className="text-sm text-muted-foreground">{report.date}</span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Technical Skills</span>
-                          <span className="font-semibold text-foreground">{report.technicalSkills}%</span>
-                        </div>
-                        <Progress value={report.technicalSkills} className="h-2" />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Music Theory</span>
-                          <span className="font-semibold text-foreground">{report.musicTheory}%</span>
-                        </div>
-                        <Progress value={report.musicTheory} className="h-2" />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Performance</span>
-                          <span className="font-semibold text-foreground">{report.performance}%</span>
-                        </div>
-                        <Progress value={report.performance} className="h-2" />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Practice Consistency</span>
-                          <span className="font-semibold text-foreground">{report.practice}%</span>
-                        </div>
-                        <Progress value={report.practice} className="h-2" />
-                      </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-border">
-                      <h4 className="font-semibold text-foreground mb-2">Tutor's Comments</h4>
-                      <p className="text-muted-foreground">{report.comments}</p>
-                    </div>
-
-                    <Button variant="outline" className="w-full">Download Report PDF</Button>
-                  </CardContent>
-                </Card>)}
-            </div>
-          </TabsContent>
-
-          {/* Communications */}
-          <TabsContent value="communications">
-            <Card className="shadow-card">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageSquare className="h-5 w-5 text-primary" />
-                    Communication Logs
-                  </CardTitle>
-                  <Button className="gradient-primary text-primary-foreground shadow-primary">
-                    New Message
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {communications.map((comm, index) => <div key={index} className="p-4 border border-border rounded-lg space-y-2 hover:shadow-card transition-all">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Badge variant="outline">{comm.type}</Badge>
-                          <span className="text-sm text-muted-foreground">From: {comm.from}</span>
-                        </div>
-                        <span className="text-sm text-muted-foreground">{comm.date}</span>
-                      </div>
-                      <h4 className="font-semibold text-foreground">{comm.subject}</h4>
-                      <p className="text-sm text-muted-foreground">{comm.message}</p>
-                    </div>)}
-                </div>
+                {paymentRecords.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">No payment records</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Due Date</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paymentRecords.map((payment) => (
+                        <TableRow key={payment.id}>
+                          <TableCell>
+                            {format(new Date(payment.created_at), 'MMM dd, yyyy')}
+                          </TableCell>
+                          <TableCell className="font-semibold">
+                            GH₵ {Number(payment.amount).toFixed(2)}
+                          </TableCell>
+                          <TableCell>{payment.description || "N/A"}</TableCell>
+                          <TableCell>
+                            {payment.due_date ? format(new Date(payment.due_date), 'MMM dd, yyyy') : "N/A"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={getStatusColor(payment.status)}>
+                              {payment.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
-    </div>;
+
+      {/* Edit Student Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Student Profile</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Full Name</Label>
+              <Input
+                id="edit-name"
+                placeholder="Enter student's full name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+              {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-email">Email</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                placeholder="student@email.com"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
+              {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-phone">Phone</Label>
+              <Input
+                id="edit-phone"
+                placeholder="+233 24 123 4567"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              />
+              {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-grade">Grade</Label>
+              <Select value={formData.grade} onValueChange={(value) => setFormData({ ...formData, grade: value })}>
+                <SelectTrigger id="edit-grade">
+                  <SelectValue placeholder="Select grade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Beginner">Beginner</SelectItem>
+                  <SelectItem value="Intermediate">Intermediate</SelectItem>
+                  <SelectItem value="Advanced">Advanced</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.grade && <p className="text-sm text-destructive">{errors.grade}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-status">Status</Label>
+              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                <SelectTrigger id="edit-status">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.status && <p className="text-sm text-destructive">{errors.status}</p>}
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button variant="outline" className="flex-1" onClick={() => setDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 gradient-primary text-primary-foreground"
+                onClick={handleUpdateStudent}
+                disabled={updateStudentMutation.isPending}
+              >
+                {updateStudentMutation.isPending ? "Updating..." : "Update Student"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {student.name}'s profile and all associated records. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
 }
