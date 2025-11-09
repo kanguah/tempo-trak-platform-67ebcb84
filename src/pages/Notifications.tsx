@@ -5,114 +5,106 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-
-const initialNotifications = [
-  {
-    id: 1,
-    type: "payment",
-    title: "Payment Received",
-    message: "Sarah Johnson paid GH₵ 450 via MTN MoMo",
-    time: "5 minutes ago",
-    read: false,
-    icon: CheckCircle,
-    color: "text-green-600",
-  },
-  {
-    id: 2,
-    type: "schedule",
-    title: "Schedule Change",
-    message: "Mr. Kofi rescheduled lesson with Emma Williams to 3:00 PM",
-    time: "1 hour ago",
-    read: false,
-    icon: Clock,
-    color: "text-orange-600",
-  },
-  {
-    id: 3,
-    type: "enrollment",
-    title: "New Student Enrolled",
-    message: "Alice Thompson enrolled in Piano lessons (8-lesson package)",
-    time: "2 hours ago",
-    read: false,
-    icon: CheckCircle,
-    color: "text-blue-600",
-  },
-  {
-    id: 4,
-    type: "alert",
-    title: "Payment Overdue",
-    message: "David Brown's payment is 5 days overdue (GH₵ 450)",
-    time: "3 hours ago",
-    read: false,
-    icon: AlertCircle,
-    color: "text-red-600",
-  },
-  {
-    id: 5,
-    type: "message",
-    title: "WhatsApp Message",
-    message: "New message from Robert Kim: 'When can I start classes?'",
-    time: "5 hours ago",
-    read: true,
-    icon: MessageSquare,
-    color: "text-primary",
-  },
-  {
-    id: 6,
-    type: "report",
-    title: "Monthly Report Ready",
-    message: "May attendance report is ready for download",
-    time: "1 day ago",
-    read: true,
-    icon: CheckCircle,
-    color: "text-green-600",
-  },
-];
-
+const initialNotifications = [{
+  id: 1,
+  type: "payment",
+  title: "Payment Received",
+  message: "Sarah Johnson paid GH₵ 450 via MTN MoMo",
+  time: "5 minutes ago",
+  read: false,
+  icon: CheckCircle,
+  color: "text-green-600"
+}, {
+  id: 2,
+  type: "schedule",
+  title: "Schedule Change",
+  message: "Mr. Kofi rescheduled lesson with Emma Williams to 3:00 PM",
+  time: "1 hour ago",
+  read: false,
+  icon: Clock,
+  color: "text-orange-600"
+}, {
+  id: 3,
+  type: "enrollment",
+  title: "New Student Enrolled",
+  message: "Alice Thompson enrolled in Piano lessons (8-lesson package)",
+  time: "2 hours ago",
+  read: false,
+  icon: CheckCircle,
+  color: "text-blue-600"
+}, {
+  id: 4,
+  type: "alert",
+  title: "Payment Overdue",
+  message: "David Brown's payment is 5 days overdue (GH₵ 450)",
+  time: "3 hours ago",
+  read: false,
+  icon: AlertCircle,
+  color: "text-red-600"
+}, {
+  id: 5,
+  type: "message",
+  title: "WhatsApp Message",
+  message: "New message from Robert Kim: 'When can I start classes?'",
+  time: "5 hours ago",
+  read: true,
+  icon: MessageSquare,
+  color: "text-primary"
+}, {
+  id: 6,
+  type: "report",
+  title: "Monthly Report Ready",
+  message: "May attendance report is ready for download",
+  time: "1 day ago",
+  read: true,
+  icon: CheckCircle,
+  color: "text-green-600"
+}];
 export default function Notifications() {
   const [notifications, setNotifications] = useState(initialNotifications);
   const [preferences, setPreferences] = useState({
     paymentReminders: true,
     scheduleChanges: true,
     newEnrollments: true,
-    marketingUpdates: false,
+    marketingUpdates: false
   });
-  const unreadCount = notifications.filter((n) => !n.read).length;
-
+  const unreadCount = notifications.filter(n => !n.read).length;
   const handleMarkAsRead = (id: number) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+    setNotifications(prev => prev.map(n => n.id === id ? {
+      ...n,
+      read: true
+    } : n));
     toast.success("Notification marked as read");
   };
-
   const handleMarkAsUnread = (id: number) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: false } : n))
-    );
+    setNotifications(prev => prev.map(n => n.id === id ? {
+      ...n,
+      read: false
+    } : n));
     toast.success("Notification marked as unread");
   };
-
   const handleDelete = (id: number) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    setNotifications(prev => prev.filter(n => n.id !== id));
     toast.success("Notification deleted");
   };
-
   const handleMarkAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setNotifications(prev => prev.map(n => ({
+      ...n,
+      read: true
+    })));
     toast.success("All notifications marked as read");
   };
-
   const handlePreferenceToggle = (key: keyof typeof preferences, label: string) => {
-    setPreferences((prev) => {
+    setPreferences(prev => {
       const newValue = !prev[key];
       toast.success(`${label} ${newValue ? "enabled" : "disabled"}`);
-      return { ...prev, [key]: newValue };
+      return {
+        ...prev,
+        [key]: newValue
+      };
     });
   };
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       <div className="p-8 space-y-8 animate-fade-in">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -185,14 +177,9 @@ export default function Notifications() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {notifications.map((notification, index) => (
-                <Card
-                  key={notification.id}
-                  className={`border-2 transition-all cursor-pointer hover:shadow-md animate-scale-in ${
-                    !notification.read ? "bg-primary/5 border-primary/20" : ""
-                  }`}
-                  style={{ animationDelay: `${index * 0.05}s` }}
-                >
+              {notifications.map((notification, index) => <Card key={notification.id} className={`border-2 transition-all cursor-pointer hover:shadow-md animate-scale-in ${!notification.read ? "bg-primary/5 border-primary/20" : ""}`} style={{
+              animationDelay: `${index * 0.05}s`
+            }}>
                   <CardContent className="p-4">
                     <div className="flex items-start gap-4">
                       <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-muted ${notification.color}`}>
@@ -203,50 +190,29 @@ export default function Notifications() {
                         <div className="flex items-center justify-between mb-1">
                           <h3 className="font-semibold text-foreground">{notification.title}</h3>
                           <div className="flex items-center gap-2">
-                            {!notification.read && (
-                              <Badge className="bg-primary text-primary-foreground">New</Badge>
-                            )}
+                            {!notification.read && <Badge className="bg-primary text-primary-foreground">New</Badge>}
                           </div>
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">{notification.message}</p>
                         <div className="flex items-center justify-between">
                           <p className="text-xs text-muted-foreground">{notification.time}</p>
                           <div className="flex items-center gap-2">
-                            {notification.read ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleMarkAsUnread(notification.id);
-                                }}
-                                className="h-8 text-xs"
-                              >
+                            {notification.read ? <Button variant="ghost" size="sm" onClick={e => {
+                          e.stopPropagation();
+                          handleMarkAsUnread(notification.id);
+                        }} className="h-8 text-xs">
                                 Mark Unread
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleMarkAsRead(notification.id);
-                                }}
-                                className="h-8 text-xs"
-                              >
+                              </Button> : <Button variant="ghost" size="sm" onClick={e => {
+                          e.stopPropagation();
+                          handleMarkAsRead(notification.id);
+                        }} className="h-8 text-xs">
                                 <Check className="h-3 w-3 mr-1" />
                                 Mark Read
-                              </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(notification.id);
-                              }}
-                              className="h-8 text-xs text-destructive hover:text-destructive"
-                            >
+                              </Button>}
+                            <Button variant="ghost" size="sm" onClick={e => {
+                          e.stopPropagation();
+                          handleDelete(notification.id);
+                        }} className="h-8 text-xs text-destructive hover:text-destructive">
                               <X className="h-3 w-3 mr-1" />
                               Delete
                             </Button>
@@ -255,8 +221,7 @@ export default function Notifications() {
                       </div>
                     </div>
                   </CardContent>
-                </Card>
-              ))}
+                </Card>)}
             </div>
           </CardContent>
         </Card>
@@ -274,13 +239,8 @@ export default function Notifications() {
                   <p className="text-sm text-muted-foreground">Notify me about pending payments</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Badge className={preferences.paymentReminders ? "bg-green-500/10 text-green-600" : "bg-gray-500/10 text-gray-600"}>
-                    {preferences.paymentReminders ? "Enabled" : "Disabled"}
-                  </Badge>
-                  <Switch
-                    checked={preferences.paymentReminders}
-                    onCheckedChange={() => handlePreferenceToggle("paymentReminders", "Payment reminders")}
-                  />
+                  
+                  <Switch checked={preferences.paymentReminders} onCheckedChange={() => handlePreferenceToggle("paymentReminders", "Payment reminders")} />
                 </div>
               </div>
 
@@ -290,13 +250,8 @@ export default function Notifications() {
                   <p className="text-sm text-muted-foreground">Alert me when lessons are rescheduled</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Badge className={preferences.scheduleChanges ? "bg-green-500/10 text-green-600" : "bg-gray-500/10 text-gray-600"}>
-                    {preferences.scheduleChanges ? "Enabled" : "Disabled"}
-                  </Badge>
-                  <Switch
-                    checked={preferences.scheduleChanges}
-                    onCheckedChange={() => handlePreferenceToggle("scheduleChanges", "Schedule change alerts")}
-                  />
+                  
+                  <Switch checked={preferences.scheduleChanges} onCheckedChange={() => handlePreferenceToggle("scheduleChanges", "Schedule change alerts")} />
                 </div>
               </div>
 
@@ -306,13 +261,8 @@ export default function Notifications() {
                   <p className="text-sm text-muted-foreground">Notify about new student registrations</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Badge className={preferences.newEnrollments ? "bg-green-500/10 text-green-600" : "bg-gray-500/10 text-gray-600"}>
-                    {preferences.newEnrollments ? "Enabled" : "Disabled"}
-                  </Badge>
-                  <Switch
-                    checked={preferences.newEnrollments}
-                    onCheckedChange={() => handlePreferenceToggle("newEnrollments", "New enrollment notifications")}
-                  />
+                  
+                  <Switch checked={preferences.newEnrollments} onCheckedChange={() => handlePreferenceToggle("newEnrollments", "New enrollment notifications")} />
                 </div>
               </div>
 
@@ -322,19 +272,13 @@ export default function Notifications() {
                   <p className="text-sm text-muted-foreground">Updates about campaigns and conversions</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Badge className={preferences.marketingUpdates ? "bg-green-500/10 text-green-600" : "bg-gray-500/10 text-gray-600"}>
-                    {preferences.marketingUpdates ? "Enabled" : "Disabled"}
-                  </Badge>
-                  <Switch
-                    checked={preferences.marketingUpdates}
-                    onCheckedChange={() => handlePreferenceToggle("marketingUpdates", "Marketing updates")}
-                  />
+                  
+                  <Switch checked={preferences.marketingUpdates} onCheckedChange={() => handlePreferenceToggle("marketingUpdates", "Marketing updates")} />
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 }
