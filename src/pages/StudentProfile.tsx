@@ -7,6 +7,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 // Mock data - replace with actual data fetching
 const studentData = {
@@ -80,8 +86,15 @@ const communications = [
 export default function StudentProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editedStudent, setEditedStudent] = useState<typeof student | null>(null);
   
   const student = studentData[id as keyof typeof studentData];
+
+  if (student && !editedStudent) {
+    setEditedStudent(student);
+  }
 
   if (!student) {
     return <div className="p-8">Student not found</div>;
@@ -101,6 +114,15 @@ export default function StudentProfile() {
     }
   };
 
+  const handleSaveProfile = () => {
+    // In a real app, this would make an API call to update the student
+    toast({
+      title: "Profile Updated",
+      description: "Student profile has been updated successfully.",
+    });
+    setIsEditDialogOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="p-8 space-y-8 animate-fade-in">
@@ -113,9 +135,150 @@ export default function StudentProfile() {
             <h1 className="text-4xl font-bold text-foreground">Student Profile</h1>
             <p className="text-muted-foreground">Comprehensive student information and history</p>
           </div>
-          <Button className="gradient-primary text-primary-foreground shadow-primary">
-            Edit Profile
-          </Button>
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gradient-primary text-primary-foreground shadow-primary">
+                Edit Profile
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Edit Student Profile</DialogTitle>
+                <DialogDescription>
+                  Update student information and parent/guardian details.
+                </DialogDescription>
+              </DialogHeader>
+              {editedStudent && (
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Student Name</Label>
+                      <Input
+                        id="name"
+                        value={editedStudent.name}
+                        onChange={(e) => setEditedStudent({ ...editedStudent, name: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={editedStudent.email}
+                        onChange={(e) => setEditedStudent({ ...editedStudent, email: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone</Label>
+                      <Input
+                        id="phone"
+                        value={editedStudent.phone}
+                        onChange={(e) => setEditedStudent({ ...editedStudent, phone: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="dob">Date of Birth</Label>
+                      <Input
+                        id="dob"
+                        value={editedStudent.dateOfBirth}
+                        onChange={(e) => setEditedStudent({ ...editedStudent, dateOfBirth: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="instrument">Instrument</Label>
+                      <Select
+                        value={editedStudent.instrument}
+                        onValueChange={(value) => setEditedStudent({ ...editedStudent, instrument: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Piano">Piano</SelectItem>
+                          <SelectItem value="Guitar">Guitar</SelectItem>
+                          <SelectItem value="Violin">Violin</SelectItem>
+                          <SelectItem value="Drums">Drums</SelectItem>
+                          <SelectItem value="Voice">Voice</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="level">Level</Label>
+                      <Select
+                        value={editedStudent.level}
+                        onValueChange={(value) => setEditedStudent({ ...editedStudent, level: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Beginner">Beginner</SelectItem>
+                          <SelectItem value="Intermediate">Intermediate</SelectItem>
+                          <SelectItem value="Advanced">Advanced</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Address</Label>
+                    <Input
+                      id="address"
+                      value={editedStudent.address}
+                      onChange={(e) => setEditedStudent({ ...editedStudent, address: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="pt-4 border-t">
+                    <h4 className="font-semibold mb-4">Parent/Guardian Information</h4>
+                    <div className="grid gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="parentName">Parent/Guardian Name</Label>
+                        <Input
+                          id="parentName"
+                          value={editedStudent.parentName}
+                          onChange={(e) => setEditedStudent({ ...editedStudent, parentName: e.target.value })}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="parentEmail">Parent Email</Label>
+                          <Input
+                            id="parentEmail"
+                            type="email"
+                            value={editedStudent.parentEmail}
+                            onChange={(e) => setEditedStudent({ ...editedStudent, parentEmail: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="parentPhone">Parent Phone</Label>
+                          <Input
+                            id="parentPhone"
+                            value={editedStudent.parentPhone}
+                            onChange={(e) => setEditedStudent({ ...editedStudent, parentPhone: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button className="gradient-primary text-primary-foreground" onClick={handleSaveProfile}>
+                  Save Changes
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Student Overview Card */}
