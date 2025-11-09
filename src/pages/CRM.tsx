@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Plus, Mail, Phone, MessageSquare, UserPlus, Search } from "lucide-react";
+import { Plus, Mail, Phone, MessageSquare, UserPlus, Search, Archive } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 
-const leads = [
+const initialLeads = [
   {
     id: 1,
     name: "Alice Thompson",
@@ -16,6 +16,7 @@ const leads = [
     source: "Website Form",
     notes: "Interested in beginner lessons for 7-year-old daughter",
     lastContact: "2 hours ago",
+    archived: false,
   },
   {
     id: 2,
@@ -27,6 +28,7 @@ const leads = [
     source: "Facebook Ad",
     notes: "Adult learner, wants weekend classes",
     lastContact: "1 day ago",
+    archived: false,
   },
   {
     id: 3,
@@ -38,6 +40,7 @@ const leads = [
     source: "Referral",
     notes: "Professional singer looking for advanced training",
     lastContact: "3 days ago",
+    archived: false,
   },
   {
     id: 4,
@@ -49,6 +52,7 @@ const leads = [
     source: "Walk-in",
     notes: "Enrolled in 8-lesson package",
     lastContact: "1 week ago",
+    archived: false,
   },
 ];
 
@@ -60,9 +64,16 @@ const stages = [
 
 export default function CRM() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [leads, setLeads] = useState(initialLeads);
 
   const getLeadsByStage = (stage: string) => {
-    return leads.filter((lead) => lead.stage === stage);
+    return leads.filter((lead) => lead.stage === stage && !lead.archived);
+  };
+
+  const handleArchiveLead = (leadId: number) => {
+    setLeads(leads.map(lead => 
+      lead.id === leadId ? { ...lead, archived: true } : lead
+    ));
   };
 
   const getStageBadge = (stage: string) => {
@@ -189,7 +200,7 @@ export default function CRM() {
                         {lead.notes}
                       </p>
 
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 mb-2">
                         <Button size="sm" variant="outline" className="flex-1">
                           <Phone className="h-3 w-3 mr-1" />
                           Call
@@ -199,6 +210,16 @@ export default function CRM() {
                           Message
                         </Button>
                       </div>
+
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="w-full text-muted-foreground hover:text-foreground"
+                        onClick={() => handleArchiveLead(lead.id)}
+                      >
+                        <Archive className="h-3 w-3 mr-1" />
+                        Archive
+                      </Button>
                     </CardContent>
                   </Card>
                 ))}
