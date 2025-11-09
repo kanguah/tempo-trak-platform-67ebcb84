@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Mail, Phone, Music, Calendar as CalendarIcon, DollarSign, Award, MessageSquare } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Music, Calendar, DollarSign, Award, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,12 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { z } from "zod";
-import { format, parse } from "date-fns";
-import { cn } from "@/lib/utils";
 
 const editStudentSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
@@ -25,11 +21,11 @@ const editStudentSchema = z.object({
   phone: z.string().trim().min(1, "Phone is required").max(20, "Phone must be less than 20 characters"),
   instrument: z.string().min(1, "Instrument is required"),
   level: z.string().min(1, "Level is required"),
-  parentName: z.string().trim().max(100, "Parent name must be less than 100 characters").optional(),
-  parentEmail: z.string().trim().email("Invalid parent email").max(255, "Parent email must be less than 255 characters").optional().or(z.literal("")),
-  parentPhone: z.string().trim().max(20, "Parent phone must be less than 20 characters").optional(),
-  dateOfBirth: z.date({ required_error: "Date of birth is required" }),
-  address: z.string().trim().max(200, "Address must be less than 200 characters").optional(),
+  parentName: z.string().trim().min(1, "Parent name is required").max(100, "Parent name must be less than 100 characters"),
+  parentEmail: z.string().trim().email("Invalid parent email").max(255, "Parent email must be less than 255 characters"),
+  parentPhone: z.string().trim().min(1, "Parent phone is required").max(20, "Parent phone must be less than 20 characters"),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  address: z.string().trim().max(200, "Address must be less than 200 characters"),
 });
 
 // Mock data - replace with actual data fetching
@@ -112,18 +108,7 @@ export default function StudentProfile() {
   
   const student = students.find((s: any) => s.id === Number(id)) || studentData[id as keyof typeof studentData];
   
-  const [formData, setFormData] = useState<{
-    name: string;
-    email: string;
-    phone: string;
-    instrument: string;
-    level: string;
-    parentName: string;
-    parentEmail: string;
-    parentPhone: string;
-    dateOfBirth: Date | undefined;
-    address: string;
-  }>({
+  const [formData, setFormData] = useState({
     name: student?.name || "",
     email: student?.email || "",
     phone: student?.phone || "",
@@ -132,7 +117,7 @@ export default function StudentProfile() {
     parentName: student?.parentName || "",
     parentEmail: student?.parentEmail || "",
     parentPhone: student?.parentPhone || "",
-    dateOfBirth: student?.dateOfBirth ? parse(student.dateOfBirth, "MMMM d, yyyy", new Date()) : undefined,
+    dateOfBirth: student?.dateOfBirth || "",
     address: student?.address || "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -152,7 +137,7 @@ export default function StudentProfile() {
         parentName: student.parentName || "",
         parentEmail: student.parentEmail || "",
         parentPhone: student.parentPhone || "",
-        dateOfBirth: student.dateOfBirth ? parse(student.dateOfBirth, "MMMM d, yyyy", new Date()) : undefined,
+        dateOfBirth: student.dateOfBirth || "",
         address: student.address || "",
       });
     }
@@ -175,11 +160,11 @@ export default function StudentProfile() {
               phone: validated.phone,
               instrument: validated.instrument,
               level: validated.level,
-              parentName: validated.parentName || "",
-              parentEmail: validated.parentEmail || "",
-              parentPhone: validated.parentPhone || "",
-              dateOfBirth: validated.dateOfBirth ? format(validated.dateOfBirth, "MMMM d, yyyy") : "",
-              address: validated.address || "",
+              parentName: validated.parentName,
+              parentEmail: validated.parentEmail,
+              parentPhone: validated.parentPhone,
+              dateOfBirth: validated.dateOfBirth,
+              address: validated.address,
               avatar: validated.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2),
             }
           : s
@@ -315,30 +300,12 @@ export default function StudentProfile() {
 
                 <div className="space-y-2">
                   <Label htmlFor="edit-dob">Date of Birth</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !formData.dateOfBirth && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {formData.dateOfBirth ? format(formData.dateOfBirth, "PPP") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={formData.dateOfBirth}
-                        onSelect={(date) => setFormData({ ...formData, dateOfBirth: date })}
-                        disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <Input
+                    id="edit-dob"
+                    placeholder="March 12, 2008"
+                    value={formData.dateOfBirth}
+                    onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                  />
                   {errors.dateOfBirth && <p className="text-sm text-destructive">{errors.dateOfBirth}</p>}
                 </div>
 
@@ -354,7 +321,7 @@ export default function StudentProfile() {
                 </div>
 
                 <div className="col-span-2 pt-2">
-                  <h4 className="font-semibold text-foreground mb-3">Parent/Guardian Information (Optional)</h4>
+                  <h4 className="font-semibold text-foreground mb-3">Parent/Guardian Information</h4>
                 </div>
 
                 <div className="space-y-2 col-span-2">

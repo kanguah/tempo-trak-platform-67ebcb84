@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Filter, Music, Mail, Phone, Calendar as CalendarIcon } from "lucide-react";
+import { Search, Plus, Filter, Music, Mail, Phone } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,12 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { z } from "zod";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 
 const studentSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
@@ -21,10 +17,7 @@ const studentSchema = z.object({
   phone: z.string().trim().min(1, "Phone is required").max(20, "Phone must be less than 20 characters"),
   instrument: z.string().min(1, "Instrument is required"),
   level: z.string().min(1, "Level is required"),
-  nextLesson: z.date({ required_error: "Next lesson date is required" }),
-  parentName: z.string().trim().max(100, "Parent name must be less than 100 characters").optional(),
-  parentEmail: z.string().trim().email("Invalid parent email").max(255, "Parent email must be less than 255 characters").optional().or(z.literal("")),
-  parentPhone: z.string().trim().max(20, "Parent phone must be less than 20 characters").optional(),
+  nextLesson: z.string().min(1, "Next lesson is required"),
 });
 
 const initialStudents = [
@@ -109,26 +102,13 @@ export default function Students() {
     const savedStudents = localStorage.getItem("academy-students");
     return savedStudents ? JSON.parse(savedStudents) : initialStudents;
   });
-  const [formData, setFormData] = useState<{
-    name: string;
-    email: string;
-    phone: string;
-    instrument: string;
-    level: string;
-    nextLesson: Date | undefined;
-    parentName: string;
-    parentEmail: string;
-    parentPhone: string;
-  }>({
+  const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
     instrument: "",
     level: "",
-    nextLesson: undefined,
-    parentName: "",
-    parentEmail: "",
-    parentPhone: "",
+    nextLesson: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
@@ -148,13 +128,10 @@ export default function Students() {
         phone: validated.phone,
         instrument: validated.instrument,
         level: validated.level,
-        nextLesson: validated.nextLesson ? format(validated.nextLesson, "EEEE, h:mm a") : "",
+        nextLesson: validated.nextLesson,
         status: "Active",
         avatar: validated.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2),
         lessons: 0,
-        parentName: validated.parentName || "",
-        parentEmail: validated.parentEmail || "",
-        parentPhone: validated.parentPhone || "",
       };
 
       setStudents([...students, newStudent]);
@@ -165,10 +142,7 @@ export default function Students() {
         phone: "",
         instrument: "",
         level: "",
-        nextLesson: undefined,
-        parentName: "",
-        parentEmail: "",
-        parentPhone: "",
+        nextLesson: "",
       });
       setErrors({});
       toast.success(`${validated.name} added successfully!`);
@@ -300,72 +274,16 @@ export default function Students() {
 
                 <div className="space-y-2">
                   <Label htmlFor="nextLesson">Next Lesson</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !formData.nextLesson && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {formData.nextLesson ? format(formData.nextLesson, "PPP") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={formData.nextLesson}
-                        onSelect={(date) => setFormData({ ...formData, nextLesson: date })}
-                        disabled={(date) => date < new Date()}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <Input
+                    id="nextLesson"
+                    placeholder="e.g., Monday, 10:00 AM"
+                    value={formData.nextLesson}
+                    onChange={(e) => setFormData({ ...formData, nextLesson: e.target.value })}
+                  />
                   {errors.nextLesson && <p className="text-sm text-destructive">{errors.nextLesson}</p>}
                 </div>
 
-                <div className="col-span-2 pt-2">
-                  <h4 className="font-semibold text-foreground mb-3">Parent/Guardian Information (Optional)</h4>
-                </div>
-
-                <div className="space-y-2 col-span-2">
-                  <Label htmlFor="parentName">Parent/Guardian Name</Label>
-                  <Input
-                    id="parentName"
-                    placeholder="Parent's full name"
-                    value={formData.parentName}
-                    onChange={(e) => setFormData({ ...formData, parentName: e.target.value })}
-                  />
-                  {errors.parentName && <p className="text-sm text-destructive">{errors.parentName}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="parentEmail">Parent Email</Label>
-                  <Input
-                    id="parentEmail"
-                    type="email"
-                    placeholder="parent@email.com"
-                    value={formData.parentEmail}
-                    onChange={(e) => setFormData({ ...formData, parentEmail: e.target.value })}
-                  />
-                  {errors.parentEmail && <p className="text-sm text-destructive">{errors.parentEmail}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="parentPhone">Parent Phone</Label>
-                  <Input
-                    id="parentPhone"
-                    placeholder="+233 24 123 4560"
-                    value={formData.parentPhone}
-                    onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
-                  />
-                  {errors.parentPhone && <p className="text-sm text-destructive">{errors.parentPhone}</p>}
-                </div>
-
-                <div className="flex gap-3 pt-4 col-span-2">
+                <div className="flex gap-3 pt-4">
                   <Button variant="outline" className="flex-1" onClick={() => setDialogOpen(false)}>
                     Cancel
                   </Button>
