@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Plus, Filter, Music, Mail, Phone } from "lucide-react";
+import DataImport from "@/components/DataImport";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -145,13 +146,16 @@ export default function Tutors() {
             <h1 className="text-4xl font-bold text-foreground mb-2">Tutors</h1>
             <p className="text-muted-foreground">Manage your academy's teaching staff</p>
           </div>
-          <Button
-            className="gradient-primary text-primary-foreground shadow-primary"
-            onClick={() => setDialogOpen(true)}
-          >
-            <Plus className="mr-2 h-5 w-5" />
-            Add Tutor
-          </Button>
+          <div className="flex gap-3">
+            <DataImport type="tutors" />
+            <Button
+              className="gradient-primary text-primary-foreground shadow-primary"
+              onClick={() => setDialogOpen(true)}
+            >
+              <Plus className="mr-2 h-5 w-5" />
+              Add Tutor
+            </Button>
+          </div>
         </div>
 
         {/* Add Tutor Dialog */}

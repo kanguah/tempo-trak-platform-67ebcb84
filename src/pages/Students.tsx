@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Plus, Filter, Music, Mail, Phone } from "lucide-react";
+import DataImport from "@/components/DataImport";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -147,13 +148,15 @@ export default function Students() {
             <h1 className="text-4xl font-bold text-foreground mb-2">Students</h1>
             <p className="text-muted-foreground">Manage your academy's students</p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gradient-primary text-primary-foreground shadow-primary">
-                <Plus className="mr-2 h-5 w-5" />
-                Add Student
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-3">
+            <DataImport type="students" />
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gradient-primary text-primary-foreground shadow-primary">
+                  <Plus className="mr-2 h-5 w-5" />
+                  Add Student
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>Add New Student</DialogTitle>
@@ -236,6 +239,7 @@ export default function Students() {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Search and Filter Bar */}
