@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Mail, Phone, Music, Calendar, DollarSign, Award, MessageSquare } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Music, Calendar as CalendarIcon, DollarSign, Award, MessageSquare, CalendarIcon as CalendarIconPicker } from "lucide-react";
+import { format, parse } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -300,12 +304,30 @@ export default function StudentProfile() {
 
                 <div className="space-y-2">
                   <Label htmlFor="edit-dob">Date of Birth</Label>
-                  <Input
-                    id="edit-dob"
-                    placeholder="March 12, 2008"
-                    value={formData.dateOfBirth}
-                    onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !formData.dateOfBirth && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIconPicker className="mr-2 h-4 w-4" />
+                        {formData.dateOfBirth ? formData.dateOfBirth : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={formData.dateOfBirth ? parse(formData.dateOfBirth, "MMMM dd, yyyy", new Date()) : undefined}
+                        onSelect={(date) => setFormData({ ...formData, dateOfBirth: date ? format(date, "MMMM dd, yyyy") : "" })}
+                        disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
                   {errors.dateOfBirth && <p className="text-sm text-destructive">{errors.dateOfBirth}</p>}
                 </div>
 
@@ -423,7 +445,7 @@ export default function StudentProfile() {
                       <Badge className={getStatusColor(student.status)}>{student.status}</Badge>
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
+                      <CalendarIcon className="h-4 w-4" />
                       DOB: {student.dateOfBirth}
                     </div>
                     <div className="text-muted-foreground">
@@ -451,7 +473,7 @@ export default function StudentProfile() {
             <Card className="shadow-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-primary" />
+                  <CalendarIcon className="h-5 w-5 text-primary" />
                   Enrollment History
                 </CardTitle>
               </CardHeader>
@@ -529,7 +551,7 @@ export default function StudentProfile() {
             <Card className="shadow-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-primary" />
+                  <CalendarIcon className="h-5 w-5 text-primary" />
                   Attendance Timeline
                 </CardTitle>
               </CardHeader>
