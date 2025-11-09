@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Mail, Phone, MessageSquare, UserPlus, Search, Archive } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 const initialLeads = [
   {
@@ -64,16 +65,25 @@ const stages = [
 
 export default function CRM() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [leads, setLeads] = useState(initialLeads);
+  const [leads, setLeads] = useState(() => {
+    const savedLeads = localStorage.getItem("crm-leads");
+    return savedLeads ? JSON.parse(savedLeads) : initialLeads;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("crm-leads", JSON.stringify(leads));
+  }, [leads]);
 
   const getLeadsByStage = (stage: string) => {
     return leads.filter((lead) => lead.stage === stage && !lead.archived);
   };
 
   const handleArchiveLead = (leadId: number) => {
+    const lead = leads.find(l => l.id === leadId);
     setLeads(leads.map(lead => 
       lead.id === leadId ? { ...lead, archived: true } : lead
     ));
+    toast.success(`${lead?.name} archived successfully`);
   };
 
   const getStageBadge = (stage: string) => {

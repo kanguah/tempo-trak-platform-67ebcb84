@@ -1,28 +1,46 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, Phone, Archive, ArchiveRestore, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-
-const initialArchivedLeads = [
-  {
-    id: 101,
-    name: "Sarah Williams",
-    email: "sarah.w@email.com",
-    phone: "+233 24 222 3333",
-    stage: "contacted",
-    instrument: "Violin",
-    source: "Instagram Ad",
-    notes: "Expressed interest but not ready to commit yet",
-    lastContact: "2 weeks ago",
-    archivedDate: "1 week ago",
-  },
-];
+import { toast } from "sonner";
 
 export default function ArchivedLeads() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [archivedLeads] = useState(initialArchivedLeads);
+  const [leads, setLeads] = useState(() => {
+    const savedLeads = localStorage.getItem("crm-leads");
+    return savedLeads ? JSON.parse(savedLeads) : [];
+  });
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const savedLeads = localStorage.getItem("crm-leads");
+      if (savedLeads) {
+        setLeads(JSON.parse(savedLeads));
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    const interval = setInterval(handleStorageChange, 500);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const archivedLeads = leads.filter((lead: any) => lead.archived);
+
+  const handleRestoreLead = (leadId: number) => {
+    const lead = leads.find((l: any) => l.id === leadId);
+    const updatedLeads = leads.map((lead: any) =>
+      lead.id === leadId ? { ...lead, archived: false } : lead
+    );
+    setLeads(updatedLeads);
+    localStorage.setItem("crm-leads", JSON.stringify(updatedLeads));
+    toast.success(`${lead?.name} restored to ${lead?.stage} stage`);
+  };
 
   const filteredLeads = archivedLeads.filter((lead) =>
     lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -115,6 +133,7 @@ export default function ArchivedLeads() {
                   size="sm" 
                   variant="outline" 
                   className="w-full"
+                  onClick={() => handleRestoreLead(lead.id)}
                 >
                   <ArchiveRestore className="h-3 w-3 mr-2" />
                   Restore Lead
