@@ -224,10 +224,10 @@ export default function Calendar() {
         if (error) throw error;
         return data;
       } else {
-        // Multiple recurring lessons
+        // Multiple recurring lessons (4 weeks = 1 month)
         const lessonsToInsert = [];
         const baseDay = parseInt(lesson.day);
-        const occurrences = parseInt(lesson.occurrences);
+        const occurrences = 4; // Fixed to 4 weeks for a month
         const weekIncrement = lesson.repeatPattern === "weekly" ? 1 : lesson.repeatPattern === "biweekly" ? 2 : 4;
 
         for (let i = 0; i < occurrences; i++) {
@@ -668,17 +668,6 @@ export default function Calendar() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Number of Occurrences</Label>
-                        <Input
-                          type="number"
-                          value={newLesson.occurrences}
-                          onChange={(e) => setNewLesson({ ...newLesson, occurrences: e.target.value })}
-                          placeholder="4"
-                          min="1"
-                          max="52"
-                        />
-                      </div>
                     </>
                   )}
 
@@ -690,11 +679,10 @@ export default function Calendar() {
                       !newLesson.tutorId ||
                       !newLesson.subject ||
                       !newLesson.day ||
-                      !newLesson.time ||
-                      (newLesson.isRecurring && !newLesson.occurrences)
+                      !newLesson.time
                     }
                   >
-                    {newLesson.isRecurring ? `Schedule ${newLesson.occurrences} Lessons` : "Schedule Lesson"}
+                    {newLesson.isRecurring ? "Schedule Monthly Lessons" : "Schedule Lesson"}
                   </Button>
                 </div>
               </DialogContent>
