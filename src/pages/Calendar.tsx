@@ -57,8 +57,13 @@ const getInstrumentColor = (instrument: string) => {
     Piano: "bg-primary text-primary-foreground",
     Guitar: "bg-secondary text-secondary-foreground",
     Violin: "bg-accent text-accent-foreground",
-    Drums: "bg-primary/80 text-primary-foreground",
-    Voice: "bg-secondary/70 text-secondary-foreground",
+    Drums: "bg-orange-500 text-white",
+    Voice: "bg-purple-500 text-white",
+    Saxophone: "bg-blue-500 text-white",
+    Flute: "bg-pink-500 text-white",
+    Cello: "bg-amber-600 text-white",
+    Trumpet: "bg-emerald-500 text-white",
+    Bass: "bg-cyan-500 text-white",
   };
   return colors[instrument] || "bg-muted text-muted-foreground";
 };
