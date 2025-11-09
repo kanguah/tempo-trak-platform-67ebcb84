@@ -3,8 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useTheme } from "next-themes";
+import { toast } from "sonner";
 
 export default function Settings() {
+  const { theme, setTheme } = useTheme();
+
+  const handleThemeChange = (newTheme: string) => {
+    setTheme(newTheme);
+    toast.success(`Theme changed to ${newTheme === 'system' ? 'auto' : newTheme}`);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="p-8 space-y-8 animate-fade-in">
@@ -174,14 +183,29 @@ export default function Settings() {
             <div className="space-y-4">
               <div>
                 <Label>Theme</Label>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Choose how the academy dashboard appears
+                </p>
                 <div className="flex gap-2 mt-2">
-                  <Button variant="outline" className="flex-1">
+                  <Button 
+                    variant={theme === 'light' ? 'default' : 'outline'} 
+                    className="flex-1"
+                    onClick={() => handleThemeChange('light')}
+                  >
                     Light
                   </Button>
-                  <Button variant="outline" className="flex-1">
+                  <Button 
+                    variant={theme === 'dark' ? 'default' : 'outline'} 
+                    className="flex-1"
+                    onClick={() => handleThemeChange('dark')}
+                  >
                     Dark
                   </Button>
-                  <Button variant="outline" className="flex-1">
+                  <Button 
+                    variant={theme === 'system' ? 'default' : 'outline'} 
+                    className="flex-1"
+                    onClick={() => handleThemeChange('system')}
+                  >
                     Auto
                   </Button>
                 </div>
