@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Filter, Eye } from "lucide-react";
+import { Search, Plus, Filter, Eye, Trash2, ArrowUpDown, UserPlus } from "lucide-react";
 import DataImport from "@/components/DataImport";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,11 +10,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useIsMobile } from "@/hooks/use-mobile";
 const studentSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
@@ -23,6 +28,9 @@ const studentSchema = z.object({
   instrument: z.string().min(1, "Please select an instrument")
 });
 const instruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Cello", "Trumpet", "Bass"];
+type SortField = 'name' | 'grade' | 'created_at';
+type SortDirection = 'asc' | 'desc';
+
 export default function Students() {
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -34,11 +42,17 @@ export default function Students() {
     instrument: ""
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortField, setSortField] = useState<SortField>('created_at');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const itemsPerPage = 20;
+  
   const navigate = useNavigate();
-  const {
-    user
-  } = useAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const {
     data: students = [],
     isLoading
@@ -58,26 +72,22 @@ export default function Students() {
   });
   const addStudentMutation = useMutation({
     mutationFn: async (newStudent: any) => {
-      const {
-        instrument,
-        ...studentData
-      } = newStudent;
-      const {
-        data,
-        error
-      } = await supabase.from('students').insert([{
-        ...studentData,
-        subjects: [instrument],
-        // Convert instrument to subjects array
-        user_id: user?.id
-      }]).select().single();
+      const { instrument, ...studentData } = newStudent;
+      const { data, error } = await supabase
+        .from('students')
+        .insert([{
+          ...studentData,
+          subjects: [instrument],
+          user_id: user?.id
+        }])
+        .select()
+        .single();
+      
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['students']
-      });
+      queryClient.invalidateQueries({ queryKey: ['students'] });
       setDialogOpen(false);
       setFormData({
         name: "",
@@ -91,6 +101,26 @@ export default function Students() {
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to add student");
+    }
+  });
+
+  const deleteStudentsMutation = useMutation({
+    mutationFn: async (studentIds: string[]) => {
+      const { error } = await supabase
+        .from('students')
+        .delete()
+        .in('id', studentIds);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      setSelectedStudents(new Set());
+      setDeleteDialogOpen(false);
+      toast.success("Students deleted successfully!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to delete students");
     }
   });
   const handleAddStudent = () => {
@@ -125,16 +155,78 @@ export default function Students() {
     const gradients = ["gradient-primary", "gradient-accent", "bg-secondary", "bg-primary"];
     return gradients[index % gradients.length];
   };
-  const filteredStudents = students.filter(student => student.name.toLowerCase().includes(searchQuery.toLowerCase()) || student.email.toLowerCase().includes(searchQuery.toLowerCase()) || student.subjects && student.subjects.some((s: string) => s.toLowerCase().includes(searchQuery.toLowerCase())));
-  if (isLoading) {
-    return <div className="min-h-screen bg-background p-8">Loading...</div>;
-  }
-  return <div className="min-h-screen bg-background">
-      <div className="p-8 space-y-8 animate-fade-in">
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedStudents(new Set(paginatedStudents.map(s => s.id)));
+    } else {
+      setSelectedStudents(new Set());
+    }
+  };
+
+  const handleSelectStudent = (studentId: string, checked: boolean) => {
+    const newSelected = new Set(selectedStudents);
+    if (checked) {
+      newSelected.add(studentId);
+    } else {
+      newSelected.delete(studentId);
+    }
+    setSelectedStudents(newSelected);
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedStudents.size === 0) return;
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    deleteStudentsMutation.mutate(Array.from(selectedStudents));
+  };
+
+  // Filter and sort
+  const filteredStudents = students.filter(student => 
+    student.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    student.email.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (student.subjects && student.subjects.some((s: string) => s.toLowerCase().includes(searchQuery.toLowerCase())))
+  );
+
+  const sortedStudents = [...filteredStudents].sort((a, b) => {
+    let aValue: any = a[sortField];
+    let bValue: any = b[sortField];
+    
+    if (sortField === 'name') {
+      aValue = a.name.toLowerCase();
+      bValue = b.name.toLowerCase();
+    }
+    
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(sortedStudents.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedStudents = sortedStudents.slice(startIndex, startIndex + itemsPerPage);
+
+  const allSelected = paginatedStudents.length > 0 && paginatedStudents.every(s => selectedStudents.has(s.id));
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="p-4 md:p-8 space-y-6 md:space-y-8 animate-fade-in">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-foreground mb-2">Students</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">Students</h1>
             <p className="text-muted-foreground">Manage your academy's students</p>
           </div>
           <div className="flex gap-3">
@@ -142,8 +234,9 @@ export default function Students() {
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="gradient-primary text-primary-foreground shadow-primary">
-                  <Plus className="mr-2 h-5 w-5" />
-                  Add Student
+                  <Plus className="mr-2 h-4 w-4 md:h-5 md:w-5" />
+                  <span className="hidden sm:inline">Add Student</span>
+                  <span className="sm:hidden">Add</span>
                 </Button>
               </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
@@ -228,56 +321,183 @@ export default function Students() {
           </div>
         </div>
 
-        {/* Search and Filter Bar */}
+        {/* Search and Actions Bar */}
         <Card className="shadow-card">
           <CardContent className="p-4">
-            <div className="flex gap-4 items-center">
+            <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input placeholder="Search students by name, instrument, or email..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
+                <Input 
+                  placeholder="Search students..." 
+                  value={searchQuery} 
+                  onChange={e => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }} 
+                  className="pl-10" 
+                />
               </div>
-              <Button variant="outline" size="icon">
-                <Filter className="h-5 w-5" />
-              </Button>
+              <div className="flex gap-2">
+                {selectedStudents.size > 0 && (
+                  <Button 
+                    variant="destructive" 
+                    size="default"
+                    onClick={handleBulkDelete}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete ({selectedStudents.size})
+                  </Button>
+                )}
+                <Button variant="outline" size="icon">
+                  <Filter className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Students Table */}
-        <Card className="shadow-card">
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[250px]">Student</TableHead>
-                  <TableHead>Instrument</TableHead>
-                  <TableHead>Grade</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredStudents.length === 0 ? <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      No students found. Add your first student or import from CSV.
-                    </TableCell>
-                  </TableRow> : filteredStudents.map((student, index) => <TableRow key={student.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => navigate(`/students/${student.id}`)}>
+        {/* Students Content */}
+        {isLoading ? (
+          <Card className="shadow-card">
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-4">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-[200px]" />
+                      <Skeleton className="h-3 w-[150px]" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ) : filteredStudents.length === 0 ? (
+          <Card className="shadow-card">
+            <CardContent className="p-12 text-center">
+              <div className="flex flex-col items-center gap-4">
+                <div className="rounded-full bg-muted p-6">
+                  <UserPlus className="h-12 w-12 text-muted-foreground" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">No students yet</h3>
+                  <p className="text-muted-foreground mb-6">
+                    {searchQuery ? "No students match your search." : "Get started by adding your first student or importing from CSV."}
+                  </p>
+                  {!searchQuery && (
+                    <Button onClick={() => setDialogOpen(true)} className="gradient-primary text-primary-foreground">
+                      <Plus className="mr-2 h-5 w-5" />
+                      Add Your First Student
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : isMobile ? (
+          // Mobile: Card View
+          <div className="space-y-4">
+            {paginatedStudents.map((student, index) => (
+              <Card 
+                key={student.id} 
+                className="shadow-card hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => navigate(`/students/${student.id}`)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      checked={selectedStudents.has(student.id)}
+                      onCheckedChange={(checked) => handleSelectStudent(student.id, checked as boolean)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold text-lg">{student.name}</h3>
+                          <p className="text-sm text-muted-foreground">{student.email}</p>
+                        </div>
+                        <Badge variant={student.status === "active" ? "default" : "secondary"}>
+                          {student.status}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Instrument:</span>
+                          <p className="font-medium">{student.subjects?.join(", ") || "N/A"}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Grade:</span>
+                          <p><Badge className={getLevelColor(student.grade || "Beginner")}>{student.grade || "Beginner"}</Badge></p>
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm" className="w-full" onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/students/${student.id}`);
+                      }}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Profile
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          // Desktop: Table View
+          <Card className="shadow-card">
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[50px]">
+                      <Checkbox
+                        checked={allSelected}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
+                    <TableHead className="w-[250px] cursor-pointer" onClick={() => handleSort('name')}>
+                      <div className="flex items-center gap-2">
+                        Student
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead>Instrument</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => handleSort('grade')}>
+                      <div className="flex items-center gap-2">
+                        Grade
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedStudents.map((student) => (
+                    <TableRow 
+                      key={student.id} 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => navigate(`/students/${student.id}`)}
+                    >
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedStudents.has(student.id)}
+                          onCheckedChange={(checked) => handleSelectStudent(student.id, checked as boolean)}
+                        />
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          
                           <div className="min-w-0">
                             <p className="font-semibold text-foreground truncate">{student.name}</p>
-                            
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          
-                          <span className="text-sm">{student.subjects?.join(", ") || "No instrument"}</span>
-                        </div>
+                        <span className="text-sm">{student.subjects?.join(", ") || "No instrument"}</span>
                       </TableCell>
                       <TableCell>
                         <Badge className={getLevelColor(student.grade || "Beginner")}>
@@ -285,16 +505,10 @@ export default function Students() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          
-                          <span className="text-sm truncate max-w-[200px]">{student.email}</span>
-                        </div>
+                        <span className="text-sm truncate max-w-[200px]">{student.email}</span>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          
-                          <span className="text-sm">{student.phone || "N/A"}</span>
-                        </div>
+                        <span className="text-sm">{student.phone || "N/A"}</span>
                       </TableCell>
                       <TableCell>
                         <Badge variant={student.status === "active" ? "default" : "secondary"}>
@@ -302,19 +516,89 @@ export default function Students() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={e => {
-                    e.stopPropagation();
-                    navigate(`/students/${student.id}`);
-                  }}>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/students/${student.id}`);
+                          }}
+                        >
                           <Eye className="h-4 w-4 mr-2" />
                           View
                         </Button>
                       </TableCell>
-                    </TableRow>)}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+              
+              {[...Array(totalPages)].map((_, i) => {
+                const page = i + 1;
+                if (
+                  page === 1 ||
+                  page === totalPages ||
+                  (page >= currentPage - 1 && page <= currentPage + 1)
+                ) {
+                  return (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        onClick={() => setCurrentPage(page)}
+                        isActive={currentPage === page}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                } else if (page === currentPage - 2 || page === currentPage + 2) {
+                  return <PaginationEllipsis key={page} />;
+                }
+                return null;
+              })}
+              
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
       </div>
-    </div>;
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {selectedStudents.size} student{selectedStudents.size > 1 ? 's' : ''}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
 }
