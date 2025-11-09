@@ -4,6 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 const initialLeads = [
@@ -69,6 +73,16 @@ export default function CRM() {
     const savedLeads = localStorage.getItem("crm-leads");
     return savedLeads ? JSON.parse(savedLeads) : initialLeads;
   });
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [newLead, setNewLead] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    instrument: "",
+    source: "",
+    stage: "new",
+    notes: "",
+  });
 
   useEffect(() => {
     localStorage.setItem("crm-leads", JSON.stringify(leads));
@@ -84,6 +98,33 @@ export default function CRM() {
       lead.id === leadId ? { ...lead, archived: true } : lead
     ));
     toast.success(`${lead?.name} archived successfully`);
+  };
+
+  const handleAddLead = () => {
+    if (!newLead.name || !newLead.email || !newLead.phone || !newLead.instrument || !newLead.source) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    const leadToAdd = {
+      id: Math.max(...leads.map(l => l.id), 0) + 1,
+      ...newLead,
+      lastContact: "Just now",
+      archived: false,
+    };
+
+    setLeads([...leads, leadToAdd]);
+    setAddDialogOpen(false);
+    setNewLead({
+      name: "",
+      email: "",
+      phone: "",
+      instrument: "",
+      source: "",
+      stage: "new",
+      notes: "",
+    });
+    toast.success(`${leadToAdd.name} added successfully`);
   };
 
   const getStageBadge = (stage: string) => {
@@ -108,12 +149,114 @@ export default function CRM() {
           </div>
           <Button 
             className="gradient-primary text-primary-foreground shadow-primary"
-            onClick={() => toast.info("Add Lead feature coming soon!")}
+            onClick={() => setAddDialogOpen(true)}
           >
             <Plus className="mr-2 h-5 w-5" />
             Add Lead
           </Button>
         </div>
+
+        {/* Add Lead Dialog */}
+        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add New Lead</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name *</Label>
+                <Input
+                  id="name"
+                  value={newLead.name}
+                  onChange={(e) => setNewLead({ ...newLead, name: e.target.value })}
+                  placeholder="Enter full name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={newLead.email}
+                  onChange={(e) => setNewLead({ ...newLead, email: e.target.value })}
+                  placeholder="email@example.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone *</Label>
+                <Input
+                  id="phone"
+                  value={newLead.phone}
+                  onChange={(e) => setNewLead({ ...newLead, phone: e.target.value })}
+                  placeholder="+233 24 000 0000"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="instrument">Instrument *</Label>
+                <Select value={newLead.instrument} onValueChange={(value) => setNewLead({ ...newLead, instrument: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select instrument" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Piano">Piano</SelectItem>
+                    <SelectItem value="Guitar">Guitar</SelectItem>
+                    <SelectItem value="Voice">Voice</SelectItem>
+                    <SelectItem value="Drums">Drums</SelectItem>
+                    <SelectItem value="Violin">Violin</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="source">Source *</Label>
+                <Select value={newLead.source} onValueChange={(value) => setNewLead({ ...newLead, source: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select source" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Website Form">Website Form</SelectItem>
+                    <SelectItem value="Facebook Ad">Facebook Ad</SelectItem>
+                    <SelectItem value="Google Ad">Google Ad</SelectItem>
+                    <SelectItem value="Referral">Referral</SelectItem>
+                    <SelectItem value="Walk-in">Walk-in</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="stage">Stage</Label>
+                <Select value={newLead.stage} onValueChange={(value) => setNewLead({ ...newLead, stage: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">New Lead</SelectItem>
+                    <SelectItem value="contacted">Contacted</SelectItem>
+                    <SelectItem value="enrolled">Enrolled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={newLead.notes}
+                  onChange={(e) => setNewLead({ ...newLead, notes: e.target.value })}
+                  placeholder="Add any relevant notes..."
+                  rows={3}
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddLead}>
+                Add Lead
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Summary Cards */}
         <div className="grid gap-6 md:grid-cols-3">
