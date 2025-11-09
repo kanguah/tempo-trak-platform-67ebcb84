@@ -4,6 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   BarChart,
@@ -95,18 +98,35 @@ export default function Payments() {
     const savedPayments = localStorage.getItem("academy-payments");
     return savedPayments ? JSON.parse(savedPayments) : initialPayments;
   });
+  const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState("");
 
   useEffect(() => {
     localStorage.setItem("academy-payments", JSON.stringify(payments));
   }, [payments]);
 
-  const handleVerifyPayment = (paymentId: string) => {
+  const openVerifyDialog = (paymentId: string) => {
+    setSelectedPayment(paymentId);
+    setPaymentMethod("");
+    setVerifyDialogOpen(true);
+  };
+
+  const handleVerifyPayment = () => {
+    if (!paymentMethod) {
+      toast.error("Please select a payment method");
+      return;
+    }
+
+    if (!selectedPayment) return;
+
     setPayments((prevPayments) =>
       prevPayments.map((payment) =>
-        payment.id === paymentId
+        payment.id === selectedPayment
           ? {
               ...payment,
               status: "paid",
+              method: paymentMethod,
               date: new Date().toLocaleDateString("en-US", {
                 year: "numeric",
                 month: "long",
@@ -117,6 +137,9 @@ export default function Payments() {
       )
     );
     toast.success("Payment verified successfully!");
+    setVerifyDialogOpen(false);
+    setSelectedPayment(null);
+    setPaymentMethod("");
   };
 
   const getStatusBadge = (status: string) => {
@@ -245,6 +268,57 @@ export default function Payments() {
           </CardContent>
         </Card>
 
+        {/* Verify Payment Dialog */}
+        <Dialog open={verifyDialogOpen} onOpenChange={setVerifyDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Verify Payment</DialogTitle>
+              <DialogDescription>
+                Select the payment method used by the student to complete this transaction.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="payment-method">Payment Method</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger id="payment-method">
+                    <SelectValue placeholder="Select payment method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MTN MoMo">MTN MoMo</SelectItem>
+                    <SelectItem value="Vodafone Cash">Vodafone Cash</SelectItem>
+                    <SelectItem value="AirtelTigo Money">AirtelTigo Money</SelectItem>
+                    <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="Cash">Cash</SelectItem>
+                    <SelectItem value="Paystack">Paystack (Card)</SelectItem>
+                    <SelectItem value="Cheque">Cheque</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setVerifyDialogOpen(false);
+                    setSelectedPayment(null);
+                    setPaymentMethod("");
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  className="flex-1 gradient-primary text-primary-foreground" 
+                  onClick={handleVerifyPayment}
+                >
+                  Confirm Payment
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Search Bar */}
         <Card className="shadow-card">
           <CardContent className="p-4">
@@ -310,7 +384,7 @@ export default function Payments() {
                           <Button 
                             size="sm" 
                             className="mt-2"
-                            onClick={() => handleVerifyPayment(payment.id)}
+                            onClick={() => openVerifyDialog(payment.id)}
                           >
                             <CreditCard className="h-4 w-4 mr-1" />
                             Verify Payment
