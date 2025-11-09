@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Filter, Music, Mail, Phone } from "lucide-react";
+import { Search, Plus, Filter, Music, Mail, Phone, Eye } from "lucide-react";
 import DataImport from "@/components/DataImport";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -262,61 +263,100 @@ export default function Students() {
           </CardContent>
         </Card>
 
-        {/* Students Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredStudents.map((student, index) => (
-            <Card
-              key={student.id}
-              className="shadow-card hover:shadow-primary transition-all duration-300 animate-scale-in cursor-pointer"
-              style={{ animationDelay: `${index * 0.1}s` }}
-              onClick={() => navigate(`/students/${student.id}`)}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`flex h-14 w-14 items-center justify-center rounded-xl ${getAvatarGradient(
-                        index
-                      )} text-white font-bold text-lg shadow-md`}
+        {/* Students Table */}
+        <Card className="shadow-card">
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[250px]">Student</TableHead>
+                  <TableHead>Instrument</TableHead>
+                  <TableHead>Grade</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredStudents.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      No students found. Add your first student or import from CSV.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredStudents.map((student, index) => (
+                    <TableRow
+                      key={student.id}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => navigate(`/students/${student.id}`)}
                     >
-                      {student.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-lg text-foreground">{student.name}</h3>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                        <Music className="h-4 w-4" />
-                        {student.subjects?.join(", ") || "No subjects"}
-                      </div>
-                    </div>
-                  </div>
-                  <Badge className={getLevelColor(student.grade || "Beginner")}>{student.grade || "Beginner"}</Badge>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Mail className="h-4 w-4" />
-                    {student.email}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Phone className="h-4 w-4" />
-                    {student.phone || "No phone"}
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-border">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Status</span>
-                    <span className="font-semibold text-foreground">{student.status}</span>
-                  </div>
-                </div>
-
-                <Button className="w-full mt-4" variant="outline">
-                  View Profile
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`flex h-10 w-10 items-center justify-center rounded-lg ${getAvatarGradient(
+                              index
+                            )} text-white font-bold text-sm shadow-sm flex-shrink-0`}
+                          >
+                            {student.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-foreground truncate">{student.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Enrolled: {new Date(student.enrollment_date || student.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Music className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{student.subjects?.join(", ") || "No instrument"}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getLevelColor(student.grade || "Beginner")}>
+                          {student.grade || "Beginner"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm truncate max-w-[200px]">{student.email}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{student.phone || "N/A"}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={student.status === "active" ? "default" : "secondary"}>
+                          {student.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/students/${student.id}`);
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
