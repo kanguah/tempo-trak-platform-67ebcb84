@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -116,6 +117,9 @@ export default function Calendar() {
     time: "",
     duration: "60",
     room: "",
+    isRecurring: false,
+    repeatPattern: "weekly",
+    occurrences: "4",
   });
 
   // Fetch students
@@ -184,27 +188,60 @@ export default function Calendar() {
   // Add lesson mutation
   const addLessonMutation = useMutation({
     mutationFn: async (lesson: typeof newLesson) => {
-      const { data, error } = await supabase
-        .from("lessons")
-        .insert({
-          user_id: user?.id,
-          student_id: lesson.studentId,
-          tutor_id: lesson.tutorId,
-          subject: lesson.subject,
-          day_of_week: parseInt(lesson.day),
-          start_time: lesson.time + ":00",
-          duration: parseInt(lesson.duration),
-          room: lesson.room || null,
-          status: "scheduled",
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
+      if (!lesson.isRecurring) {
+        // Single lesson
+        const { data, error } = await supabase
+          .from("lessons")
+          .insert({
+            user_id: user?.id,
+            student_id: lesson.studentId,
+            tutor_id: lesson.tutorId,
+            subject: lesson.subject,
+            day_of_week: parseInt(lesson.day),
+            start_time: lesson.time + ":00",
+            duration: parseInt(lesson.duration),
+            room: lesson.room || null,
+            status: "scheduled",
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      } else {
+        // Multiple recurring lessons
+        const lessonsToInsert = [];
+        const baseDay = parseInt(lesson.day);
+        const occurrences = parseInt(lesson.occurrences);
+        const weekIncrement = lesson.repeatPattern === "weekly" ? 1 : lesson.repeatPattern === "biweekly" ? 2 : 4;
+        
+        for (let i = 0; i < occurrences; i++) {
+          lessonsToInsert.push({
+            user_id: user?.id,
+            student_id: lesson.studentId,
+            tutor_id: lesson.tutorId,
+            subject: lesson.subject,
+            day_of_week: baseDay,
+            start_time: lesson.time + ":00",
+            duration: parseInt(lesson.duration),
+            room: lesson.room || null,
+            status: "scheduled",
+          });
+        }
+        
+        const { data, error } = await supabase
+          .from("lessons")
+          .insert(lessonsToInsert)
+          .select();
+        if (error) throw error;
+        return data;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["lessons"] });
-      toast.success("Lesson scheduled successfully!");
+      const message = newLesson.isRecurring 
+        ? `${Array.isArray(data) ? data.length : 1} recurring lessons scheduled successfully!`
+        : "Lesson scheduled successfully!";
+      toast.success(message);
       setAddDialogOpen(false);
       setNewLesson({
         studentId: "",
@@ -214,6 +251,9 @@ export default function Calendar() {
         time: "",
         duration: "60",
         room: "",
+        isRecurring: false,
+        repeatPattern: "weekly",
+        occurrences: "4",
       });
     },
     onError: (error) => {
@@ -451,11 +491,11 @@ export default function Calendar() {
                   Add Lesson
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-h-[90vh]">
                 <DialogHeader>
                   <DialogTitle>Schedule New Lesson</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
+                <div className="space-y-4 py-4 overflow-y-auto max-h-[calc(90vh-120px)] pr-2">
                   <div className="space-y-2">
                     <Label>Student</Label>
                     <Select value={newLesson.studentId} onValueChange={(value) => {
@@ -560,12 +600,51 @@ export default function Calendar() {
                       placeholder="60"
                     />
                   </div>
+                  
+                  <div className="flex items-center justify-between space-x-2 border-t pt-4">
+                    <Label htmlFor="recurring" className="cursor-pointer">Recurring Lesson</Label>
+                    <Switch 
+                      id="recurring"
+                      checked={newLesson.isRecurring}
+                      onCheckedChange={(checked) => setNewLesson({ ...newLesson, isRecurring: checked })}
+                    />
+                  </div>
+                  
+                  {newLesson.isRecurring && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Repeat Pattern</Label>
+                        <Select value={newLesson.repeatPattern} onValueChange={(value) => setNewLesson({ ...newLesson, repeatPattern: value })}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select pattern" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="biweekly">Bi-weekly</SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Number of Occurrences</Label>
+                        <Input 
+                          type="number"
+                          value={newLesson.occurrences}
+                          onChange={(e) => setNewLesson({ ...newLesson, occurrences: e.target.value })}
+                          placeholder="4"
+                          min="1"
+                          max="52"
+                        />
+                      </div>
+                    </>
+                  )}
+                  
                   <Button 
                     className="w-full gradient-primary text-primary-foreground"
                     onClick={() => addLessonMutation.mutate(newLesson)}
-                    disabled={!newLesson.studentId || !newLesson.tutorId || !newLesson.subject || !newLesson.day || !newLesson.time}
+                    disabled={!newLesson.studentId || !newLesson.tutorId || !newLesson.subject || !newLesson.day || !newLesson.time || (newLesson.isRecurring && !newLesson.occurrences)}
                   >
-                    Schedule Lesson
+                    {newLesson.isRecurring ? `Schedule ${newLesson.occurrences} Lessons` : 'Schedule Lesson'}
                   </Button>
                 </div>
               </DialogContent>
