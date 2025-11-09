@@ -336,7 +336,7 @@ export default function Tutors() {
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="Active">Active</SelectItem>
                     <SelectItem value="On Leave">On Leave</SelectItem>
                   </SelectContent>
                 </Select>
