@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, Clock, Music, Users, MapPin, Calendar as CalendarIcon, Sparkles } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,22 +25,13 @@ type Lesson = {
   day: number;
   time: string;
   student: string;
+  studentId: string;
   instrument: string;
   tutor: string;
+  tutorId: string;
   duration: number;
   room?: string;
 };
-
-const initialLessons: Lesson[] = [
-  { id: "1", day: 0, time: "09:00", student: "Sarah Johnson", instrument: "Piano", tutor: "Mr. Kofi", duration: 1, room: "Room A" },
-  { id: "2", day: 0, time: "14:00", student: "Emma Williams", instrument: "Violin", tutor: "Mr. Kwame", duration: 1, room: "Studio 1" },
-  { id: "3", day: 1, time: "10:00", student: "Michael Chen", instrument: "Guitar", tutor: "Ms. Ama", duration: 1.5, room: "Room B" },
-  { id: "4", day: 1, time: "15:00", student: "David Brown", instrument: "Drums", tutor: "Mr. Yaw", duration: 1, room: "Studio 2" },
-  { id: "5", day: 2, time: "09:00", student: "Sophia Martinez", instrument: "Voice", tutor: "Ms. Abena", duration: 1, room: "Room C" },
-  { id: "6", day: 2, time: "13:00", student: "James Wilson", instrument: "Piano", tutor: "Mr. Kofi", duration: 1, room: "Room A" },
-  { id: "7", day: 3, time: "11:00", student: "Sarah Johnson", instrument: "Piano", tutor: "Mr. Kofi", duration: 1, room: "Room A" },
-  { id: "8", day: 4, time: "16:00", student: "Emma Williams", instrument: "Violin", tutor: "Mr. Kwame", duration: 1, room: "Studio 1" },
-];
 
 const getInstrumentColor = (instrument: string) => {
   const colors: Record<string, string> = {
@@ -107,12 +101,151 @@ function DroppableSlot({ dayIndex, time, children }: { dayIndex: number; time: s
 }
 
 export default function Calendar() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [currentWeek, setCurrentWeek] = useState("June 3-9, 2024");
-  const [lessons, setLessons] = useState<Lesson[]>(initialLessons);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [matchDialogOpen, setMatchDialogOpen] = useState(false);
+  const [newLesson, setNewLesson] = useState({
+    studentId: "",
+    tutorId: "",
+    subject: "",
+    day: "",
+    time: "",
+    duration: "60",
+    room: "",
+  });
+
+  // Fetch students
+  const { data: students = [] } = useQuery({
+    queryKey: ["students", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("students")
+        .select("*")
+        .eq("user_id", user?.id)
+        .eq("status", "active");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch tutors
+  const { data: tutors = [] } = useQuery({
+    queryKey: ["tutors", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tutors")
+        .select("*")
+        .eq("user_id", user?.id)
+        .eq("status", "active");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch lessons
+  const { data: lessonsData = [], isLoading } = useQuery({
+    queryKey: ["lessons", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("lessons")
+        .select(`
+          *,
+          students (name, subjects),
+          tutors (name)
+        `)
+        .eq("user_id", user?.id)
+        .eq("status", "scheduled");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  // Transform database lessons to UI format
+  const lessons: Lesson[] = lessonsData.map((lesson: any) => ({
+    id: lesson.id,
+    day: lesson.day_of_week,
+    time: lesson.start_time.substring(0, 5), // Convert "HH:MM:SS" to "HH:MM"
+    student: lesson.students?.name || "Unknown",
+    studentId: lesson.student_id,
+    instrument: lesson.subject,
+    tutor: lesson.tutors?.name || "Unknown",
+    tutorId: lesson.tutor_id,
+    duration: lesson.duration / 60, // Convert minutes to hours
+    room: lesson.room,
+  }));
+
+  // Add lesson mutation
+  const addLessonMutation = useMutation({
+    mutationFn: async (lesson: typeof newLesson) => {
+      const { data, error } = await supabase
+        .from("lessons")
+        .insert({
+          user_id: user?.id,
+          student_id: lesson.studentId,
+          tutor_id: lesson.tutorId,
+          subject: lesson.subject,
+          day_of_week: parseInt(lesson.day),
+          start_time: lesson.time + ":00",
+          duration: parseInt(lesson.duration),
+          room: lesson.room || null,
+          status: "scheduled",
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lessons"] });
+      toast.success("Lesson scheduled successfully!");
+      setAddDialogOpen(false);
+      setNewLesson({
+        studentId: "",
+        tutorId: "",
+        subject: "",
+        day: "",
+        time: "",
+        duration: "60",
+        room: "",
+      });
+    },
+    onError: (error) => {
+      toast.error("Failed to schedule lesson");
+      console.error(error);
+    },
+  });
+
+  // Update lesson mutation
+  const updateLessonMutation = useMutation({
+    mutationFn: async ({ id, day, time }: { id: string; day: number; time: string }) => {
+      const { data, error } = await supabase
+        .from("lessons")
+        .update({
+          day_of_week: day,
+          start_time: time + ":00",
+        })
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lessons"] });
+      toast.success("Lesson rescheduled successfully!");
+    },
+    onError: (error) => {
+      toast.error("Failed to reschedule lesson");
+      console.error(error);
+    },
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -122,11 +255,11 @@ export default function Calendar() {
     })
   );
 
-  const checkConflict = (newLesson: Lesson, excludeId?: string) => {
+  const checkConflict = (updatedLesson: { day: number; time: string; tutorId: string; studentId: string; room?: string }, excludeId?: string) => {
     return lessons.some((lesson) => {
       if (excludeId && lesson.id === excludeId) return false;
-      if (lesson.day !== newLesson.day || lesson.time !== newLesson.time) return false;
-      return lesson.tutor === newLesson.tutor || lesson.student === newLesson.student || lesson.room === newLesson.room;
+      if (lesson.day !== updatedLesson.day || lesson.time !== updatedLesson.time) return false;
+      return lesson.tutorId === updatedLesson.tutorId || lesson.studentId === updatedLesson.studentId || (lesson.room && lesson.room === updatedLesson.room);
     });
   };
 
@@ -147,9 +280,11 @@ export default function Calendar() {
     if (!lesson) return;
 
     const updatedLesson = {
-      ...lesson,
       day: parseInt(dayIndex),
       time,
+      tutorId: lesson.tutorId,
+      studentId: lesson.studentId,
+      room: lesson.room,
     };
 
     if (checkConflict(updatedLesson, lessonId)) {
@@ -157,10 +292,7 @@ export default function Calendar() {
       return;
     }
 
-    setLessons((prev) =>
-      prev.map((l) => (l.id === lessonId ? updatedLesson : l))
-    );
-    toast.success("Lesson rescheduled successfully!");
+    updateLessonMutation.mutate({ id: lessonId, day: updatedLesson.day, time: updatedLesson.time });
   };
 
   const handleAutoMatch = () => {
@@ -326,39 +458,54 @@ export default function Calendar() {
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
                     <Label>Student</Label>
-                    <Select>
+                    <Select value={newLesson.studentId} onValueChange={(value) => {
+                      const student = students.find(s => s.id === value);
+                      setNewLesson({ ...newLesson, studentId: value, subject: student?.subjects?.[0] || "" });
+                    }}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select student" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="sarah">Sarah Johnson</SelectItem>
-                        <SelectItem value="emma">Emma Williams</SelectItem>
-                        <SelectItem value="michael">Michael Chen</SelectItem>
+                        {students.map((student) => (
+                          <SelectItem key={student.id} value={student.id}>
+                            {student.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Tutor</Label>
-                    <Select>
+                    <Select value={newLesson.tutorId} onValueChange={(value) => setNewLesson({ ...newLesson, tutorId: value })}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select tutor" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="kofi">Mr. Kofi (Piano)</SelectItem>
-                        <SelectItem value="kwame">Mr. Kwame (Violin)</SelectItem>
-                        <SelectItem value="ama">Ms. Ama (Guitar)</SelectItem>
+                        {tutors.map((tutor) => (
+                          <SelectItem key={tutor.id} value={tutor.id}>
+                            {tutor.name} ({tutor.subjects?.join(", ")})
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
+                    <Label>Subject/Instrument</Label>
+                    <Input 
+                      value={newLesson.subject}
+                      onChange={(e) => setNewLesson({ ...newLesson, subject: e.target.value })}
+                      placeholder="e.g., Piano, Guitar"
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <Label>Room</Label>
-                    <Select>
+                    <Select value={newLesson.room} onValueChange={(value) => setNewLesson({ ...newLesson, room: value })}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select room" />
                       </SelectTrigger>
                       <SelectContent>
                         {rooms.map((room) => (
-                          <SelectItem key={room} value={room.toLowerCase()}>
+                          <SelectItem key={room} value={room}>
                             {room}
                           </SelectItem>
                         ))}
@@ -368,7 +515,7 @@ export default function Calendar() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Day</Label>
-                      <Select>
+                      <Select value={newLesson.day} onValueChange={(value) => setNewLesson({ ...newLesson, day: value })}>
                         <SelectTrigger>
                           <SelectValue placeholder="Day" />
                         </SelectTrigger>
@@ -383,7 +530,7 @@ export default function Calendar() {
                     </div>
                     <div className="space-y-2">
                       <Label>Time</Label>
-                      <Select>
+                      <Select value={newLesson.time} onValueChange={(value) => setNewLesson({ ...newLesson, time: value })}>
                         <SelectTrigger>
                           <SelectValue placeholder="Time" />
                         </SelectTrigger>
@@ -397,7 +544,20 @@ export default function Calendar() {
                       </Select>
                     </div>
                   </div>
-                  <Button className="w-full gradient-primary text-primary-foreground">
+                  <div className="space-y-2">
+                    <Label>Duration (minutes)</Label>
+                    <Input 
+                      type="number"
+                      value={newLesson.duration}
+                      onChange={(e) => setNewLesson({ ...newLesson, duration: e.target.value })}
+                      placeholder="60"
+                    />
+                  </div>
+                  <Button 
+                    className="w-full gradient-primary text-primary-foreground"
+                    onClick={() => addLessonMutation.mutate(newLesson)}
+                    disabled={!newLesson.studentId || !newLesson.tutorId || !newLesson.subject || !newLesson.day || !newLesson.time}
+                  >
                     Schedule Lesson
                   </Button>
                 </div>

@@ -1,76 +1,150 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Check, X, ChevronLeft, ChevronRight, Filter, Download, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-
-const attendanceRecords = [
-  {
-    id: 1,
-    time: "09:00 AM",
-    student: "Sarah Johnson",
-    instrument: "Piano",
-    tutor: "Mr. Kofi",
-    status: "present",
-    feedback: "Excellent progress on Beethoven's Moonlight Sonata. Ready for performance.",
-  },
-  {
-    id: 2,
-    time: "10:30 AM",
-    student: "Michael Chen",
-    instrument: "Guitar",
-    tutor: "Ms. Ama",
-    status: "present",
-    feedback: "Good fingerpicking technique. Need more practice on chord transitions.",
-  },
-  {
-    id: 3,
-    time: "11:00 AM",
-    student: "James Wilson",
-    instrument: "Piano",
-    tutor: "Mr. Kofi",
-    status: "absent",
-    feedback: "",
-  },
-  {
-    id: 4,
-    time: "02:00 PM",
-    student: "Emma Williams",
-    instrument: "Violin",
-    tutor: "Mr. Kwame",
-    status: "pending",
-    feedback: "",
-  },
-  {
-    id: 5,
-    time: "03:00 PM",
-    student: "Sophia Martinez",
-    instrument: "Voice",
-    tutor: "Ms. Abena",
-    status: "pending",
-    feedback: "",
-  },
-  {
-    id: 6,
-    time: "04:00 PM",
-    student: "David Brown",
-    instrument: "Drums",
-    tutor: "Mr. Yaw",
-    status: "pending",
-    feedback: "",
-  },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { format, parseISO, addDays, subDays } from "date-fns";
 
 export default function Attendance() {
-  const [currentDate, setCurrentDate] = useState("Monday, June 3, 2024");
-  const [records, setRecords] = useState(attendanceRecords);
-  const [editingFeedback, setEditingFeedback] = useState<number | null>(null);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [editingFeedback, setEditingFeedback] = useState<string | null>(null);
+  const [feedbackText, setFeedbackText] = useState("");
 
-  const markAttendance = (id: number, status: "present" | "absent") => {
-    setRecords(
-      records.map((record) => (record.id === id ? { ...record, status } : record))
-    );
+  const formattedDate = format(selectedDate, "yyyy-MM-dd");
+  const displayDate = format(selectedDate, "EEEE, MMMM d, yyyy");
+
+  // Fetch attendance records for the selected date
+  const { data: attendanceRecords = [], isLoading } = useQuery({
+    queryKey: ["attendance", user?.id, formattedDate],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("attendance")
+        .select(`
+          *,
+          students (name),
+          tutors (name)
+        `)
+        .eq("user_id", user?.id)
+        .eq("lesson_date", formattedDate)
+        .order("start_time");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch scheduled lessons for the selected date and create attendance records if they don't exist
+  useEffect(() => {
+    const createAttendanceRecords = async () => {
+      if (!user?.id) return;
+
+      const dayOfWeek = selectedDate.getDay();
+      const adjustedDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday=0 to Sunday=6
+
+      const { data: lessons, error: lessonsError } = await supabase
+        .from("lessons")
+        .select(`
+          *,
+          students (name),
+          tutors (name)
+        `)
+        .eq("user_id", user.id)
+        .eq("day_of_week", adjustedDay)
+        .eq("status", "scheduled");
+
+      if (lessonsError || !lessons) return;
+
+      // Check which lessons already have attendance records
+      const { data: existingAttendance } = await supabase
+        .from("attendance")
+        .select("lesson_id")
+        .eq("user_id", user.id)
+        .eq("lesson_date", formattedDate);
+
+      const existingLessonIds = new Set(existingAttendance?.map(a => a.lesson_id) || []);
+
+      // Create attendance records for lessons that don't have them
+      const newAttendanceRecords = lessons
+        .filter(lesson => !existingLessonIds.has(lesson.id))
+        .map(lesson => ({
+          user_id: user.id,
+          lesson_id: lesson.id,
+          student_id: lesson.student_id,
+          tutor_id: lesson.tutor_id,
+          subject: lesson.subject,
+          lesson_date: formattedDate,
+          start_time: lesson.start_time,
+          status: "pending",
+        }));
+
+      if (newAttendanceRecords.length > 0) {
+        await supabase.from("attendance").insert(newAttendanceRecords);
+        queryClient.invalidateQueries({ queryKey: ["attendance"] });
+      }
+    };
+
+    createAttendanceRecords();
+  }, [selectedDate, user?.id, formattedDate, queryClient]);
+
+  // Mark attendance mutation
+  const markAttendanceMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { data, error } = await supabase
+        .from("attendance")
+        .update({ status })
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["attendance"] });
+      toast.success("Attendance marked successfully!");
+    },
+    onError: (error) => {
+      toast.error("Failed to mark attendance");
+      console.error(error);
+    },
+  });
+
+  // Update feedback mutation
+  const updateFeedbackMutation = useMutation({
+    mutationFn: async ({ id, feedback }: { id: string; feedback: string }) => {
+      const { data, error } = await supabase
+        .from("attendance")
+        .update({ feedback })
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["attendance"] });
+      toast.success("Feedback saved successfully!");
+      setEditingFeedback(null);
+      setFeedbackText("");
+    },
+    onError: (error) => {
+      toast.error("Failed to save feedback");
+      console.error(error);
+    },
+  });
+
+  const handlePreviousDay = () => {
+    setSelectedDate(subDays(selectedDate, 1));
+  };
+
+  const handleNextDay = () => {
+    setSelectedDate(addDays(selectedDate, 1));
   };
 
   const getStatusBadge = (status: string) => {
@@ -96,9 +170,17 @@ export default function Attendance() {
     }
   };
 
-  const presentCount = records.filter((r) => r.status === "present").length;
-  const absentCount = records.filter((r) => r.status === "absent").length;
-  const pendingCount = records.filter((r) => r.status === "pending").length;
+  const presentCount = attendanceRecords.filter((r) => r.status === "present").length;
+  const absentCount = attendanceRecords.filter((r) => r.status === "absent").length;
+  const pendingCount = attendanceRecords.filter((r) => r.status === "pending").length;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Loading attendance records...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -119,16 +201,13 @@ export default function Attendance() {
         <Card className="shadow-card">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" onClick={handlePreviousDay}>
                 <ChevronLeft className="h-5 w-5" />
               </Button>
               <div className="flex items-center gap-4">
-                <h2 className="text-xl font-semibold">{currentDate}</h2>
-                <Button variant="outline" size="icon">
-                  <Filter className="h-5 w-5" />
-                </Button>
+                <h2 className="text-xl font-semibold">{displayDate}</h2>
               </div>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" onClick={handleNextDay}>
                 <ChevronRight className="h-5 w-5" />
               </Button>
             </div>
@@ -187,7 +266,12 @@ export default function Attendance() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {records.map((record, index) => (
+              {attendanceRecords.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No lessons scheduled for this date
+                </div>
+              ) : (
+                attendanceRecords.map((record: any, index) => (
                 <Card
                   key={record.id}
                   className="border-2 animate-scale-in"
@@ -197,18 +281,18 @@ export default function Attendance() {
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-bold text-foreground">{record.student}</h3>
+                          <h3 className="text-lg font-bold text-foreground">{record.students?.name}</h3>
                           {getStatusBadge(record.status)}
                         </div>
                         <div className="space-y-1 text-sm text-muted-foreground">
                           <p>
-                            <span className="font-medium">Time:</span> {record.time}
+                            <span className="font-medium">Time:</span> {record.start_time.substring(0, 5)}
                           </p>
                           <p>
-                            <span className="font-medium">Instrument:</span> {record.instrument}
+                            <span className="font-medium">Subject:</span> {record.subject}
                           </p>
                           <p>
-                            <span className="font-medium">Tutor:</span> {record.tutor}
+                            <span className="font-medium">Tutor:</span> {record.tutors?.name}
                           </p>
                         </div>
                       </div>
@@ -217,7 +301,7 @@ export default function Attendance() {
                         <div className="flex gap-2">
                           <Button
                             size="sm"
-                            onClick={() => markAttendance(record.id, "present")}
+                            onClick={() => markAttendanceMutation.mutate({ id: record.id, status: "present" })}
                             className="bg-green-500 hover:bg-green-600 text-white"
                           >
                             <Check className="h-4 w-4 mr-1" />
@@ -225,7 +309,7 @@ export default function Attendance() {
                           </Button>
                           <Button
                             size="sm"
-                            onClick={() => markAttendance(record.id, "absent")}
+                            onClick={() => markAttendanceMutation.mutate({ id: record.id, status: "absent" })}
                             variant="destructive"
                           >
                             <X className="h-4 w-4 mr-1" />
@@ -243,18 +327,25 @@ export default function Attendance() {
                         {editingFeedback === record.id ? (
                           <div className="space-y-2">
                             <Textarea
-                              defaultValue={record.feedback}
+                              value={feedbackText}
+                              onChange={(e) => setFeedbackText(e.target.value)}
                               placeholder="Add feedback about the student's progress..."
                               className="min-h-[100px]"
                             />
                             <div className="flex gap-2">
-                              <Button size="sm" onClick={() => setEditingFeedback(null)}>
+                              <Button 
+                                size="sm" 
+                                onClick={() => updateFeedbackMutation.mutate({ id: record.id, feedback: feedbackText })}
+                              >
                                 Save Feedback
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => setEditingFeedback(null)}
+                                onClick={() => {
+                                  setEditingFeedback(null);
+                                  setFeedbackText("");
+                                }}
                               >
                                 Cancel
                               </Button>
@@ -263,7 +354,10 @@ export default function Attendance() {
                         ) : record.feedback ? (
                           <div
                             className="p-3 rounded-lg bg-muted/50 text-sm cursor-pointer hover:bg-muted transition-colors"
-                            onClick={() => setEditingFeedback(record.id)}
+                            onClick={() => {
+                              setEditingFeedback(record.id);
+                              setFeedbackText(record.feedback || "");
+                            }}
                           >
                             {record.feedback}
                           </div>
@@ -271,7 +365,10 @@ export default function Attendance() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => setEditingFeedback(record.id)}
+                            onClick={() => {
+                              setEditingFeedback(record.id);
+                              setFeedbackText("");
+                            }}
                           >
                             <MessageSquare className="h-4 w-4 mr-2" />
                             Add Feedback
@@ -281,7 +378,8 @@ export default function Attendance() {
                     )}
                   </CardContent>
                 </Card>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

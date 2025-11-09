@@ -14,6 +14,73 @@ export type Database = {
   }
   public: {
     Tables: {
+      attendance: {
+        Row: {
+          created_at: string
+          feedback: string | null
+          id: string
+          lesson_date: string
+          lesson_id: string | null
+          start_time: string
+          status: string
+          student_id: string | null
+          subject: string
+          tutor_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          lesson_date: string
+          lesson_id?: string | null
+          start_time: string
+          status?: string
+          student_id?: string | null
+          subject: string
+          tutor_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          lesson_date?: string
+          lesson_id?: string | null
+          start_time?: string
+          status?: string
+          student_id?: string | null
+          subject?: string
+          tutor_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_leads: {
         Row: {
           created_at: string
@@ -52,6 +119,69 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      lessons: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          duration: number
+          id: string
+          notes: string | null
+          room: string | null
+          start_time: string
+          status: string
+          student_id: string | null
+          subject: string
+          tutor_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          duration?: number
+          id?: string
+          notes?: string | null
+          room?: string | null
+          start_time: string
+          status?: string
+          student_id?: string | null
+          subject: string
+          tutor_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          duration?: number
+          id?: string
+          notes?: string | null
+          room?: string | null
+          start_time?: string
+          status?: string
+          student_id?: string | null
+          subject?: string
+          tutor_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lessons_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lessons_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_preferences: {
         Row: {
