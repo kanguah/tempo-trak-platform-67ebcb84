@@ -36,7 +36,7 @@ import { useDraggable, useDroppable } from "@dnd-kit/core";
 
 const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const timeSlots = Array.from({ length: 11 }, (_, i) => `${8 + i}:00`);
-const rooms = ["Room A", "Room B", "Room C", "Studio 1", "Studio 2"];
+const rooms = ["Room 4", "Room 3"];
 const instruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Cello", "Trumpet", "Bass"];
 
 type Lesson = {
