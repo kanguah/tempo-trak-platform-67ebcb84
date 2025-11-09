@@ -3,6 +3,7 @@ import { Bell, Mail, MessageSquare, CheckCircle, Clock, AlertCircle, X, Check } 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 const initialNotifications = [
@@ -70,6 +71,12 @@ const initialNotifications = [
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState(initialNotifications);
+  const [preferences, setPreferences] = useState({
+    paymentReminders: true,
+    scheduleChanges: true,
+    newEnrollments: true,
+    marketingUpdates: false,
+  });
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const handleMarkAsRead = (id: number) => {
@@ -94,6 +101,14 @@ export default function Notifications() {
   const handleMarkAllAsRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     toast.success("All notifications marked as read");
+  };
+
+  const handlePreferenceToggle = (key: keyof typeof preferences, label: string) => {
+    setPreferences((prev) => {
+      const newValue = !prev[key];
+      toast.success(`${label} ${newValue ? "enabled" : "disabled"}`);
+      return { ...prev, [key]: newValue };
+    });
   };
 
   return (
@@ -254,35 +269,67 @@ export default function Notifications() {
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                <div>
+                <div className="flex-1">
                   <p className="font-medium">Payment Reminders</p>
                   <p className="text-sm text-muted-foreground">Notify me about pending payments</p>
                 </div>
-                <Badge className="bg-green-500/10 text-green-600">Enabled</Badge>
+                <div className="flex items-center gap-3">
+                  <Badge className={preferences.paymentReminders ? "bg-green-500/10 text-green-600" : "bg-gray-500/10 text-gray-600"}>
+                    {preferences.paymentReminders ? "Enabled" : "Disabled"}
+                  </Badge>
+                  <Switch
+                    checked={preferences.paymentReminders}
+                    onCheckedChange={() => handlePreferenceToggle("paymentReminders", "Payment reminders")}
+                  />
+                </div>
               </div>
 
               <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                <div>
+                <div className="flex-1">
                   <p className="font-medium">Schedule Changes</p>
                   <p className="text-sm text-muted-foreground">Alert me when lessons are rescheduled</p>
                 </div>
-                <Badge className="bg-green-500/10 text-green-600">Enabled</Badge>
+                <div className="flex items-center gap-3">
+                  <Badge className={preferences.scheduleChanges ? "bg-green-500/10 text-green-600" : "bg-gray-500/10 text-gray-600"}>
+                    {preferences.scheduleChanges ? "Enabled" : "Disabled"}
+                  </Badge>
+                  <Switch
+                    checked={preferences.scheduleChanges}
+                    onCheckedChange={() => handlePreferenceToggle("scheduleChanges", "Schedule change alerts")}
+                  />
+                </div>
               </div>
 
               <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                <div>
+                <div className="flex-1">
                   <p className="font-medium">New Enrollments</p>
                   <p className="text-sm text-muted-foreground">Notify about new student registrations</p>
                 </div>
-                <Badge className="bg-green-500/10 text-green-600">Enabled</Badge>
+                <div className="flex items-center gap-3">
+                  <Badge className={preferences.newEnrollments ? "bg-green-500/10 text-green-600" : "bg-gray-500/10 text-gray-600"}>
+                    {preferences.newEnrollments ? "Enabled" : "Disabled"}
+                  </Badge>
+                  <Switch
+                    checked={preferences.newEnrollments}
+                    onCheckedChange={() => handlePreferenceToggle("newEnrollments", "New enrollment notifications")}
+                  />
+                </div>
               </div>
 
               <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                <div>
+                <div className="flex-1">
                   <p className="font-medium">Marketing Updates</p>
                   <p className="text-sm text-muted-foreground">Updates about campaigns and conversions</p>
                 </div>
-                <Badge className="bg-gray-500/10 text-gray-600">Disabled</Badge>
+                <div className="flex items-center gap-3">
+                  <Badge className={preferences.marketingUpdates ? "bg-green-500/10 text-green-600" : "bg-gray-500/10 text-gray-600"}>
+                    {preferences.marketingUpdates ? "Enabled" : "Disabled"}
+                  </Badge>
+                  <Switch
+                    checked={preferences.marketingUpdates}
+                    onCheckedChange={() => handlePreferenceToggle("marketingUpdates", "Marketing updates")}
+                  />
+                </div>
               </div>
             </div>
           </CardContent>
