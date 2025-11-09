@@ -1,9 +1,11 @@
-import { Bell, Mail, MessageSquare, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { Bell, Mail, MessageSquare, CheckCircle, Clock, AlertCircle, X, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
-const notifications = [
+const initialNotifications = [
   {
     id: 1,
     type: "payment",
@@ -67,7 +69,32 @@ const notifications = [
 ];
 
 export default function Notifications() {
+  const [notifications, setNotifications] = useState(initialNotifications);
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const handleMarkAsRead = (id: number) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+    toast.success("Notification marked as read");
+  };
+
+  const handleMarkAsUnread = (id: number) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: false } : n))
+    );
+    toast.success("Notification marked as unread");
+  };
+
+  const handleDelete = (id: number) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    toast.success("Notification deleted");
+  };
+
+  const handleMarkAllAsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    toast.success("All notifications marked as read");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -80,7 +107,9 @@ export default function Notifications() {
               Stay updated with academy activities ({unreadCount} unread)
             </p>
           </div>
-          <Button variant="outline">Mark All as Read</Button>
+          <Button variant="outline" onClick={handleMarkAllAsRead}>
+            Mark All as Read
+          </Button>
         </div>
 
         {/* Communication Channels */}
@@ -158,12 +187,56 @@ export default function Notifications() {
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1">
                           <h3 className="font-semibold text-foreground">{notification.title}</h3>
-                          {!notification.read && (
-                            <Badge className="bg-primary text-primary-foreground">New</Badge>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {!notification.read && (
+                              <Badge className="bg-primary text-primary-foreground">New</Badge>
+                            )}
+                          </div>
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">{notification.message}</p>
-                        <p className="text-xs text-muted-foreground">{notification.time}</p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-muted-foreground">{notification.time}</p>
+                          <div className="flex items-center gap-2">
+                            {notification.read ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMarkAsUnread(notification.id);
+                                }}
+                                className="h-8 text-xs"
+                              >
+                                Mark Unread
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMarkAsRead(notification.id);
+                                }}
+                                className="h-8 text-xs"
+                              >
+                                <Check className="h-3 w-3 mr-1" />
+                                Mark Read
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(notification.id);
+                              }}
+                              className="h-8 text-xs text-destructive hover:text-destructive"
+                            >
+                              <X className="h-3 w-3 mr-1" />
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
