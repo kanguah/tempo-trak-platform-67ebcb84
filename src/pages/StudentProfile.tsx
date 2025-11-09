@@ -25,7 +25,12 @@ const editStudentSchema = z.object({
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
   phone: z.string().trim().min(1, "Phone is required").max(20, "Phone must be less than 20 characters"),
   grade: z.string().min(1, "Grade is required"),
-  status: z.string().min(1, "Status is required")
+  status: z.string().min(1, "Status is required"),
+  date_of_birth: z.string().optional(),
+  parent_name: z.string().trim().max(100, "Parent name must be less than 100 characters").optional().or(z.literal("")),
+  parent_email: z.string().trim().email("Invalid parent email").max(255, "Parent email must be less than 255 characters").optional().or(z.literal("")),
+  parent_phone: z.string().trim().max(20, "Parent phone must be less than 20 characters").optional().or(z.literal("")),
+  address: z.string().trim().max(200, "Address must be less than 200 characters").optional().or(z.literal(""))
 });
 
 const instruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Cello", "Trumpet", "Bass"];
@@ -113,7 +118,12 @@ export default function StudentProfile() {
     email: "",
     phone: "",
     grade: "",
-    status: "active"
+    status: "active",
+    date_of_birth: "",
+    parent_name: "",
+    parent_email: "",
+    parent_phone: "",
+    address: ""
   });
 
   useEffect(() => {
@@ -123,7 +133,12 @@ export default function StudentProfile() {
         email: student.email || "",
         phone: student.phone || "",
         grade: student.grade || "",
-        status: student.status || "active"
+        status: student.status || "active",
+        date_of_birth: student.date_of_birth || "",
+        parent_name: student.parent_name || "",
+        parent_email: student.parent_email || "",
+        parent_phone: student.parent_phone || "",
+        address: student.address || ""
       });
     }
   }, [student]);
@@ -353,6 +368,54 @@ export default function StudentProfile() {
                       </p>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Additional Information Card */}
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle>Personal Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">Student Details</h3>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Date of Birth</p>
+                    <p className="text-sm font-medium">
+                      {student.date_of_birth ? format(new Date(student.date_of_birth), 'MMM dd, yyyy') : "Not provided"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Address</p>
+                    <p className="text-sm font-medium">{student.address || "Not provided"}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">Parent/Guardian Information</h3>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Name</p>
+                    <p className="text-sm font-medium">{student.parent_name || "Not provided"}</p>
+                  </div>
+                  {student.parent_email && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Email</p>
+                      <p className="text-sm font-medium">{student.parent_email}</p>
+                    </div>
+                  )}
+                  {student.parent_phone && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Phone</p>
+                      <p className="text-sm font-medium">{student.parent_phone}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -634,6 +697,66 @@ export default function StudentProfile() {
                 </SelectContent>
               </Select>
               {errors.status && <p className="text-sm text-destructive">{errors.status}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-dob">Date of Birth</Label>
+              <Input
+                id="edit-dob"
+                type="date"
+                value={formData.date_of_birth}
+                onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
+              />
+              {errors.date_of_birth && <p className="text-sm text-destructive">{errors.date_of_birth}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-address">Address</Label>
+              <Input
+                id="edit-address"
+                placeholder="123 Music Street, Accra"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              />
+              {errors.address && <p className="text-sm text-destructive">{errors.address}</p>}
+            </div>
+
+            <div className="border-t pt-4 space-y-4">
+              <h3 className="text-sm font-semibold">Parent/Guardian Information</h3>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-parent-name">Parent/Guardian Name</Label>
+                <Input
+                  id="edit-parent-name"
+                  placeholder="Jennifer Johnson"
+                  value={formData.parent_name}
+                  onChange={(e) => setFormData({ ...formData, parent_name: e.target.value })}
+                />
+                {errors.parent_name && <p className="text-sm text-destructive">{errors.parent_name}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-parent-email">Parent/Guardian Email</Label>
+                <Input
+                  id="edit-parent-email"
+                  type="email"
+                  placeholder="parent@email.com"
+                  value={formData.parent_email}
+                  onChange={(e) => setFormData({ ...formData, parent_email: e.target.value })}
+                />
+                {errors.parent_email && <p className="text-sm text-destructive">{errors.parent_email}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-parent-phone">Parent/Guardian Phone</Label>
+                <Input
+                  id="edit-parent-phone"
+                  placeholder="+233 24 123 4560"
+                  value={formData.parent_phone}
+                  onChange={(e) => setFormData({ ...formData, parent_phone: e.target.value })}
+                />
+                {errors.parent_phone && <p className="text-sm text-destructive">{errors.parent_phone}</p>}
+              </div>
             </div>
 
             <div className="flex gap-3 pt-4">

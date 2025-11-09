@@ -322,12 +322,17 @@ export type Database = {
       }
       students: {
         Row: {
+          address: string | null
           created_at: string
+          date_of_birth: string | null
           email: string
           enrollment_date: string
           grade: string | null
           id: string
           name: string
+          parent_email: string | null
+          parent_name: string | null
+          parent_phone: string | null
           phone: string | null
           status: string
           subjects: string[] | null
@@ -335,12 +340,17 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          address?: string | null
           created_at?: string
+          date_of_birth?: string | null
           email: string
           enrollment_date?: string
           grade?: string | null
           id?: string
           name: string
+          parent_email?: string | null
+          parent_name?: string | null
+          parent_phone?: string | null
           phone?: string | null
           status?: string
           subjects?: string[] | null
@@ -348,12 +358,17 @@ export type Database = {
           user_id: string
         }
         Update: {
+          address?: string | null
           created_at?: string
+          date_of_birth?: string | null
           email?: string
           enrollment_date?: string
           grade?: string | null
           id?: string
           name?: string
+          parent_email?: string | null
+          parent_name?: string | null
+          parent_phone?: string | null
           phone?: string | null
           status?: string
           subjects?: string[] | null

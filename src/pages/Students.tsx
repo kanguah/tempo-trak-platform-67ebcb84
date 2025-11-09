@@ -25,7 +25,12 @@ const studentSchema = z.object({
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
   phone: z.string().trim().min(1, "Phone is required").max(20, "Phone must be less than 20 characters"),
   grade: z.string().min(1, "Grade is required"),
-  instrument: z.string().min(1, "Please select an instrument")
+  instrument: z.string().min(1, "Please select an instrument"),
+  date_of_birth: z.string().optional(),
+  parent_name: z.string().trim().max(100, "Parent name must be less than 100 characters").optional().or(z.literal("")),
+  parent_email: z.string().trim().email("Invalid parent email").max(255, "Parent email must be less than 255 characters").optional().or(z.literal("")),
+  parent_phone: z.string().trim().max(20, "Parent phone must be less than 20 characters").optional().or(z.literal("")),
+  address: z.string().trim().max(200, "Address must be less than 200 characters").optional().or(z.literal(""))
 });
 const instruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Cello", "Trumpet", "Bass"];
 type SortField = 'name' | 'grade' | 'created_at';
@@ -39,7 +44,12 @@ export default function Students() {
     email: "",
     phone: "",
     grade: "",
-    instrument: ""
+    instrument: "",
+    date_of_birth: "",
+    parent_name: "",
+    parent_email: "",
+    parent_phone: "",
+    address: ""
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [currentPage, setCurrentPage] = useState(1);
@@ -94,7 +104,12 @@ export default function Students() {
         email: "",
         phone: "",
         grade: "",
-        instrument: ""
+        instrument: "",
+        date_of_birth: "",
+        parent_name: "",
+        parent_email: "",
+        parent_phone: "",
+        address: ""
       });
       setErrors({});
       toast.success("Student added successfully!");
@@ -305,6 +320,81 @@ export default function Students() {
                     </SelectContent>
                   </Select>
                   {errors.instrument && <p className="text-sm text-destructive">{errors.instrument}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="date_of_birth">Date of Birth (Optional)</Label>
+                  <Input 
+                    id="date_of_birth" 
+                    type="date"
+                    value={formData.date_of_birth}
+                    onChange={e => setFormData({
+                      ...formData,
+                      date_of_birth: e.target.value
+                    })}
+                  />
+                  {errors.date_of_birth && <p className="text-sm text-destructive">{errors.date_of_birth}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address">Address (Optional)</Label>
+                  <Input 
+                    id="address" 
+                    placeholder="123 Music Street, Accra"
+                    value={formData.address}
+                    onChange={e => setFormData({
+                      ...formData,
+                      address: e.target.value
+                    })}
+                  />
+                  {errors.address && <p className="text-sm text-destructive">{errors.address}</p>}
+                </div>
+
+                <div className="border-t pt-4 space-y-4">
+                  <h3 className="text-sm font-semibold">Parent/Guardian Information (Optional)</h3>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="parent_name">Parent/Guardian Name</Label>
+                    <Input 
+                      id="parent_name" 
+                      placeholder="Jennifer Johnson"
+                      value={formData.parent_name}
+                      onChange={e => setFormData({
+                        ...formData,
+                        parent_name: e.target.value
+                      })}
+                    />
+                    {errors.parent_name && <p className="text-sm text-destructive">{errors.parent_name}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="parent_email">Parent/Guardian Email</Label>
+                    <Input 
+                      id="parent_email" 
+                      type="email"
+                      placeholder="parent@email.com"
+                      value={formData.parent_email}
+                      onChange={e => setFormData({
+                        ...formData,
+                        parent_email: e.target.value
+                      })}
+                    />
+                    {errors.parent_email && <p className="text-sm text-destructive">{errors.parent_email}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="parent_phone">Parent/Guardian Phone</Label>
+                    <Input 
+                      id="parent_phone" 
+                      placeholder="+233 24 123 4560"
+                      value={formData.parent_phone}
+                      onChange={e => setFormData({
+                        ...formData,
+                        parent_phone: e.target.value
+                      })}
+                    />
+                    {errors.parent_phone && <p className="text-sm text-destructive">{errors.parent_phone}</p>}
+                  </div>
                 </div>
 
                 <div className="flex gap-3 pt-4">
