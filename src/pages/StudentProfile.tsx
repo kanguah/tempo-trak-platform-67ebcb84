@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
@@ -42,6 +43,7 @@ export default function StudentProfile() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [hasParent, setHasParent] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Fetch student data
@@ -128,6 +130,8 @@ export default function StudentProfile() {
 
   useEffect(() => {
     if (student) {
+      const hasParentInfo = !!(student.parent_name || student.parent_email || student.parent_phone);
+      setHasParent(hasParentInfo);
       setFormData({
         name: student.name || "",
         email: student.email || "",
@@ -190,7 +194,13 @@ export default function StudentProfile() {
 
   const handleUpdateStudent = () => {
     try {
-      const validated = editStudentSchema.parse(formData);
+      const dataToValidate = {
+        ...formData,
+        parent_name: hasParent ? formData.parent_name : "",
+        parent_email: hasParent ? formData.parent_email : "",
+        parent_phone: hasParent ? formData.parent_phone : ""
+      };
+      const validated = editStudentSchema.parse(dataToValidate);
       updateStudentMutation.mutate(validated);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -631,11 +641,11 @@ export default function StudentProfile() {
 
       {/* Edit Student Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Edit Student Profile</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 overflow-y-auto max-h-[calc(90vh-120px)] pr-2">
             <div className="space-y-2">
               <Label htmlFor="edit-name">Full Name</Label>
               <Input
@@ -722,41 +732,54 @@ export default function StudentProfile() {
             </div>
 
             <div className="border-t pt-4 space-y-4">
-              <h3 className="text-sm font-semibold">Parent/Guardian Information</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold">Parent/Guardian Information</h3>
+                  <p className="text-xs text-muted-foreground">Add parent or guardian contact details</p>
+                </div>
+                <Switch
+                  checked={hasParent}
+                  onCheckedChange={setHasParent}
+                />
+              </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="edit-parent-name">Parent/Guardian Name</Label>
-                <Input
-                  id="edit-parent-name"
-                  placeholder="Jennifer Johnson"
-                  value={formData.parent_name}
-                  onChange={(e) => setFormData({ ...formData, parent_name: e.target.value })}
-                />
-                {errors.parent_name && <p className="text-sm text-destructive">{errors.parent_name}</p>}
-              </div>
+              {hasParent && (
+                <div className="space-y-4 animate-fade-in">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-parent-name">Parent/Guardian Name</Label>
+                    <Input
+                      id="edit-parent-name"
+                      placeholder="Jennifer Johnson"
+                      value={formData.parent_name}
+                      onChange={(e) => setFormData({ ...formData, parent_name: e.target.value })}
+                    />
+                    {errors.parent_name && <p className="text-sm text-destructive">{errors.parent_name}</p>}
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="edit-parent-email">Parent/Guardian Email</Label>
-                <Input
-                  id="edit-parent-email"
-                  type="email"
-                  placeholder="parent@email.com"
-                  value={formData.parent_email}
-                  onChange={(e) => setFormData({ ...formData, parent_email: e.target.value })}
-                />
-                {errors.parent_email && <p className="text-sm text-destructive">{errors.parent_email}</p>}
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-parent-email">Parent/Guardian Email</Label>
+                    <Input
+                      id="edit-parent-email"
+                      type="email"
+                      placeholder="parent@email.com"
+                      value={formData.parent_email}
+                      onChange={(e) => setFormData({ ...formData, parent_email: e.target.value })}
+                    />
+                    {errors.parent_email && <p className="text-sm text-destructive">{errors.parent_email}</p>}
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="edit-parent-phone">Parent/Guardian Phone</Label>
-                <Input
-                  id="edit-parent-phone"
-                  placeholder="+233 24 123 4560"
-                  value={formData.parent_phone}
-                  onChange={(e) => setFormData({ ...formData, parent_phone: e.target.value })}
-                />
-                {errors.parent_phone && <p className="text-sm text-destructive">{errors.parent_phone}</p>}
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-parent-phone">Parent/Guardian Phone</Label>
+                    <Input
+                      id="edit-parent-phone"
+                      placeholder="+233 24 123 4560"
+                      value={formData.parent_phone}
+                      onChange={(e) => setFormData({ ...formData, parent_phone: e.target.value })}
+                    />
+                    {errors.parent_phone && <p className="text-sm text-destructive">{errors.parent_phone}</p>}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 pt-4">
