@@ -817,7 +817,7 @@ export default function Calendar() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-3">
-                {["Piano", "Guitar", "Violin", "Drums", "Voice"].map((instrument) => {
+                {["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Cello", "Trumpet", "Bass"].map((instrument) => {
                   const count = lessons.filter((l) => l.instrument === instrument).length;
                   return (
                     <Badge
