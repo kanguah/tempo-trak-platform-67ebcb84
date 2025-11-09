@@ -1,12 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Plus, Filter, Music, Mail, Phone, DollarSign, Calendar } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
+import { z } from "zod";
 
-const tutors = [
+const initialTutors = [
   {
     id: 1,
     name: "Mr. Kofi Mensah",
@@ -87,9 +93,101 @@ const tutors = [
   },
 ];
 
+const availableInstruments = [
+  "Piano",
+  "Guitar",
+  "Violin",
+  "Drums",
+  "Voice",
+  "Saxophone",
+  "Flute",
+  "Bass",
+  "Cello",
+  "Clarinet",
+  "Music Theory",
+  "Choir",
+  "Percussion",
+];
+
+const addTutorSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
+  email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
+  phone: z.string().trim().min(1, "Phone is required").max(20, "Phone must be less than 20 characters"),
+  instruments: z.array(z.string()).min(1, "Select at least one instrument"),
+  status: z.string().min(1, "Status is required"),
+});
+
 export default function Tutors() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [tutors, setTutors] = useState(() => {
+    const savedTutors = localStorage.getItem("academy-tutors");
+    return savedTutors ? JSON.parse(savedTutors) : initialTutors;
+  });
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    instruments: [] as string[],
+    status: "Active",
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    localStorage.setItem("academy-tutors", JSON.stringify(tutors));
+  }, [tutors]);
+
+  const handleAddTutor = () => {
+    try {
+      const validated = addTutorSchema.parse(formData);
+      
+      const newTutor = {
+        id: Math.max(...tutors.map((t: any) => t.id), 0) + 1,
+        name: validated.name,
+        email: validated.email,
+        phone: validated.phone,
+        instruments: validated.instruments,
+        status: validated.status,
+        avatar: validated.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2),
+        students: 0,
+        hoursPerWeek: 0,
+        monthlyPay: "GH₵ 0",
+        nextLesson: "Not scheduled",
+      };
+
+      setTutors([...tutors, newTutor]);
+      setDialogOpen(false);
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        instruments: [],
+        status: "Active",
+      });
+      setErrors({});
+      toast.success(`${validated.name} added successfully!`);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const newErrors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            newErrors[err.path[0].toString()] = err.message;
+          }
+        });
+        setErrors(newErrors);
+      }
+    }
+  };
+
+  const toggleInstrument = (instrument: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      instruments: prev.instruments.includes(instrument)
+        ? prev.instruments.filter((i) => i !== instrument)
+        : [...prev.instruments, instrument],
+    }));
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -116,11 +214,123 @@ export default function Tutors() {
             <h1 className="text-4xl font-bold text-foreground mb-2">Tutors</h1>
             <p className="text-muted-foreground">Manage your academy's teaching staff</p>
           </div>
-          <Button className="gradient-primary text-primary-foreground shadow-primary">
+          <Button 
+            className="gradient-primary text-primary-foreground shadow-primary"
+            onClick={() => setDialogOpen(true)}
+          >
             <Plus className="mr-2 h-5 w-5" />
             Add Tutor
           </Button>
         </div>
+
+        {/* Add Tutor Dialog */}
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Add New Tutor</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="tutor-name">Full Name</Label>
+                <Input
+                  id="tutor-name"
+                  placeholder="Enter tutor's full name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+                {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tutor-email">Email</Label>
+                <Input
+                  id="tutor-email"
+                  type="email"
+                  placeholder="tutor@email.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+                {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tutor-phone">Phone</Label>
+                <Input
+                  id="tutor-phone"
+                  placeholder="+233 24 123 4567"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                />
+                {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Instruments</Label>
+                <div className="grid grid-cols-2 gap-3 p-4 border rounded-lg bg-muted/50">
+                  {availableInstruments.map((instrument) => (
+                    <div key={instrument} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={instrument}
+                        checked={formData.instruments.includes(instrument)}
+                        onCheckedChange={() => toggleInstrument(instrument)}
+                      />
+                      <Label
+                        htmlFor={instrument}
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {instrument}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                {errors.instruments && <p className="text-sm text-destructive">{errors.instruments}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tutor-status">Status</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) => setFormData({ ...formData, status: value })}
+                >
+                  <SelectTrigger id="tutor-status">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="On Leave">On Leave</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.status && <p className="text-sm text-destructive">{errors.status}</p>}
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setDialogOpen(false);
+                    setFormData({
+                      name: "",
+                      email: "",
+                      phone: "",
+                      instruments: [],
+                      status: "Active",
+                    });
+                    setErrors({});
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1 gradient-primary text-primary-foreground"
+                  onClick={handleAddTutor}
+                >
+                  Add Tutor
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Search and Filter Bar */}
         <Card className="shadow-card">
