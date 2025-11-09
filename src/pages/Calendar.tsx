@@ -36,7 +36,11 @@ import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { startOfWeek, endOfWeek, format, addWeeks, subWeeks } from "date-fns";
 
 const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const timeSlots = Array.from({ length: 11 }, (_, i) => `${8 + i}:00`);
+const timeSlots = Array.from({ length: 22 }, (_, i) => {
+  const hour = Math.floor(i / 2) + 8;
+  const minute = i % 2 === 0 ? "00" : "30";
+  return `${hour}:${minute}`;
+});
 const rooms = ["Room 4", "Room 3"];
 const instruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Cello", "Trumpet", "Bass"];
 
@@ -662,12 +666,20 @@ export default function Calendar() {
                   </div>
                   <div className="space-y-2">
                     <Label>Duration (minutes)</Label>
-                    <Input
-                      type="number"
+                    <Select
                       value={newLesson.duration}
-                      onChange={(e) => setNewLesson({ ...newLesson, duration: e.target.value })}
-                      placeholder="60"
-                    />
+                      onValueChange={(value) => setNewLesson({ ...newLesson, duration: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select duration" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="30">30 minutes</SelectItem>
+                        <SelectItem value="60">60 minutes (1 hour)</SelectItem>
+                        <SelectItem value="90">90 minutes (1.5 hours)</SelectItem>
+                        <SelectItem value="120">120 minutes (2 hours)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="flex items-center justify-between space-x-2 border-t pt-4">
