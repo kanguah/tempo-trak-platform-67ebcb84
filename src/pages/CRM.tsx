@@ -106,7 +106,10 @@ export default function CRM() {
             <h1 className="text-4xl font-bold text-foreground mb-2">CRM & Leads</h1>
             <p className="text-muted-foreground">Manage prospects and student recruitment</p>
           </div>
-          <Button className="gradient-primary text-primary-foreground shadow-primary">
+          <Button 
+            className="gradient-primary text-primary-foreground shadow-primary"
+            onClick={() => toast.info("Add Lead feature coming soon!")}
+          >
             <Plus className="mr-2 h-5 w-5" />
             Add Lead
           </Button>
@@ -211,11 +214,21 @@ export default function CRM() {
                       </p>
 
                       <div className="flex gap-2 mb-2">
-                        <Button size="sm" variant="outline" className="flex-1">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="flex-1"
+                          onClick={() => toast.success(`Calling ${lead.name}...`)}
+                        >
                           <Phone className="h-3 w-3 mr-1" />
                           Call
                         </Button>
-                        <Button size="sm" variant="outline" className="flex-1">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="flex-1"
+                          onClick={() => toast.success(`Opening message to ${lead.name}...`)}
+                        >
                           <MessageSquare className="h-3 w-3 mr-1" />
                           Message
                         </Button>
