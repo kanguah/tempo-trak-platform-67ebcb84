@@ -130,7 +130,7 @@ export default function Calendar() {
         .from("students")
         .select("*")
         .eq("user_id", user?.id)
-        .eq("status", "active");
+        .eq("status", "Active");
       if (error) throw error;
       return data || [];
     },
@@ -145,7 +145,7 @@ export default function Calendar() {
         .from("tutors")
         .select("*")
         .eq("user_id", user?.id)
-        .eq("status", "active");
+        .eq("status", "Active");
       if (error) throw error;
       return data || [];
     },
