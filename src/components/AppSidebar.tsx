@@ -21,7 +21,7 @@ const directorItems = [
   { title: "Attendance", url: "/attendance", icon: ClipboardCheck },
   { title: "Payments", url: "/payments", icon: CreditCard },
   { title: "CRM & Leads", url: "/crm", icon: Megaphone },
-  { title: "Archived Leads", url: "/archived-leads", icon: Archive },
+  { title: "Archive", url: "/archived-leads", icon: Archive },
   { title: "Messaging", url: "/messaging", icon: MessageSquare },
   { title: "Business Analytics", url: "/analytics", icon: TrendingUp },
   { title: "Reports", url: "/reports", icon: FileText },
