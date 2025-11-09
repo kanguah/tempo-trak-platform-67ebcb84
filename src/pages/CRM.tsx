@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Mail, Phone, MessageSquare, UserPlus, Search, Archive } from "lucide-react";
+import { Plus, Mail, Phone, MessageSquare, UserPlus, Search, Archive, GripVertical } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { DndContext, DragEndEvent, DragOverlay, useDraggable, useDroppable, DragStartEvent } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 
 const initialLeads = [
   {
@@ -67,6 +69,173 @@ const stages = [
   { id: "enrolled", label: "Enrolled", color: "bg-green-500" },
 ];
 
+interface Lead {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  stage: string;
+  instrument: string;
+  source: string;
+  notes: string;
+  lastContact: string;
+  archived: boolean;
+}
+
+interface DraggableLeadCardProps {
+  lead: Lead;
+  index: number;
+  stageIndex: number;
+  onArchive: (leadId: number) => void;
+}
+
+function DraggableLeadCard({ lead, index, stageIndex, onArchive }: DraggableLeadCardProps) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `lead-${lead.id}`,
+    data: { lead },
+  });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    opacity: isDragging ? 0.5 : 1,
+    animationDelay: `${(stageIndex * 0.1) + (index * 0.05)}s`,
+  };
+
+  return (
+    <Card
+      ref={setNodeRef}
+      style={style}
+      className={`border-2 hover:shadow-lg transition-all cursor-grab active:cursor-grabbing animate-scale-in ${isDragging ? 'shadow-2xl ring-2 ring-primary' : ''}`}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start gap-2 mb-2">
+          <div {...listeners} {...attributes} className="touch-none mt-1">
+            <GripVertical className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <h3 className="font-bold text-foreground flex-1">{lead.name}</h3>
+        </div>
+        
+        <div className="space-y-2 text-sm mb-3">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Mail className="h-4 w-4" />
+            <span className="truncate">{lead.email}</span>
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Phone className="h-4 w-4" />
+            {lead.phone}
+          </div>
+        </div>
+
+        <div className="space-y-2 mb-3">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Instrument:</span>
+            <Badge variant="outline">{lead.instrument}</Badge>
+          </div>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Source:</span>
+            <span className="font-medium">{lead.source}</span>
+          </div>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Last Contact:</span>
+            <span className="font-medium">{lead.lastContact}</span>
+          </div>
+        </div>
+
+        <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
+          {lead.notes}
+        </p>
+
+        <div className="flex gap-2 mb-2">
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="flex-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              toast.success(`Calling ${lead.name}...`);
+            }}
+          >
+            <Phone className="h-3 w-3 mr-1" />
+            Call
+          </Button>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="flex-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              toast.success(`Opening message to ${lead.name}...`);
+            }}
+          >
+            <MessageSquare className="h-3 w-3 mr-1" />
+            Message
+          </Button>
+        </div>
+
+        <Button 
+          size="sm" 
+          variant="ghost" 
+          className="w-full text-muted-foreground hover:text-foreground"
+          onClick={(e) => {
+            e.stopPropagation();
+            onArchive(lead.id);
+          }}
+        >
+          <Archive className="h-3 w-3 mr-1" />
+          Archive
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface DroppableStageProps {
+  stage: { id: string; label: string; color: string };
+  leads: Lead[];
+  stageIndex: number;
+  onArchive: (leadId: number) => void;
+}
+
+function DroppableStage({ stage, leads, stageIndex, onArchive }: DroppableStageProps) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: stage.id,
+  });
+
+  return (
+    <Card 
+      className={`shadow-card animate-slide-up transition-all ${isOver ? 'ring-2 ring-primary' : ''}`} 
+      style={{ animationDelay: `${stageIndex * 0.1}s` }}
+    >
+      <CardHeader className={`${stage.color} text-white rounded-t-lg`}>
+        <CardTitle className="text-lg flex items-center justify-between">
+          <span>{stage.label}</span>
+          <Badge className="bg-white/20 text-white border-white/30">
+            {leads.length}
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent ref={setNodeRef} className={`p-4 space-y-3 min-h-[400px] transition-colors ${isOver ? 'bg-accent/50' : ''}`}>
+        {leads.map((lead, index) => (
+          <DraggableLeadCard
+            key={lead.id}
+            lead={lead}
+            index={index}
+            stageIndex={stageIndex}
+            onArchive={onArchive}
+          />
+        ))}
+
+        {leads.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            <p className="text-sm">No leads in this stage</p>
+            {isOver && <p className="text-xs mt-2">Drop here</p>}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function CRM() {
   const [searchQuery, setSearchQuery] = useState("");
   const [leads, setLeads] = useState(() => {
@@ -74,6 +243,7 @@ export default function CRM() {
     return savedLeads ? JSON.parse(savedLeads) : initialLeads;
   });
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [activeLead, setActiveLead] = useState<Lead | null>(null);
   const [newLead, setNewLead] = useState({
     name: "",
     email: "",
@@ -127,15 +297,28 @@ export default function CRM() {
     toast.success(`${leadToAdd.name} added successfully`);
   };
 
-  const getStageBadge = (stage: string) => {
-    const stageInfo = stages.find((s) => s.id === stage);
-    if (!stageInfo) return null;
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const lead = active.data.current?.lead as Lead;
+    setActiveLead(lead);
+  };
 
-    return (
-      <Badge className={`${stageInfo.color} text-white`}>
-        {stageInfo.label}
-      </Badge>
-    );
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveLead(null);
+
+    if (!over) return;
+
+    const leadId = parseInt(active.id.toString().replace('lead-', ''));
+    const newStage = over.id.toString();
+    const lead = leads.find(l => l.id === leadId);
+
+    if (lead && lead.stage !== newStage) {
+      setLeads(leads.map(l => 
+        l.id === leadId ? { ...l, stage: newStage } : l
+      ));
+      toast.success(`${lead.name} moved to ${stages.find(s => s.id === newStage)?.label}`);
+    }
   };
 
   return (
@@ -305,100 +488,37 @@ export default function CRM() {
         </Card>
 
         {/* Pipeline Board */}
-        <div className="grid gap-6 md:grid-cols-3">
-          {stages.map((stage, stageIndex) => (
-            <Card key={stage.id} className="shadow-card animate-slide-up" style={{ animationDelay: `${stageIndex * 0.1}s` }}>
-              <CardHeader className={`${stage.color} text-white rounded-t-lg`}>
-                <CardTitle className="text-lg flex items-center justify-between">
-                  <span>{stage.label}</span>
-                  <Badge className="bg-white/20 text-white border-white/30">
-                    {getLeadsByStage(stage.id).length}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 space-y-3">
-                {getLeadsByStage(stage.id).map((lead, index) => (
-                  <Card
-                    key={lead.id}
-                    className="border-2 hover:shadow-lg transition-all cursor-pointer animate-scale-in"
-                    style={{ animationDelay: `${(stageIndex * 0.1) + (index * 0.05)}s` }}
-                  >
-                    <CardContent className="p-4">
-                      <h3 className="font-bold text-foreground mb-2">{lead.name}</h3>
-                      
-                      <div className="space-y-2 text-sm mb-3">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Mail className="h-4 w-4" />
-                          <span className="truncate">{lead.email}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Phone className="h-4 w-4" />
-                          {lead.phone}
-                        </div>
+        <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          <div className="grid gap-6 md:grid-cols-3">
+            {stages.map((stage, stageIndex) => (
+              <DroppableStage
+                key={stage.id}
+                stage={stage}
+                leads={getLeadsByStage(stage.id)}
+                stageIndex={stageIndex}
+                onArchive={handleArchiveLead}
+              />
+            ))}
+          </div>
+          <DragOverlay>
+            {activeLead ? (
+              <Card className="border-2 shadow-2xl opacity-90 cursor-grabbing">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-2">
+                    <GripVertical className="h-4 w-4 text-muted-foreground mt-1" />
+                    <div className="flex-1">
+                      <h3 className="font-bold text-foreground mb-2">{activeLead.name}</h3>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Mail className="h-4 w-4" />
+                        <span className="truncate">{activeLead.email}</span>
                       </div>
-
-                      <div className="space-y-2 mb-3">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Instrument:</span>
-                          <Badge variant="outline">{lead.instrument}</Badge>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Source:</span>
-                          <span className="font-medium">{lead.source}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Last Contact:</span>
-                          <span className="font-medium">{lead.lastContact}</span>
-                        </div>
-                      </div>
-
-                      <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
-                        {lead.notes}
-                      </p>
-
-                      <div className="flex gap-2 mb-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="flex-1"
-                          onClick={() => toast.success(`Calling ${lead.name}...`)}
-                        >
-                          <Phone className="h-3 w-3 mr-1" />
-                          Call
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="flex-1"
-                          onClick={() => toast.success(`Opening message to ${lead.name}...`)}
-                        >
-                          <MessageSquare className="h-3 w-3 mr-1" />
-                          Message
-                        </Button>
-                      </div>
-
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="w-full text-muted-foreground hover:text-foreground"
-                        onClick={() => handleArchiveLead(lead.id)}
-                      >
-                        <Archive className="h-3 w-3 mr-1" />
-                        Archive
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-
-                {getLeadsByStage(stage.id).length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p className="text-sm">No leads in this stage</p>
+                    </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       </div>
     </div>
   );
