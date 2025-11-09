@@ -665,19 +665,6 @@ export default function Students() {
                       <TableCell>
                         <Badge variant={student.status === "active" ? "default" : "secondary"}>{student.status}</Badge>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/students/${student.id}`);
-                          }}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          View
-                        </Button>
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

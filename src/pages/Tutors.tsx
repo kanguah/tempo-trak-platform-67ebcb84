@@ -552,19 +552,6 @@ export default function Tutors() {
                       <TableCell>
                         <span className="font-semibold">GH₵ {tutor.hourly_rate || 0}</span>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/tutors/${tutor.id}`);
-                          }}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          View
-                        </Button>
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
