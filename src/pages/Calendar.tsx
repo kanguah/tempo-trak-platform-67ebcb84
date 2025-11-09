@@ -817,17 +817,23 @@ export default function Calendar() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-3">
-                {["Piano", "Guitar", "Violin", "Drums", "Voice"].map((instrument) => (
-                  <Badge
-                    key={instrument}
-                    className={`${getInstrumentColor(instrument)} cursor-pointer transition-all hover:scale-105 ${
-                      selectedInstrument === instrument ? "ring-2 ring-foreground ring-offset-2" : ""
-                    }`}
-                    onClick={() => handleInstrumentClick(instrument)}
-                  >
-                    {instrument}
-                  </Badge>
-                ))}
+                {["Piano", "Guitar", "Violin", "Drums", "Voice"].map((instrument) => {
+                  const count = lessons.filter((l) => l.instrument === instrument).length;
+                  return (
+                    <Badge
+                      key={instrument}
+                      className={`${getInstrumentColor(instrument)} cursor-pointer transition-all hover:scale-105 ${
+                        selectedInstrument === instrument ? "ring-2 ring-foreground ring-offset-2" : ""
+                      } flex items-center gap-2`}
+                      onClick={() => handleInstrumentClick(instrument)}
+                    >
+                      {instrument}
+                      <span className="ml-1 px-1.5 py-0.5 rounded-full bg-background/20 text-xs font-semibold">
+                        {count}
+                      </span>
+                    </Badge>
+                  );
+                })}
               </div>
               {selectedInstrument && (
                 <Button
