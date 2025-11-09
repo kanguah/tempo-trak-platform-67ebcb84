@@ -141,7 +141,7 @@ export default function Tutors() {
   const handleAddTutor = () => {
     try {
       const validated = addTutorSchema.parse(formData);
-      
+
       const newTutor = {
         id: Math.max(...tutors.map((t: any) => t.id), 0) + 1,
         name: validated.name,
@@ -149,7 +149,12 @@ export default function Tutors() {
         phone: validated.phone,
         instruments: validated.instruments,
         status: validated.status,
-        avatar: validated.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2),
+        avatar: validated.name
+          .split(" ")
+          .map((n) => n[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 2),
         students: 0,
         hoursPerWeek: 0,
         monthlyPay: "GH₵ 0",
@@ -193,6 +198,8 @@ export default function Tutors() {
     switch (status) {
       case "Active":
         return "bg-green-500/10 text-green-600 border-green-500/20";
+      case "Inactive":
+        return "bg-red-500/10 text-red-600 border-red-500/20";
       case "On Leave":
         return "bg-orange-500/10 text-orange-600 border-orange-500/20";
       default:
@@ -214,7 +221,7 @@ export default function Tutors() {
             <h1 className="text-4xl font-bold text-foreground mb-2">Tutors</h1>
             <p className="text-muted-foreground">Manage your academy's teaching staff</p>
           </div>
-          <Button 
+          <Button
             className="gradient-primary text-primary-foreground shadow-primary"
             onClick={() => setDialogOpen(true)}
           >
@@ -274,10 +281,7 @@ export default function Tutors() {
                         checked={formData.instruments.includes(instrument)}
                         onCheckedChange={() => toggleInstrument(instrument)}
                       />
-                      <Label
-                        htmlFor={instrument}
-                        className="text-sm font-normal cursor-pointer"
-                      >
+                      <Label htmlFor={instrument} className="text-sm font-normal cursor-pointer">
                         {instrument}
                       </Label>
                     </div>
@@ -288,10 +292,7 @@ export default function Tutors() {
 
               <div className="space-y-2">
                 <Label htmlFor="tutor-status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value) => setFormData({ ...formData, status: value })}
-                >
+                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
                   <SelectTrigger id="tutor-status">
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
@@ -321,10 +322,7 @@ export default function Tutors() {
                 >
                   Cancel
                 </Button>
-                <Button
-                  className="flex-1 gradient-primary text-primary-foreground"
-                  onClick={handleAddTutor}
-                >
+                <Button className="flex-1 gradient-primary text-primary-foreground" onClick={handleAddTutor}>
                   Add Tutor
                 </Button>
               </div>
@@ -366,7 +364,7 @@ export default function Tutors() {
                   <div className="flex items-center gap-3">
                     <div
                       className={`flex h-14 w-14 items-center justify-center rounded-xl ${getAvatarGradient(
-                        index
+                        index,
                       )} text-white font-bold text-lg shadow-md`}
                     >
                       {tutor.avatar}
