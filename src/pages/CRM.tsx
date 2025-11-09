@@ -1,5 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Plus, Mail, Phone, MessageSquare, UserPlus, Search, Archive, GripVertical } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -242,10 +245,6 @@ function DroppableStage({ stage, leads, stageIndex, onArchive, onEdit }: Droppab
 
 export default function CRM() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [leads, setLeads] = useState(() => {
-    const savedLeads = localStorage.getItem("crm-leads");
-    return savedLeads ? JSON.parse(savedLeads) : initialLeads;
-  });
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
@@ -259,22 +258,92 @@ export default function CRM() {
     stage: "new",
     notes: "",
   });
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    localStorage.setItem("crm-leads", JSON.stringify(leads));
-  }, [leads]);
+  const { data: leads = [], isLoading } = useQuery({
+    queryKey: ['crm-leads'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('crm_leads')
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('stage', 'new')
+        .or('stage.eq.contacted,stage.eq.qualified')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data.map(lead => ({
+        id: parseInt(lead.id),
+        name: lead.name,
+        email: lead.email,
+        phone: lead.phone || "",
+        stage: lead.stage,
+        instrument: lead.notes?.split(":")[0] || "",
+        source: lead.source || "",
+        notes: lead.notes || "",
+        lastContact: new Date(lead.updated_at).toLocaleDateString(),
+        archived: lead.stage === 'lost',
+      }));
+    },
+    enabled: !!user,
+  });
 
   const getLeadsByStage = (stage: string) => {
-    return leads.filter((lead) => lead.stage === stage && !lead.archived);
+    const stageMap: Record<string, string> = {
+      'new': 'new',
+      'contacted': 'contacted',
+      'enrolled': 'qualified',
+    };
+    return leads.filter((lead) => lead.stage === stageMap[stage]);
   };
+
+  const archiveLeadMutation = useMutation({
+    mutationFn: async (leadId: string) => {
+      const { error } = await supabase
+        .from('crm_leads')
+        .update({ stage: 'lost' })
+        .eq('id', leadId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
+      toast.success("Lead archived successfully");
+    },
+  });
 
   const handleArchiveLead = (leadId: number) => {
     const lead = leads.find(l => l.id === leadId);
-    setLeads(leads.map(lead => 
-      lead.id === leadId ? { ...lead, archived: true } : lead
-    ));
-    toast.success(`${lead?.name} archived successfully`);
+    if (lead) {
+      archiveLeadMutation.mutate(lead.id.toString());
+    }
   };
+
+  const addLeadMutation = useMutation({
+    mutationFn: async (newLead: any) => {
+      const { data, error } = await supabase
+        .from('crm_leads')
+        .insert([{
+          name: newLead.name,
+          email: newLead.email,
+          phone: newLead.phone,
+          stage: newLead.stage,
+          source: newLead.source,
+          notes: `${newLead.instrument}: ${newLead.notes}`,
+          user_id: user?.id,
+        }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
+      toast.success("Lead added successfully!");
+    },
+  });
 
   const handleAddLead = () => {
     if (!newLead.name || !newLead.email || !newLead.phone || !newLead.instrument || !newLead.source) {
@@ -282,14 +351,7 @@ export default function CRM() {
       return;
     }
 
-    const leadToAdd = {
-      id: Math.max(...leads.map(l => l.id), 0) + 1,
-      ...newLead,
-      lastContact: "Just now",
-      archived: false,
-    };
-
-    setLeads([...leads, leadToAdd]);
+    addLeadMutation.mutate(newLead);
     setAddDialogOpen(false);
     setNewLead({
       name: "",
@@ -300,7 +362,6 @@ export default function CRM() {
       stage: "new",
       notes: "",
     });
-    toast.success(`${leadToAdd.name} added successfully`);
   };
 
   const handleOpenEditDialog = (lead: Lead) => {
@@ -308,16 +369,43 @@ export default function CRM() {
     setEditDialogOpen(true);
   };
 
+  const updateLeadMutation = useMutation({
+    mutationFn: async (updatedLead: Lead) => {
+      const stageMap: Record<string, string> = {
+        'new': 'new',
+        'contacted': 'contacted',
+        'enrolled': 'qualified',
+      };
+      
+      const { error } = await supabase
+        .from('crm_leads')
+        .update({
+          name: updatedLead.name,
+          email: updatedLead.email,
+          phone: updatedLead.phone,
+          stage: stageMap[updatedLead.stage] as any,
+          source: updatedLead.source,
+          notes: `${updatedLead.instrument}: ${updatedLead.notes}`,
+        })
+        .eq('id', updatedLead.id.toString());
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
+      toast.success("Lead updated successfully!");
+    },
+  });
+
   const handleSaveEdit = () => {
     if (!editingLead?.name || !editingLead?.email || !editingLead?.phone || !editingLead?.instrument || !editingLead?.source) {
       toast.error("Please fill in all required fields");
       return;
     }
 
-    setLeads(leads.map(l => l.id === editingLead.id ? editingLead : l));
+    updateLeadMutation.mutate(editingLead);
     setEditDialogOpen(false);
     setEditingLead(null);
-    toast.success(`${editingLead.name} updated successfully`);
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -325,6 +413,26 @@ export default function CRM() {
     const lead = active.data.current?.lead as Lead;
     setActiveLead(lead);
   };
+
+  const updateStageMutation = useMutation({
+    mutationFn: async ({ leadId, newStage }: { leadId: string; newStage: string }) => {
+      const stageMap: Record<string, string> = {
+        'new': 'new',
+        'contacted': 'contacted',
+        'enrolled': 'qualified',
+      };
+      
+      const { error } = await supabase
+        .from('crm_leads')
+        .update({ stage: stageMap[newStage] as any })
+        .eq('id', leadId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
+    },
+  });
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -337,9 +445,10 @@ export default function CRM() {
     const lead = leads.find(l => l.id === leadId);
 
     if (lead && lead.stage !== newStage) {
-      setLeads(leads.map(l => 
-        l.id === leadId ? { ...l, stage: newStage } : l
-      ));
+      updateStageMutation.mutate({
+        leadId: lead.id.toString(),
+        newStage,
+      });
       toast.success(`${lead.name} moved to ${stages.find(s => s.id === newStage)?.label}`);
     }
   };

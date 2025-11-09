@@ -10,142 +10,84 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const studentSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
   phone: z.string().trim().min(1, "Phone is required").max(20, "Phone must be less than 20 characters"),
-  instrument: z.string().min(1, "Instrument is required"),
-  level: z.string().min(1, "Level is required"),
-  nextLesson: z.string().min(1, "Next lesson is required"),
+  grade: z.string().min(1, "Grade is required"),
+  subjects: z.array(z.string()).min(1, "Select at least one subject"),
 });
-
-const initialStudents = [
-  {
-    id: 1,
-    name: "Sarah Johnson",
-    instrument: "Piano",
-    level: "Advanced",
-    email: "sarah.j@email.com",
-    phone: "+233 24 123 4567",
-    status: "Active",
-    avatar: "SJ",
-    lessons: 48,
-    nextLesson: "Tomorrow, 9:00 AM",
-  },
-  {
-    id: 2,
-    name: "Michael Chen",
-    instrument: "Guitar",
-    level: "Intermediate",
-    email: "m.chen@email.com",
-    phone: "+233 24 234 5678",
-    status: "Active",
-    avatar: "MC",
-    lessons: 32,
-    nextLesson: "Today, 2:00 PM",
-  },
-  {
-    id: 3,
-    name: "Emma Williams",
-    instrument: "Violin",
-    level: "Beginner",
-    email: "emma.w@email.com",
-    phone: "+233 24 345 6789",
-    status: "Active",
-    avatar: "EW",
-    lessons: 12,
-    nextLesson: "Friday, 4:00 PM",
-  },
-  {
-    id: 4,
-    name: "David Brown",
-    instrument: "Drums",
-    level: "Intermediate",
-    email: "d.brown@email.com",
-    phone: "+233 24 456 7890",
-    status: "Active",
-    avatar: "DB",
-    lessons: 28,
-    nextLesson: "Monday, 10:00 AM",
-  },
-  {
-    id: 5,
-    name: "Sophia Martinez",
-    instrument: "Voice",
-    level: "Advanced",
-    email: "sophia.m@email.com",
-    phone: "+233 24 567 8901",
-    status: "Active",
-    avatar: "SM",
-    lessons: 56,
-    nextLesson: "Tomorrow, 3:00 PM",
-  },
-  {
-    id: 6,
-    name: "James Wilson",
-    instrument: "Piano",
-    level: "Beginner",
-    email: "j.wilson@email.com",
-    phone: "+233 24 678 9012",
-    status: "Pending",
-    avatar: "JW",
-    lessons: 4,
-    nextLesson: "Wednesday, 11:00 AM",
-  },
-];
 
 export default function Students() {
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [students, setStudents] = useState(() => {
-    const savedStudents = localStorage.getItem("academy-students");
-    return savedStudents ? JSON.parse(savedStudents) : initialStudents;
-  });
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
-    instrument: "",
-    level: "",
-    nextLesson: "",
+    grade: "",
+    subjects: [] as string[],
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    localStorage.setItem("academy-students", JSON.stringify(students));
-  }, [students]);
-
-  const handleAddStudent = () => {
-    try {
-      const validated = studentSchema.parse(formData);
+  const { data: students = [], isLoading } = useQuery({
+    queryKey: ['students'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('students')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
       
-      const newStudent = {
-        id: Math.max(...students.map((s: any) => s.id), 0) + 1,
-        name: validated.name,
-        email: validated.email,
-        phone: validated.phone,
-        instrument: validated.instrument,
-        level: validated.level,
-        nextLesson: validated.nextLesson,
-        status: "Active",
-        avatar: validated.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2),
-        lessons: 0,
-      };
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
 
-      setStudents([...students, newStudent]);
+  const addStudentMutation = useMutation({
+    mutationFn: async (newStudent: any) => {
+      const { data, error } = await supabase
+        .from('students')
+        .insert([{
+          ...newStudent,
+          user_id: user?.id,
+        }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
       setDialogOpen(false);
       setFormData({
         name: "",
         email: "",
         phone: "",
-        instrument: "",
-        level: "",
-        nextLesson: "",
+        grade: "",
+        subjects: [],
       });
       setErrors({});
-      toast.success(`${validated.name} added successfully!`);
+      toast.success("Student added successfully!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to add student");
+    },
+  });
+
+  const handleAddStudent = () => {
+    try {
+      const validated = studentSchema.parse(formData);
+      addStudentMutation.mutate(validated);
     } catch (error) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
@@ -181,6 +123,16 @@ export default function Students() {
     ];
     return gradients[index % gradients.length];
   };
+
+  const filteredStudents = students.filter((student) =>
+    student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (student.subjects && student.subjects.some((s: string) => s.toLowerCase().includes(searchQuery.toLowerCase())))
+  );
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-background p-8">Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -238,30 +190,10 @@ export default function Students() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="instrument">Instrument</Label>
-                  <Select value={formData.instrument} onValueChange={(value) => setFormData({ ...formData, instrument: value })}>
-                    <SelectTrigger id="instrument">
-                      <SelectValue placeholder="Select instrument" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Piano">Piano</SelectItem>
-                      <SelectItem value="Guitar">Guitar</SelectItem>
-                      <SelectItem value="Violin">Violin</SelectItem>
-                      <SelectItem value="Drums">Drums</SelectItem>
-                      <SelectItem value="Voice">Voice</SelectItem>
-                      <SelectItem value="Saxophone">Saxophone</SelectItem>
-                      <SelectItem value="Flute">Flute</SelectItem>
-                      <SelectItem value="Bass">Bass</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.instrument && <p className="text-sm text-destructive">{errors.instrument}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="level">Level</Label>
-                  <Select value={formData.level} onValueChange={(value) => setFormData({ ...formData, level: value })}>
-                    <SelectTrigger id="level">
-                      <SelectValue placeholder="Select level" />
+                  <Label htmlFor="grade">Grade</Label>
+                  <Select value={formData.grade} onValueChange={(value) => setFormData({ ...formData, grade: value })}>
+                    <SelectTrigger id="grade">
+                      <SelectValue placeholder="Select grade" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Beginner">Beginner</SelectItem>
@@ -269,18 +201,18 @@ export default function Students() {
                       <SelectItem value="Advanced">Advanced</SelectItem>
                     </SelectContent>
                   </Select>
-                  {errors.level && <p className="text-sm text-destructive">{errors.level}</p>}
+                  {errors.grade && <p className="text-sm text-destructive">{errors.grade}</p>}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="nextLesson">Next Lesson</Label>
+                  <Label htmlFor="subjects">Subjects (comma separated)</Label>
                   <Input
-                    id="nextLesson"
-                    placeholder="e.g., Monday, 10:00 AM"
-                    value={formData.nextLesson}
-                    onChange={(e) => setFormData({ ...formData, nextLesson: e.target.value })}
+                    id="subjects"
+                    placeholder="Piano, Guitar, Voice"
+                    value={formData.subjects.join(", ")}
+                    onChange={(e) => setFormData({ ...formData, subjects: e.target.value.split(",").map(s => s.trim()) })}
                   />
-                  {errors.nextLesson && <p className="text-sm text-destructive">{errors.nextLesson}</p>}
+                  {errors.subjects && <p className="text-sm text-destructive">{errors.subjects}</p>}
                 </div>
 
                 <div className="flex gap-3 pt-4">
@@ -303,7 +235,7 @@ export default function Students() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
-                  placeholder="Search students by name, instrument, or email..."
+                  placeholder="Search students by name, subject, or email..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -318,7 +250,7 @@ export default function Students() {
 
         {/* Students Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {students.map((student, index) => (
+          {filteredStudents.map((student, index) => (
             <Card
               key={student.id}
               className="shadow-card hover:shadow-primary transition-all duration-300 animate-scale-in cursor-pointer"
@@ -333,17 +265,17 @@ export default function Students() {
                         index
                       )} text-white font-bold text-lg shadow-md`}
                     >
-                      {student.avatar}
+                      {student.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
                     </div>
                     <div>
                       <h3 className="font-bold text-lg text-foreground">{student.name}</h3>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                         <Music className="h-4 w-4" />
-                        {student.instrument}
+                        {student.subjects?.join(", ") || "No subjects"}
                       </div>
                     </div>
                   </div>
-                  <Badge className={getLevelColor(student.level)}>{student.level}</Badge>
+                  <Badge className={getLevelColor(student.grade || "Beginner")}>{student.grade || "Beginner"}</Badge>
                 </div>
 
                 <div className="space-y-3">
@@ -353,18 +285,14 @@ export default function Students() {
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Phone className="h-4 w-4" />
-                    {student.phone}
+                    {student.phone || "No phone"}
                   </div>
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-border">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Total Lessons</span>
-                    <span className="font-semibold text-foreground">{student.lessons}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm mt-2">
-                    <span className="text-muted-foreground">Next Lesson</span>
-                    <span className="font-semibold text-primary">{student.nextLesson}</span>
+                    <span className="text-muted-foreground">Status</span>
+                    <span className="font-semibold text-foreground">{student.status}</span>
                   </div>
                 </div>
 

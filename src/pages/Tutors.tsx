@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Filter, Music, Mail, Phone, DollarSign, Calendar } from "lucide-react";
+import { Search, Plus, Filter, Music, Mail, Phone } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,170 +8,89 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { z } from "zod";
-
-const initialTutors = [
-  {
-    id: 1,
-    name: "Mr. Kofi Mensah",
-    instruments: ["Piano", "Music Theory"],
-    email: "kofi.mensah@49ice.com",
-    phone: "+233 24 111 2222",
-    status: "Active",
-    avatar: "KM",
-    students: 18,
-    hoursPerWeek: 24,
-    monthlyPay: "GH₵ 4,200",
-    nextLesson: "Today, 9:00 AM",
-  },
-  {
-    id: 2,
-    name: "Ms. Ama Osei",
-    instruments: ["Guitar", "Bass"],
-    email: "ama.osei@49ice.com",
-    phone: "+233 24 222 3333",
-    status: "Active",
-    avatar: "AO",
-    students: 15,
-    hoursPerWeek: 20,
-    monthlyPay: "GH₵ 3,800",
-    nextLesson: "Today, 10:30 AM",
-  },
-  {
-    id: 3,
-    name: "Mr. Kwame Asante",
-    instruments: ["Violin", "Cello"],
-    email: "kwame.asante@49ice.com",
-    phone: "+233 24 333 4444",
-    status: "Active",
-    avatar: "KA",
-    students: 12,
-    hoursPerWeek: 16,
-    monthlyPay: "GH₵ 3,200",
-    nextLesson: "Tomorrow, 2:00 PM",
-  },
-  {
-    id: 4,
-    name: "Mr. Yaw Boateng",
-    instruments: ["Drums", "Percussion"],
-    email: "yaw.boateng@49ice.com",
-    phone: "+233 24 444 5555",
-    status: "Active",
-    avatar: "YB",
-    students: 14,
-    hoursPerWeek: 18,
-    monthlyPay: "GH₵ 3,500",
-    nextLesson: "Today, 4:00 PM",
-  },
-  {
-    id: 5,
-    name: "Ms. Abena Owusu",
-    instruments: ["Voice", "Choir"],
-    email: "abena.owusu@49ice.com",
-    phone: "+233 24 555 6666",
-    status: "Active",
-    avatar: "AO",
-    students: 20,
-    hoursPerWeek: 22,
-    monthlyPay: "GH₵ 4,000",
-    nextLesson: "Friday, 3:00 PM",
-  },
-  {
-    id: 6,
-    name: "Mr. Kwesi Adjei",
-    instruments: ["Saxophone", "Clarinet"],
-    email: "kwesi.adjei@49ice.com",
-    phone: "+233 24 666 7777",
-    status: "On Leave",
-    avatar: "KA",
-    students: 8,
-    hoursPerWeek: 0,
-    monthlyPay: "GH₵ 0",
-    nextLesson: "Returns June 20",
-  },
-];
-
-const availableInstruments = [
-  "Piano",
-  "Guitar",
-  "Violin",
-  "Drums",
-  "Voice",
-  "Saxophone",
-  "Flute",
-  "Bass",
-  "Cello",
-  "Clarinet",
-  "Music Theory",
-  "Choir",
-  "Percussion",
-];
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const addTutorSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
   phone: z.string().trim().min(1, "Phone is required").max(20, "Phone must be less than 20 characters"),
-  instruments: z.array(z.string()).min(1, "Select at least one instrument"),
+  subjects: z.array(z.string()).min(1, "Select at least one subject"),
   status: z.string().min(1, "Status is required"),
+  hourly_rate: z.number().optional(),
 });
 
 export default function Tutors() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [tutors, setTutors] = useState(() => {
-    const savedTutors = localStorage.getItem("academy-tutors");
-    return savedTutors ? JSON.parse(savedTutors) : initialTutors;
-  });
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
-    instruments: [] as string[],
+    subjects: [] as string[],
     status: "Active",
+    hourly_rate: 0,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    localStorage.setItem("academy-tutors", JSON.stringify(tutors));
-  }, [tutors]);
+  const { data: tutors = [], isLoading } = useQuery({
+    queryKey: ['tutors'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tutors')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
 
-  const handleAddTutor = () => {
-    try {
-      const validated = addTutorSchema.parse(formData);
-
-      const newTutor = {
-        id: Math.max(...tutors.map((t: any) => t.id), 0) + 1,
-        name: validated.name,
-        email: validated.email,
-        phone: validated.phone,
-        instruments: validated.instruments,
-        status: validated.status,
-        avatar: validated.name
-          .split(" ")
-          .map((n) => n[0])
-          .join("")
-          .toUpperCase()
-          .slice(0, 2),
-        students: 0,
-        hoursPerWeek: 0,
-        monthlyPay: "GH₵ 0",
-        nextLesson: "Not scheduled",
-      };
-
-      setTutors([...tutors, newTutor]);
+  const addTutorMutation = useMutation({
+    mutationFn: async (newTutor: any) => {
+      const { data, error } = await supabase
+        .from('tutors')
+        .insert([{
+          ...newTutor,
+          user_id: user?.id,
+        }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tutors'] });
       setDialogOpen(false);
       setFormData({
         name: "",
         email: "",
         phone: "",
-        instruments: [],
+        subjects: [],
         status: "Active",
+        hourly_rate: 0,
       });
       setErrors({});
-      toast.success(`${validated.name} added successfully!`);
+      toast.success("Tutor added successfully!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to add tutor");
+    },
+  });
+
+  const handleAddTutor = () => {
+    try {
+      const validated = addTutorSchema.parse(formData);
+      addTutorMutation.mutate(validated);
     } catch (error) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
@@ -183,15 +102,6 @@ export default function Tutors() {
         setErrors(newErrors);
       }
     }
-  };
-
-  const toggleInstrument = (instrument: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      instruments: prev.instruments.includes(instrument)
-        ? prev.instruments.filter((i) => i !== instrument)
-        : [...prev.instruments, instrument],
-    }));
   };
 
   const getStatusColor = (status: string) => {
@@ -211,6 +121,16 @@ export default function Tutors() {
     const gradients = ["gradient-primary", "gradient-accent", "bg-secondary", "bg-primary"];
     return gradients[index % gradients.length];
   };
+
+  const filteredTutors = tutors.filter((tutor) =>
+    tutor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    tutor.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (tutor.subjects && tutor.subjects.some((s: string) => s.toLowerCase().includes(searchQuery.toLowerCase())))
+  );
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-background p-8">Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -232,7 +152,7 @@ export default function Tutors() {
 
         {/* Add Tutor Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Add New Tutor</DialogTitle>
             </DialogHeader>
@@ -272,22 +192,14 @@ export default function Tutors() {
               </div>
 
               <div className="space-y-2">
-                <Label>Instruments</Label>
-                <div className="grid grid-cols-2 gap-3 p-4 border rounded-lg bg-muted/50">
-                  {availableInstruments.map((instrument) => (
-                    <div key={instrument} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={instrument}
-                        checked={formData.instruments.includes(instrument)}
-                        onCheckedChange={() => toggleInstrument(instrument)}
-                      />
-                      <Label htmlFor={instrument} className="text-sm font-normal cursor-pointer">
-                        {instrument}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-                {errors.instruments && <p className="text-sm text-destructive">{errors.instruments}</p>}
+                <Label htmlFor="tutor-subjects">Subjects (comma separated)</Label>
+                <Input
+                  id="tutor-subjects"
+                  placeholder="Piano, Guitar, Voice"
+                  value={formData.subjects.join(", ")}
+                  onChange={(e) => setFormData({ ...formData, subjects: e.target.value.split(",").map(s => s.trim()) })}
+                />
+                {errors.subjects && <p className="text-sm text-destructive">{errors.subjects}</p>}
               </div>
 
               <div className="space-y-2">
@@ -308,17 +220,7 @@ export default function Tutors() {
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={() => {
-                    setDialogOpen(false);
-                    setFormData({
-                      name: "",
-                      email: "",
-                      phone: "",
-                      instruments: [],
-                      status: "Active",
-                    });
-                    setErrors({});
-                  }}
+                  onClick={() => setDialogOpen(false)}
                 >
                   Cancel
                 </Button>
@@ -337,7 +239,7 @@ export default function Tutors() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
-                  placeholder="Search tutors by name, instrument, or email..."
+                  placeholder="Search tutors by name, subject, or email..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -352,7 +254,7 @@ export default function Tutors() {
 
         {/* Tutors Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {tutors.map((tutor, index) => (
+          {filteredTutors.map((tutor, index) => (
             <Card
               key={tutor.id}
               className="shadow-card hover:shadow-primary transition-all duration-300 animate-scale-in cursor-pointer"
@@ -367,13 +269,13 @@ export default function Tutors() {
                         index,
                       )} text-white font-bold text-lg shadow-md`}
                     >
-                      {tutor.avatar}
+                      {tutor.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
                     </div>
                     <div>
                       <h3 className="font-bold text-lg text-foreground">{tutor.name}</h3>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                         <Music className="h-4 w-4" />
-                        {tutor.instruments.join(", ")}
+                        {tutor.subjects?.join(", ") || "No subjects"}
                       </div>
                     </div>
                   </div>
@@ -389,26 +291,14 @@ export default function Tutors() {
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Phone className="h-4 w-4" />
-                    {tutor.phone}
+                    {tutor.phone || "No phone"}
                   </div>
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-border space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Active Students</span>
-                    <span className="font-semibold text-foreground">{tutor.students}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Hours/Week</span>
-                    <span className="font-semibold text-foreground">{tutor.hoursPerWeek}h</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Monthly Pay</span>
-                    <span className="font-semibold text-accent">{tutor.monthlyPay}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Next Lesson</span>
-                    <span className="font-semibold text-primary">{tutor.nextLesson}</span>
+                    <span className="text-muted-foreground">Hourly Rate</span>
+                    <span className="font-semibold text-accent">GH₵ {tutor.hourly_rate || 0}</span>
                   </div>
                 </div>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { DollarSign, Search, Filter, Download, CheckCircle, Clock, XCircle, CreditCard } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,80 +8,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   BarChart,
   Bar,
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-
-const initialPayments = [
-  {
-    id: "INV-001",
-    student: "Sarah Johnson",
-    amount: "GH₵ 450",
-    status: "paid",
-    method: "MTN MoMo",
-    date: "June 1, 2024",
-    dueDate: "June 1, 2024",
-    package: "8 Lessons/Month",
-  },
-  {
-    id: "INV-002",
-    student: "Michael Chen",
-    amount: "GH₵ 450",
-    status: "pending",
-    method: "Bank Transfer",
-    date: "-",
-    dueDate: "June 5, 2024",
-    package: "8 Lessons/Month",
-  },
-  {
-    id: "INV-003",
-    student: "Emma Williams",
-    amount: "GH₵ 350",
-    status: "paid",
-    method: "Cash",
-    date: "June 2, 2024",
-    dueDate: "June 1, 2024",
-    package: "6 Lessons/Month",
-  },
-  {
-    id: "INV-004",
-    student: "David Brown",
-    amount: "GH₵ 450",
-    status: "overdue",
-    method: "-",
-    date: "-",
-    dueDate: "May 28, 2024",
-    package: "8 Lessons/Month",
-  },
-  {
-    id: "INV-005",
-    student: "Sophia Martinez",
-    amount: "GH₵ 550",
-    status: "paid",
-    method: "Paystack",
-    date: "June 1, 2024",
-    dueDate: "June 1, 2024",
-    package: "10 Lessons/Month",
-  },
-  {
-    id: "INV-006",
-    student: "James Wilson",
-    amount: "GH₵ 350",
-    status: "pending",
-    method: "-",
-    date: "-",
-    dueDate: "June 7, 2024",
-    package: "6 Lessons/Month",
-  },
-];
 
 const revenueData = [
   { month: "Jan", revenue: 45000, expenses: 32000 },
@@ -94,17 +32,51 @@ const revenueData = [
 
 export default function Payments() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [payments, setPayments] = useState(() => {
-    const savedPayments = localStorage.getItem("academy-payments");
-    return savedPayments ? JSON.parse(savedPayments) : initialPayments;
-  });
   const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState("");
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    localStorage.setItem("academy-payments", JSON.stringify(payments));
-  }, [payments]);
+  const { data: payments = [], isLoading } = useQuery({
+    queryKey: ['payments'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payments')
+        .select('*, students(name)')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const verifyPaymentMutation = useMutation({
+    mutationFn: async ({ paymentId, method }: { paymentId: string; method: string }) => {
+      const { error } = await supabase
+        .from('payments')
+        .update({
+          status: 'completed',
+          payment_date: new Date().toISOString(),
+          description: method,
+        })
+        .eq('id', paymentId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      toast.success("Payment verified successfully!");
+      setVerifyDialogOpen(false);
+      setSelectedPayment(null);
+      setPaymentMethod("");
+    },
+    onError: () => {
+      toast.error("Failed to verify payment");
+    },
+  });
 
   const openVerifyDialog = (paymentId: string) => {
     setSelectedPayment(paymentId);
@@ -120,31 +92,15 @@ export default function Payments() {
 
     if (!selectedPayment) return;
 
-    setPayments((prevPayments) =>
-      prevPayments.map((payment) =>
-        payment.id === selectedPayment
-          ? {
-              ...payment,
-              status: "paid",
-              method: paymentMethod,
-              date: new Date().toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              }),
-            }
-          : payment
-      )
-    );
-    toast.success("Payment verified successfully!");
-    setVerifyDialogOpen(false);
-    setSelectedPayment(null);
-    setPaymentMethod("");
+    verifyPaymentMutation.mutate({
+      paymentId: selectedPayment,
+      method: paymentMethod,
+    });
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "paid":
+      case "completed":
         return (
           <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
             <CheckCircle className="h-3 w-3 mr-1" />
@@ -158,7 +114,7 @@ export default function Payments() {
             Pending
           </Badge>
         );
-      case "overdue":
+      case "failed":
         return (
           <Badge className="bg-red-500/10 text-red-600 border-red-500/20">
             <XCircle className="h-3 w-3 mr-1" />
@@ -171,12 +127,16 @@ export default function Payments() {
   };
 
   const totalRevenue = payments
-    .filter((p) => p.status === "paid")
-    .reduce((sum, p) => sum + parseInt(p.amount.replace(/[^0-9]/g, "")), 0);
+    .filter((p) => p.status === "completed")
+    .reduce((sum, p) => sum + Number(p.amount), 0);
   const pendingAmount = payments
-    .filter((p) => p.status === "pending" || p.status === "overdue")
-    .reduce((sum, p) => sum + parseInt(p.amount.replace(/[^0-9]/g, "")), 0);
-  const paidCount = payments.filter((p) => p.status === "paid").length;
+    .filter((p) => p.status === "pending" || p.status === "failed")
+    .reduce((sum, p) => sum + Number(p.amount), 0);
+  const paidCount = payments.filter((p) => p.status === "completed").length;
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-background p-8">Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -356,30 +316,32 @@ export default function Payments() {
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-bold text-foreground">{payment.student}</h3>
+                          <h3 className="font-bold text-foreground">
+                            {payment.students?.name || "Unknown Student"}
+                          </h3>
                           {getStatusBadge(payment.status)}
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
                           <div>
                             <p className="font-medium">Invoice ID</p>
-                            <p>{payment.id}</p>
+                            <p>{payment.id.slice(0, 8)}</p>
                           </div>
                           <div>
-                            <p className="font-medium">Package</p>
-                            <p>{payment.package}</p>
+                            <p className="font-medium">Description</p>
+                            <p>{payment.description || "Payment"}</p>
                           </div>
                           <div>
                             <p className="font-medium">Due Date</p>
-                            <p>{payment.dueDate}</p>
+                            <p>{payment.due_date ? new Date(payment.due_date).toLocaleDateString() : "-"}</p>
                           </div>
                           <div>
                             <p className="font-medium">Payment Method</p>
-                            <p>{payment.method || "-"}</p>
+                            <p>{payment.description || "-"}</p>
                           </div>
                         </div>
                       </div>
                       <div className="text-right ml-4">
-                        <p className="text-2xl font-bold text-foreground">{payment.amount}</p>
+                        <p className="text-2xl font-bold text-foreground">GH₵ {payment.amount}</p>
                         {payment.status === "pending" && (
                           <Button 
                             size="sm" 
