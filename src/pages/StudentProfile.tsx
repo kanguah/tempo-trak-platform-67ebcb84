@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -125,6 +126,7 @@ export default function StudentProfile() {
     address: student?.address || "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showParentFields, setShowParentFields] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("academy-students", JSON.stringify(students));
@@ -346,42 +348,58 @@ export default function StudentProfile() {
                 </div>
 
                 <div className="col-span-2 pt-2">
-                  <h4 className="font-semibold text-foreground mb-3">Parent/Guardian Information</h4>
+                  <div className="flex items-center space-x-2 mb-3">
+                    <Checkbox 
+                      id="show-parent-fields" 
+                      checked={showParentFields}
+                      onCheckedChange={(checked) => setShowParentFields(checked as boolean)}
+                    />
+                    <Label 
+                      htmlFor="show-parent-fields" 
+                      className="text-sm font-semibold text-foreground cursor-pointer"
+                    >
+                      Add Parent/Guardian Information
+                    </Label>
+                  </div>
                 </div>
 
-                <div className="space-y-2 col-span-2">
-                  <Label htmlFor="edit-parent-name">Parent/Guardian Name</Label>
-                  <Input
-                    id="edit-parent-name"
-                    placeholder="Parent's full name"
-                    value={formData.parentName}
-                    onChange={(e) => setFormData({ ...formData, parentName: e.target.value })}
-                  />
-                  {errors.parentName && <p className="text-sm text-destructive">{errors.parentName}</p>}
-                </div>
+                {showParentFields && (
+                  <>
+                    <div className="space-y-2 col-span-2">
+                      <Label htmlFor="edit-parent-name">Parent/Guardian Name</Label>
+                      <Input
+                        id="edit-parent-name"
+                        placeholder="Parent's full name"
+                        value={formData.parentName}
+                        onChange={(e) => setFormData({ ...formData, parentName: e.target.value })}
+                      />
+                      {errors.parentName && <p className="text-sm text-destructive">{errors.parentName}</p>}
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="edit-parent-email">Parent Email</Label>
-                  <Input
-                    id="edit-parent-email"
-                    type="email"
-                    placeholder="parent@email.com"
-                    value={formData.parentEmail}
-                    onChange={(e) => setFormData({ ...formData, parentEmail: e.target.value })}
-                  />
-                  {errors.parentEmail && <p className="text-sm text-destructive">{errors.parentEmail}</p>}
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-parent-email">Parent Email</Label>
+                      <Input
+                        id="edit-parent-email"
+                        type="email"
+                        placeholder="parent@email.com"
+                        value={formData.parentEmail}
+                        onChange={(e) => setFormData({ ...formData, parentEmail: e.target.value })}
+                      />
+                      {errors.parentEmail && <p className="text-sm text-destructive">{errors.parentEmail}</p>}
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="edit-parent-phone">Parent Phone</Label>
-                  <Input
-                    id="edit-parent-phone"
-                    placeholder="+233 24 123 4560"
-                    value={formData.parentPhone}
-                    onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
-                  />
-                  {errors.parentPhone && <p className="text-sm text-destructive">{errors.parentPhone}</p>}
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-parent-phone">Parent Phone</Label>
+                      <Input
+                        id="edit-parent-phone"
+                        placeholder="+233 24 123 4560"
+                        value={formData.parentPhone}
+                        onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
+                      />
+                      {errors.parentPhone && <p className="text-sm text-destructive">{errors.parentPhone}</p>}
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="flex gap-3 pt-4">
