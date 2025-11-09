@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Filter, Music, Mail, Phone, DollarSign, Calendar } from "lucide-react";
+import { Search, Plus, Filter, Music, Mail, Phone, DollarSign, Calendar, Pencil } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -133,6 +133,7 @@ export default function Tutors() {
     status: "Active",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [editingTutor, setEditingTutor] = useState<any>(null);
 
   useEffect(() => {
     localStorage.setItem("academy-tutors", JSON.stringify(tutors));
@@ -142,27 +143,54 @@ export default function Tutors() {
     try {
       const validated = addTutorSchema.parse(formData);
 
-      const newTutor = {
-        id: Math.max(...tutors.map((t: any) => t.id), 0) + 1,
-        name: validated.name,
-        email: validated.email,
-        phone: validated.phone,
-        instruments: validated.instruments,
-        status: validated.status,
-        avatar: validated.name
-          .split(" ")
-          .map((n) => n[0])
-          .join("")
-          .toUpperCase()
-          .slice(0, 2),
-        students: 0,
-        hoursPerWeek: 0,
-        monthlyPay: "GH₵ 0",
-        nextLesson: "Not scheduled",
-      };
+      if (editingTutor) {
+        // Update existing tutor
+        const updatedTutors = tutors.map((t: any) =>
+          t.id === editingTutor.id
+            ? {
+                ...t,
+                name: validated.name,
+                email: validated.email,
+                phone: validated.phone,
+                instruments: validated.instruments,
+                status: validated.status,
+                avatar: validated.name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2),
+              }
+            : t
+        );
+        setTutors(updatedTutors);
+        toast.success(`${validated.name} updated successfully!`);
+      } else {
+        // Add new tutor
+        const newTutor = {
+          id: Math.max(...tutors.map((t: any) => t.id), 0) + 1,
+          name: validated.name,
+          email: validated.email,
+          phone: validated.phone,
+          instruments: validated.instruments,
+          status: validated.status,
+          avatar: validated.name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2),
+          students: 0,
+          hoursPerWeek: 0,
+          monthlyPay: "GH₵ 0",
+          nextLesson: "Not scheduled",
+        };
+        setTutors([...tutors, newTutor]);
+        toast.success(`${validated.name} added successfully!`);
+      }
 
-      setTutors([...tutors, newTutor]);
       setDialogOpen(false);
+      setEditingTutor(null);
       setFormData({
         name: "",
         email: "",
@@ -171,7 +199,6 @@ export default function Tutors() {
         status: "Active",
       });
       setErrors({});
-      toast.success(`${validated.name} added successfully!`);
     } catch (error) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
@@ -183,6 +210,18 @@ export default function Tutors() {
         setErrors(newErrors);
       }
     }
+  };
+
+  const handleEditTutor = (tutor: any) => {
+    setEditingTutor(tutor);
+    setFormData({
+      name: tutor.name,
+      email: tutor.email,
+      phone: tutor.phone,
+      instruments: tutor.instruments,
+      status: tutor.status,
+    });
+    setDialogOpen(true);
   };
 
   const toggleInstrument = (instrument: string) => {
@@ -231,10 +270,23 @@ export default function Tutors() {
         </div>
 
         {/* Add Tutor Dialog */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog open={dialogOpen} onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) {
+            setEditingTutor(null);
+            setFormData({
+              name: "",
+              email: "",
+              phone: "",
+              instruments: [],
+              status: "Active",
+            });
+            setErrors({});
+          }
+        }}>
           <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Add New Tutor</DialogTitle>
+              <DialogTitle>{editingTutor ? "Edit Tutor" : "Add New Tutor"}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
@@ -310,6 +362,7 @@ export default function Tutors() {
                   className="flex-1"
                   onClick={() => {
                     setDialogOpen(false);
+                    setEditingTutor(null);
                     setFormData({
                       name: "",
                       email: "",
@@ -323,7 +376,7 @@ export default function Tutors() {
                   Cancel
                 </Button>
                 <Button className="flex-1 gradient-primary text-primary-foreground" onClick={handleAddTutor}>
-                  Add Tutor
+                  {editingTutor ? "Update Tutor" : "Add Tutor"}
                 </Button>
               </div>
             </div>
@@ -361,7 +414,7 @@ export default function Tutors() {
             >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-1">
                     <div
                       className={`flex h-14 w-14 items-center justify-center rounded-xl ${getAvatarGradient(
                         index,
@@ -377,9 +430,22 @@ export default function Tutors() {
                       </div>
                     </div>
                   </div>
-                  <Badge className={getStatusColor(tutor.status)} variant="outline">
-                    {tutor.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditTutor(tutor);
+                      }}
+                      className="h-8 w-8"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Badge className={getStatusColor(tutor.status)} variant="outline">
+                      {tutor.status}
+                    </Badge>
+                  </div>
                 </div>
 
                 <div className="space-y-3">
