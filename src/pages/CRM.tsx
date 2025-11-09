@@ -87,9 +87,10 @@ interface DraggableLeadCardProps {
   index: number;
   stageIndex: number;
   onArchive: (leadId: number) => void;
+  onEdit: (lead: Lead) => void;
 }
 
-function DraggableLeadCard({ lead, index, stageIndex, onArchive }: DraggableLeadCardProps) {
+function DraggableLeadCard({ lead, index, stageIndex, onArchive, onEdit }: DraggableLeadCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `lead-${lead.id}`,
     data: { lead },
@@ -106,6 +107,7 @@ function DraggableLeadCard({ lead, index, stageIndex, onArchive }: DraggableLead
       ref={setNodeRef}
       style={style}
       className={`border-2 hover:shadow-lg transition-all cursor-grab active:cursor-grabbing animate-scale-in ${isDragging ? 'shadow-2xl ring-2 ring-primary' : ''}`}
+      onClick={() => !isDragging && onEdit(lead)}
     >
       <CardContent className="p-4">
         <div className="flex items-start gap-2 mb-2">
@@ -194,9 +196,10 @@ interface DroppableStageProps {
   leads: Lead[];
   stageIndex: number;
   onArchive: (leadId: number) => void;
+  onEdit: (lead: Lead) => void;
 }
 
-function DroppableStage({ stage, leads, stageIndex, onArchive }: DroppableStageProps) {
+function DroppableStage({ stage, leads, stageIndex, onArchive, onEdit }: DroppableStageProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: stage.id,
   });
@@ -222,6 +225,7 @@ function DroppableStage({ stage, leads, stageIndex, onArchive }: DroppableStageP
             index={index}
             stageIndex={stageIndex}
             onArchive={onArchive}
+            onEdit={onEdit}
           />
         ))}
 
@@ -243,7 +247,9 @@ export default function CRM() {
     return savedLeads ? JSON.parse(savedLeads) : initialLeads;
   });
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [newLead, setNewLead] = useState({
     name: "",
     email: "",
@@ -295,6 +301,23 @@ export default function CRM() {
       notes: "",
     });
     toast.success(`${leadToAdd.name} added successfully`);
+  };
+
+  const handleOpenEditDialog = (lead: Lead) => {
+    setEditingLead(lead);
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingLead?.name || !editingLead?.email || !editingLead?.phone || !editingLead?.instrument || !editingLead?.source) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    setLeads(leads.map(l => l.id === editingLead.id ? editingLead : l));
+    setEditDialogOpen(false);
+    setEditingLead(null);
+    toast.success(`${editingLead.name} updated successfully`);
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -441,6 +464,113 @@ export default function CRM() {
           </DialogContent>
         </Dialog>
 
+        {/* Edit Lead Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Lead</DialogTitle>
+            </DialogHeader>
+            {editingLead && (
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name">Name *</Label>
+                  <Input
+                    id="edit-name"
+                    value={editingLead.name}
+                    onChange={(e) => setEditingLead({ ...editingLead, name: e.target.value })}
+                    placeholder="Enter full name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-email">Email *</Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    value={editingLead.email}
+                    onChange={(e) => setEditingLead({ ...editingLead, email: e.target.value })}
+                    placeholder="email@example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-phone">Phone *</Label>
+                  <Input
+                    id="edit-phone"
+                    value={editingLead.phone}
+                    onChange={(e) => setEditingLead({ ...editingLead, phone: e.target.value })}
+                    placeholder="+233 24 000 0000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-instrument">Instrument *</Label>
+                  <Select value={editingLead.instrument} onValueChange={(value) => setEditingLead({ ...editingLead, instrument: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select instrument" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Piano">Piano</SelectItem>
+                      <SelectItem value="Guitar">Guitar</SelectItem>
+                      <SelectItem value="Voice">Voice</SelectItem>
+                      <SelectItem value="Drums">Drums</SelectItem>
+                      <SelectItem value="Violin">Violin</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-source">Source *</Label>
+                  <Select value={editingLead.source} onValueChange={(value) => setEditingLead({ ...editingLead, source: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Website Form">Website Form</SelectItem>
+                      <SelectItem value="Facebook Ad">Facebook Ad</SelectItem>
+                      <SelectItem value="Google Ad">Google Ad</SelectItem>
+                      <SelectItem value="Referral">Referral</SelectItem>
+                      <SelectItem value="Walk-in">Walk-in</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-stage">Stage</Label>
+                  <Select value={editingLead.stage} onValueChange={(value) => setEditingLead({ ...editingLead, stage: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new">New Lead</SelectItem>
+                      <SelectItem value="contacted">Contacted</SelectItem>
+                      <SelectItem value="enrolled">Enrolled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-notes">Notes</Label>
+                  <Textarea
+                    id="edit-notes"
+                    value={editingLead.notes}
+                    onChange={(e) => setEditingLead({ ...editingLead, notes: e.target.value })}
+                    placeholder="Add any relevant notes..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+            )}
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => {
+                setEditDialogOpen(false);
+                setEditingLead(null);
+              }}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveEdit}>
+                Save Changes
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Summary Cards */}
         <div className="grid gap-6 md:grid-cols-3">
           {stages.map((stage, index) => {
@@ -497,6 +627,7 @@ export default function CRM() {
                 leads={getLeadsByStage(stage.id)}
                 stageIndex={stageIndex}
                 onArchive={handleArchiveLead}
+                onEdit={handleOpenEditDialog}
               />
             ))}
           </div>
