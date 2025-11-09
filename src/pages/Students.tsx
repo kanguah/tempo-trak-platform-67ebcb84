@@ -19,8 +19,10 @@ const studentSchema = z.object({
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
   phone: z.string().trim().min(1, "Phone is required").max(20, "Phone must be less than 20 characters"),
   grade: z.string().min(1, "Grade is required"),
-  subjects: z.array(z.string()).min(1, "Select at least one subject"),
+  instrument: z.string().min(1, "Please select an instrument"),
 });
+
+const instruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Cello", "Trumpet", "Bass"];
 
 export default function Students() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -30,7 +32,7 @@ export default function Students() {
     email: "",
     phone: "",
     grade: "",
-    subjects: [] as string[],
+    instrument: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
@@ -58,6 +60,7 @@ export default function Students() {
         .from('students')
         .insert([{
           ...newStudent,
+          subjects: [newStudent.instrument], // Convert instrument to subjects array
           user_id: user?.id,
         }])
         .select()
@@ -74,7 +77,7 @@ export default function Students() {
         email: "",
         phone: "",
         grade: "",
-        subjects: [],
+        instrument: "",
       });
       setErrors({});
       toast.success("Student added successfully!");
@@ -205,14 +208,20 @@ export default function Students() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="subjects">Subjects (comma separated)</Label>
-                  <Input
-                    id="subjects"
-                    placeholder="Piano, Guitar, Voice"
-                    value={formData.subjects.join(", ")}
-                    onChange={(e) => setFormData({ ...formData, subjects: e.target.value.split(",").map(s => s.trim()) })}
-                  />
-                  {errors.subjects && <p className="text-sm text-destructive">{errors.subjects}</p>}
+                  <Label htmlFor="instrument">Instrument</Label>
+                  <Select value={formData.instrument} onValueChange={(value) => setFormData({ ...formData, instrument: value })}>
+                    <SelectTrigger id="instrument">
+                      <SelectValue placeholder="Select instrument" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background z-50">
+                      {instruments.map((instrument) => (
+                        <SelectItem key={instrument} value={instrument}>
+                          {instrument}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.instrument && <p className="text-sm text-destructive">{errors.instrument}</p>}
                 </div>
 
                 <div className="flex gap-3 pt-4">
@@ -234,12 +243,12 @@ export default function Students() {
             <div className="flex gap-4 items-center">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                  placeholder="Search students by name, subject, or email..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
+                  <Input
+                    placeholder="Search students by name, instrument, or email..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
               </div>
               <Button variant="outline" size="icon">
                 <Filter className="h-5 w-5" />

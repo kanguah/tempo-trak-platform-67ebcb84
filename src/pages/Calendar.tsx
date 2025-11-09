@@ -17,8 +17,8 @@ import { useDraggable, useDroppable } from "@dnd-kit/core";
 
 const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const timeSlots = Array.from({ length: 11 }, (_, i) => `${8 + i}:00`);
-
 const rooms = ["Room A", "Room B", "Room C", "Studio 1", "Studio 2"];
+const instruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Cello", "Trumpet", "Bass"];
 
 type Lesson = {
   id: string;
@@ -490,12 +490,19 @@ export default function Calendar() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Subject/Instrument</Label>
-                    <Input 
-                      value={newLesson.subject}
-                      onChange={(e) => setNewLesson({ ...newLesson, subject: e.target.value })}
-                      placeholder="e.g., Piano, Guitar"
-                    />
+                    <Label>Instrument</Label>
+                    <Select value={newLesson.subject} onValueChange={(value) => setNewLesson({ ...newLesson, subject: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select instrument" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background z-50">
+                        {instruments.map((instrument) => (
+                          <SelectItem key={instrument} value={instrument}>
+                            {instrument}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Room</Label>

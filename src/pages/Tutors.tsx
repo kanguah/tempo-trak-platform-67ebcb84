@@ -18,10 +18,12 @@ const addTutorSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
   phone: z.string().trim().min(1, "Phone is required").max(20, "Phone must be less than 20 characters"),
-  subjects: z.array(z.string()).min(1, "Select at least one subject"),
+  instrument: z.string().min(1, "Please select an instrument"),
   status: z.string().min(1, "Status is required"),
   hourly_rate: z.number().optional(),
 });
+
+const instruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Cello", "Trumpet", "Bass"];
 
 export default function Tutors() {
   const navigate = useNavigate();
@@ -31,7 +33,7 @@ export default function Tutors() {
     name: "",
     email: "",
     phone: "",
-    subjects: [] as string[],
+    instrument: "",
     status: "Active",
     hourly_rate: 0,
   });
@@ -60,6 +62,7 @@ export default function Tutors() {
         .from('tutors')
         .insert([{
           ...newTutor,
+          subjects: [newTutor.instrument], // Convert instrument to subjects array
           user_id: user?.id,
         }])
         .select()
@@ -75,7 +78,7 @@ export default function Tutors() {
         name: "",
         email: "",
         phone: "",
-        subjects: [],
+        instrument: "",
         status: "Active",
         hourly_rate: 0,
       });
@@ -192,14 +195,20 @@ export default function Tutors() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="tutor-subjects">Subjects (comma separated)</Label>
-                <Input
-                  id="tutor-subjects"
-                  placeholder="Piano, Guitar, Voice"
-                  value={formData.subjects.join(", ")}
-                  onChange={(e) => setFormData({ ...formData, subjects: e.target.value.split(",").map(s => s.trim()) })}
-                />
-                {errors.subjects && <p className="text-sm text-destructive">{errors.subjects}</p>}
+                <Label htmlFor="tutor-instrument">Instrument</Label>
+                <Select value={formData.instrument} onValueChange={(value) => setFormData({ ...formData, instrument: value })}>
+                  <SelectTrigger id="tutor-instrument">
+                    <SelectValue placeholder="Select instrument" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    {instruments.map((instrument) => (
+                      <SelectItem key={instrument} value={instrument}>
+                        {instrument}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.instrument && <p className="text-sm text-destructive">{errors.instrument}</p>}
               </div>
 
               <div className="space-y-2">
@@ -239,7 +248,7 @@ export default function Tutors() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
-                  placeholder="Search tutors by name, subject, or email..."
+                  placeholder="Search tutors by name, instrument, or email..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
