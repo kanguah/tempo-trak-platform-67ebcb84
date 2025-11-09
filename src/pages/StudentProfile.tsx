@@ -15,7 +15,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { z } from "zod";
-
 const editStudentSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
@@ -26,7 +25,7 @@ const editStudentSchema = z.object({
   parentEmail: z.string().trim().email("Invalid parent email").max(255, "Parent email must be less than 255 characters").optional().or(z.literal("")),
   parentPhone: z.string().trim().max(20, "Parent phone must be less than 20 characters").optional(),
   dateOfBirth: z.string().min(1, "Date of birth is required"),
-  address: z.string().trim().max(200, "Address must be less than 200 characters"),
+  address: z.string().trim().max(200, "Address must be less than 200 characters")
 });
 
 // Mock data - replace with actual data fetching
@@ -45,72 +44,140 @@ const studentData = {
     parentPhone: "+233 24 123 4560",
     enrollmentDate: "Jan 15, 2023",
     address: "123 Music Street, Accra",
-    dateOfBirth: "March 12, 2008",
+    dateOfBirth: "March 12, 2008"
   }
 };
-
-const enrollmentHistory = [
-  { date: "Jan 15, 2023", package: "Piano - Beginner Package", status: "Completed", duration: "6 months" },
-  { date: "Jul 20, 2023", package: "Piano - Intermediate Package", status: "Completed", duration: "6 months" },
-  { date: "Jan 10, 2024", package: "Piano - Advanced Package", status: "Active", duration: "Ongoing" },
-];
-
-const paymentRecords = [
-  { date: "Nov 15, 2024", amount: "GH₵ 800", method: "MTN MoMo", status: "Paid", invoiceNo: "INV-2024-1145" },
-  { date: "Oct 15, 2024", amount: "GH₵ 800", method: "Bank Transfer", status: "Paid", invoiceNo: "INV-2024-1098" },
-  { date: "Sep 15, 2024", amount: "GH₵ 800", method: "Cash", status: "Paid", invoiceNo: "INV-2024-1052" },
-  { date: "Dec 15, 2024", amount: "GH₵ 800", method: "Pending", status: "Pending", invoiceNo: "INV-2024-1189" },
-];
-
-const attendanceTimeline = [
-  { date: "Nov 20, 2024", time: "9:00 AM", tutor: "Mr. David", status: "Present", topic: "Sonata in C Major" },
-  { date: "Nov 18, 2024", time: "9:00 AM", tutor: "Mr. David", status: "Present", topic: "Bach Prelude No. 1" },
-  { date: "Nov 15, 2024", time: "9:00 AM", tutor: "Mr. David", status: "Present", topic: "Scales & Arpeggios" },
-  { date: "Nov 13, 2024", time: "9:00 AM", tutor: "Mr. David", status: "Absent", topic: "Chord Progressions" },
-  { date: "Nov 11, 2024", time: "9:00 AM", tutor: "Mr. David", status: "Present", topic: "Sight Reading" },
-];
-
-const progressReports = [
-  { 
-    term: "Term 3, 2024", 
-    date: "Oct 31, 2024",
-    technicalSkills: 95,
-    musicTheory: 88,
-    performance: 92,
-    practice: 85,
-    comments: "Exceptional progress! Sarah demonstrates outstanding technique and musicality. Her performance of Chopin's Nocturne was remarkable."
-  },
-  { 
-    term: "Term 2, 2024", 
-    date: "Jul 31, 2024",
-    technicalSkills: 90,
-    musicTheory: 85,
-    performance: 88,
-    practice: 80,
-    comments: "Consistent improvement across all areas. Sarah needs to focus more on sight-reading exercises."
-  },
-];
-
-const communications = [
-  { date: "Nov 22, 2024", type: "Email", from: "Admin", subject: "Upcoming Recital", message: "Reminder about the annual recital on Dec 15th. Sarah will perform Moonlight Sonata." },
-  { date: "Nov 10, 2024", type: "WhatsApp", from: "Mr. David", subject: "Practice Recommendation", message: "Please encourage Sarah to practice scales for 15 minutes daily." },
-  { date: "Oct 28, 2024", type: "Phone", from: "Parent", subject: "Schedule Change Request", message: "Requested to move lesson from Monday to Wednesday." },
-  { date: "Oct 15, 2024", type: "Email", from: "Admin", subject: "Payment Confirmation", message: "Payment received for October tuition. Thank you!" },
-];
-
+const enrollmentHistory = [{
+  date: "Jan 15, 2023",
+  package: "Piano - Beginner Package",
+  status: "Completed",
+  duration: "6 months"
+}, {
+  date: "Jul 20, 2023",
+  package: "Piano - Intermediate Package",
+  status: "Completed",
+  duration: "6 months"
+}, {
+  date: "Jan 10, 2024",
+  package: "Piano - Advanced Package",
+  status: "Active",
+  duration: "Ongoing"
+}];
+const paymentRecords = [{
+  date: "Nov 15, 2024",
+  amount: "GH₵ 800",
+  method: "MTN MoMo",
+  status: "Paid",
+  invoiceNo: "INV-2024-1145"
+}, {
+  date: "Oct 15, 2024",
+  amount: "GH₵ 800",
+  method: "Bank Transfer",
+  status: "Paid",
+  invoiceNo: "INV-2024-1098"
+}, {
+  date: "Sep 15, 2024",
+  amount: "GH₵ 800",
+  method: "Cash",
+  status: "Paid",
+  invoiceNo: "INV-2024-1052"
+}, {
+  date: "Dec 15, 2024",
+  amount: "GH₵ 800",
+  method: "Pending",
+  status: "Pending",
+  invoiceNo: "INV-2024-1189"
+}];
+const attendanceTimeline = [{
+  date: "Nov 20, 2024",
+  time: "9:00 AM",
+  tutor: "Mr. David",
+  status: "Present",
+  topic: "Sonata in C Major"
+}, {
+  date: "Nov 18, 2024",
+  time: "9:00 AM",
+  tutor: "Mr. David",
+  status: "Present",
+  topic: "Bach Prelude No. 1"
+}, {
+  date: "Nov 15, 2024",
+  time: "9:00 AM",
+  tutor: "Mr. David",
+  status: "Present",
+  topic: "Scales & Arpeggios"
+}, {
+  date: "Nov 13, 2024",
+  time: "9:00 AM",
+  tutor: "Mr. David",
+  status: "Absent",
+  topic: "Chord Progressions"
+}, {
+  date: "Nov 11, 2024",
+  time: "9:00 AM",
+  tutor: "Mr. David",
+  status: "Present",
+  topic: "Sight Reading"
+}];
+const progressReports = [{
+  term: "Term 3, 2024",
+  date: "Oct 31, 2024",
+  technicalSkills: 95,
+  musicTheory: 88,
+  performance: 92,
+  practice: 85,
+  comments: "Exceptional progress! Sarah demonstrates outstanding technique and musicality. Her performance of Chopin's Nocturne was remarkable."
+}, {
+  term: "Term 2, 2024",
+  date: "Jul 31, 2024",
+  technicalSkills: 90,
+  musicTheory: 85,
+  performance: 88,
+  practice: 80,
+  comments: "Consistent improvement across all areas. Sarah needs to focus more on sight-reading exercises."
+}];
+const communications = [{
+  date: "Nov 22, 2024",
+  type: "Email",
+  from: "Admin",
+  subject: "Upcoming Recital",
+  message: "Reminder about the annual recital on Dec 15th. Sarah will perform Moonlight Sonata."
+}, {
+  date: "Nov 10, 2024",
+  type: "WhatsApp",
+  from: "Mr. David",
+  subject: "Practice Recommendation",
+  message: "Please encourage Sarah to practice scales for 15 minutes daily."
+}, {
+  date: "Oct 28, 2024",
+  type: "Phone",
+  from: "Parent",
+  subject: "Schedule Change Request",
+  message: "Requested to move lesson from Monday to Wednesday."
+}, {
+  date: "Oct 15, 2024",
+  type: "Email",
+  from: "Admin",
+  subject: "Payment Confirmation",
+  message: "Payment received for October tuition. Thank you!"
+}];
 export default function StudentProfile() {
-  const { id } = useParams();
+  const {
+    id
+  } = useParams();
   const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [students, setStudents] = useState(() => {
     const savedStudents = localStorage.getItem("academy-students");
     return savedStudents ? JSON.parse(savedStudents) : [];
   });
-  
   const student = students.find((s: any) => s.id === Number(id)) || studentData[id as keyof typeof studentData];
-  
   const parseDateOfBirth = (dob: string) => {
-    if (!dob) return { day: "", month: "", year: "" };
+    if (!dob) return {
+      day: "",
+      month: "",
+      year: ""
+    };
     const date = new Date(dob);
     if (!isNaN(date.getTime())) {
       return {
@@ -119,9 +186,12 @@ export default function StudentProfile() {
         year: date.getFullYear().toString()
       };
     }
-    return { day: "", month: "", year: "" };
+    return {
+      day: "",
+      month: "",
+      year: ""
+    };
   };
-
   const [hasParent, setHasParent] = useState(true);
   const [formData, setFormData] = useState({
     name: student?.name || "",
@@ -136,14 +206,12 @@ export default function StudentProfile() {
     address: student?.address || "",
     dobDay: parseDateOfBirth(student?.dateOfBirth || "").day,
     dobMonth: parseDateOfBirth(student?.dateOfBirth || "").month,
-    dobYear: parseDateOfBirth(student?.dateOfBirth || "").year,
+    dobYear: parseDateOfBirth(student?.dateOfBirth || "").year
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-
   useEffect(() => {
     localStorage.setItem("academy-students", JSON.stringify(students));
   }, [students]);
-
   useEffect(() => {
     if (student) {
       const parsed = parseDateOfBirth(student.dateOfBirth || "");
@@ -160,50 +228,42 @@ export default function StudentProfile() {
         address: student.address || "",
         dobDay: parsed.day,
         dobMonth: parsed.month,
-        dobYear: parsed.year,
+        dobYear: parsed.year
       });
     }
   }, [student]);
-
   if (!student) {
     return <div className="p-8">Student not found</div>;
   }
-
   const handleUpdateStudent = () => {
     try {
-      const combinedDob = formData.dobDay && formData.dobMonth && formData.dobYear
-        ? `${new Date(parseInt(formData.dobYear), parseInt(formData.dobMonth) - 1, parseInt(formData.dobDay)).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`
-        : formData.dateOfBirth;
-      
+      const combinedDob = formData.dobDay && formData.dobMonth && formData.dobYear ? `${new Date(parseInt(formData.dobYear), parseInt(formData.dobMonth) - 1, parseInt(formData.dobDay)).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })}` : formData.dateOfBirth;
       const dataToValidate = {
         ...formData,
         dateOfBirth: combinedDob,
         parentName: hasParent ? formData.parentName : "",
         parentEmail: hasParent ? formData.parentEmail : "",
-        parentPhone: hasParent ? formData.parentPhone : "",
+        parentPhone: hasParent ? formData.parentPhone : ""
       };
-      
       const validated = editStudentSchema.parse(dataToValidate);
-      
-      const updatedStudents = students.map((s: any) =>
-        s.id === Number(id)
-          ? {
-              ...s,
-              name: validated.name,
-              email: validated.email,
-              phone: validated.phone,
-              instrument: validated.instrument,
-              level: validated.level,
-              parentName: validated.parentName,
-              parentEmail: validated.parentEmail,
-              parentPhone: validated.parentPhone,
-              dateOfBirth: validated.dateOfBirth,
-              address: validated.address,
-              avatar: validated.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2),
-            }
-          : s
-      );
-
+      const updatedStudents = students.map((s: any) => s.id === Number(id) ? {
+        ...s,
+        name: validated.name,
+        email: validated.email,
+        phone: validated.phone,
+        instrument: validated.instrument,
+        level: validated.level,
+        parentName: validated.parentName,
+        parentEmail: validated.parentEmail,
+        parentPhone: validated.parentPhone,
+        dateOfBirth: validated.dateOfBirth,
+        address: validated.address,
+        avatar: validated.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+      } : s);
       setStudents(updatedStudents);
       setDialogOpen(false);
       setErrors({});
@@ -211,7 +271,7 @@ export default function StudentProfile() {
     } catch (error) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
-        error.errors.forEach((err) => {
+        error.errors.forEach(err => {
           if (err.path[0]) {
             newErrors[err.path[0].toString()] = err.message;
           }
@@ -220,7 +280,6 @@ export default function StudentProfile() {
       }
     }
   };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Present":
@@ -234,9 +293,7 @@ export default function StudentProfile() {
         return "bg-muted text-muted-foreground";
     }
   };
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       <div className="p-8 space-y-8 animate-fade-in">
         {/* Header */}
         <div className="flex items-center gap-4">
@@ -247,10 +304,7 @@ export default function StudentProfile() {
             <h1 className="text-4xl font-bold text-foreground">Student Profile</h1>
             <p className="text-muted-foreground">Comprehensive student information and history</p>
           </div>
-          <Button 
-            className="gradient-primary text-primary-foreground shadow-primary"
-            onClick={() => setDialogOpen(true)}
-          >
+          <Button className="gradient-primary text-primary-foreground shadow-primary" onClick={() => setDialogOpen(true)}>
             Edit Profile
           </Button>
         </div>
@@ -265,41 +319,37 @@ export default function StudentProfile() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2 col-span-2">
                   <Label htmlFor="edit-name">Full Name</Label>
-                  <Input
-                    id="edit-name"
-                    placeholder="Enter student's full name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  />
+                  <Input id="edit-name" placeholder="Enter student's full name" value={formData.name} onChange={e => setFormData({
+                  ...formData,
+                  name: e.target.value
+                })} />
                   {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="edit-email">Email</Label>
-                  <Input
-                    id="edit-email"
-                    type="email"
-                    placeholder="student@email.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  />
+                  <Input id="edit-email" type="email" placeholder="student@email.com" value={formData.email} onChange={e => setFormData({
+                  ...formData,
+                  email: e.target.value
+                })} />
                   {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="edit-phone">Phone</Label>
-                  <Input
-                    id="edit-phone"
-                    placeholder="+233 24 123 4567"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  />
+                  <Input id="edit-phone" placeholder="+233 24 123 4567" value={formData.phone} onChange={e => setFormData({
+                  ...formData,
+                  phone: e.target.value
+                })} />
                   {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="edit-instrument">Instrument</Label>
-                  <Select value={formData.instrument} onValueChange={(value) => setFormData({ ...formData, instrument: value })}>
+                  <Select value={formData.instrument} onValueChange={value => setFormData({
+                  ...formData,
+                  instrument: value
+                })}>
                     <SelectTrigger id="edit-instrument">
                       <SelectValue placeholder="Select instrument" />
                     </SelectTrigger>
@@ -319,7 +369,10 @@ export default function StudentProfile() {
 
                 <div className="space-y-2">
                   <Label htmlFor="edit-level">Level</Label>
-                  <Select value={formData.level} onValueChange={(value) => setFormData({ ...formData, level: value })}>
+                  <Select value={formData.level} onValueChange={value => setFormData({
+                  ...formData,
+                  level: value
+                })}>
                     <SelectTrigger id="edit-level">
                       <SelectValue placeholder="Select level" />
                     </SelectTrigger>
@@ -335,7 +388,10 @@ export default function StudentProfile() {
                 <div className="space-y-2 col-span-2">
                   <Label>Date of Birth</Label>
                   <div className="grid grid-cols-3 gap-2">
-                    <Select value={formData.dobMonth} onValueChange={(value) => setFormData({ ...formData, dobMonth: value })}>
+                    <Select value={formData.dobMonth} onValueChange={value => setFormData({
+                    ...formData,
+                    dobMonth: value
+                  })}>
                       <SelectTrigger>
                         <SelectValue placeholder="Month" />
                       </SelectTrigger>
@@ -355,25 +411,31 @@ export default function StudentProfile() {
                       </SelectContent>
                     </Select>
                     
-                    <Select value={formData.dobDay} onValueChange={(value) => setFormData({ ...formData, dobDay: value })}>
+                    <Select value={formData.dobDay} onValueChange={value => setFormData({
+                    ...formData,
+                    dobDay: value
+                  })}>
                       <SelectTrigger>
                         <SelectValue placeholder="Day" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                          <SelectItem key={day} value={day.toString()}>{day}</SelectItem>
-                        ))}
+                        {Array.from({
+                        length: 31
+                      }, (_, i) => i + 1).map(day => <SelectItem key={day} value={day.toString()}>{day}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     
-                    <Select value={formData.dobYear} onValueChange={(value) => setFormData({ ...formData, dobYear: value })}>
+                    <Select value={formData.dobYear} onValueChange={value => setFormData({
+                    ...formData,
+                    dobYear: value
+                  })}>
                       <SelectTrigger>
                         <SelectValue placeholder="Year" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map((year) => (
-                          <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                        ))}
+                        {Array.from({
+                        length: 100
+                      }, (_, i) => new Date().getFullYear() - i).map(year => <SelectItem key={year} value={year.toString()}>{year}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -382,68 +444,53 @@ export default function StudentProfile() {
 
                 <div className="space-y-2">
                   <Label htmlFor="edit-address">Address</Label>
-                  <Input
-                    id="edit-address"
-                    placeholder="123 Music Street, Accra"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  />
+                  <Input id="edit-address" placeholder="123 Music Street, Accra" value={formData.address} onChange={e => setFormData({
+                  ...formData,
+                  address: e.target.value
+                })} />
                   {errors.address && <p className="text-sm text-destructive">{errors.address}</p>}
                 </div>
 
                 <div className="col-span-2 pt-2">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-foreground">Parent/Guardian Information</h4>
+                    
                     <div className="flex items-center gap-2">
                       <Label htmlFor="parent-toggle" className="text-sm text-muted-foreground cursor-pointer">
                         Add parent/guardian
                       </Label>
-                      <Switch
-                        id="parent-toggle"
-                        checked={hasParent}
-                        onCheckedChange={setHasParent}
-                      />
+                      <Switch id="parent-toggle" checked={hasParent} onCheckedChange={setHasParent} />
                     </div>
                   </div>
                 </div>
 
-                {hasParent && (
-                  <>
+                {hasParent && <>
                     <div className="space-y-2 col-span-2">
                       <Label htmlFor="edit-parent-name">Parent/Guardian Name</Label>
-                      <Input
-                        id="edit-parent-name"
-                        placeholder="Parent's full name"
-                        value={formData.parentName}
-                        onChange={(e) => setFormData({ ...formData, parentName: e.target.value })}
-                      />
+                      <Input id="edit-parent-name" placeholder="Parent's full name" value={formData.parentName} onChange={e => setFormData({
+                    ...formData,
+                    parentName: e.target.value
+                  })} />
                       {errors.parentName && <p className="text-sm text-destructive">{errors.parentName}</p>}
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="edit-parent-email">Parent Email</Label>
-                      <Input
-                        id="edit-parent-email"
-                        type="email"
-                        placeholder="parent@email.com"
-                        value={formData.parentEmail}
-                        onChange={(e) => setFormData({ ...formData, parentEmail: e.target.value })}
-                      />
+                      <Input id="edit-parent-email" type="email" placeholder="parent@email.com" value={formData.parentEmail} onChange={e => setFormData({
+                    ...formData,
+                    parentEmail: e.target.value
+                  })} />
                       {errors.parentEmail && <p className="text-sm text-destructive">{errors.parentEmail}</p>}
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="edit-parent-phone">Parent Phone</Label>
-                      <Input
-                        id="edit-parent-phone"
-                        placeholder="+233 24 123 4560"
-                        value={formData.parentPhone}
-                        onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
-                      />
+                      <Input id="edit-parent-phone" placeholder="+233 24 123 4560" value={formData.parentPhone} onChange={e => setFormData({
+                    ...formData,
+                    parentPhone: e.target.value
+                  })} />
                       {errors.parentPhone && <p className="text-sm text-destructive">{errors.parentPhone}</p>}
                     </div>
-                  </>
-                )}
+                  </>}
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -553,16 +600,14 @@ export default function StudentProfile() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {enrollmentHistory.map((record, index) => (
-                      <TableRow key={index}>
+                    {enrollmentHistory.map((record, index) => <TableRow key={index}>
                         <TableCell className="font-medium">{record.date}</TableCell>
                         <TableCell>{record.package}</TableCell>
                         <TableCell>{record.duration}</TableCell>
                         <TableCell>
                           <Badge className={getStatusColor(record.status)}>{record.status}</Badge>
                         </TableCell>
-                      </TableRow>
-                    ))}
+                      </TableRow>)}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -591,8 +636,7 @@ export default function StudentProfile() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paymentRecords.map((payment, index) => (
-                      <TableRow key={index}>
+                    {paymentRecords.map((payment, index) => <TableRow key={index}>
                         <TableCell className="font-medium">{payment.invoiceNo}</TableCell>
                         <TableCell>{payment.date}</TableCell>
                         <TableCell className="font-semibold text-primary">{payment.amount}</TableCell>
@@ -603,8 +647,7 @@ export default function StudentProfile() {
                         <TableCell>
                           <Button variant="outline" size="sm">View Receipt</Button>
                         </TableCell>
-                      </TableRow>
-                    ))}
+                      </TableRow>)}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -632,8 +675,7 @@ export default function StudentProfile() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {attendanceTimeline.map((record, index) => (
-                      <TableRow key={index}>
+                    {attendanceTimeline.map((record, index) => <TableRow key={index}>
                         <TableCell className="font-medium">{record.date}</TableCell>
                         <TableCell>{record.time}</TableCell>
                         <TableCell>{record.tutor}</TableCell>
@@ -641,8 +683,7 @@ export default function StudentProfile() {
                         <TableCell>
                           <Badge className={getStatusColor(record.status)}>{record.status}</Badge>
                         </TableCell>
-                      </TableRow>
-                    ))}
+                      </TableRow>)}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -652,8 +693,7 @@ export default function StudentProfile() {
           {/* Progress Reports */}
           <TabsContent value="progress">
             <div className="space-y-6">
-              {progressReports.map((report, index) => (
-                <Card key={index} className="shadow-card">
+              {progressReports.map((report, index) => <Card key={index} className="shadow-card">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle className="flex items-center gap-2">
@@ -705,8 +745,7 @@ export default function StudentProfile() {
 
                     <Button variant="outline" className="w-full">Download Report PDF</Button>
                   </CardContent>
-                </Card>
-              ))}
+                </Card>)}
             </div>
           </TabsContent>
 
@@ -726,8 +765,7 @@ export default function StudentProfile() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {communications.map((comm, index) => (
-                    <div key={index} className="p-4 border border-border rounded-lg space-y-2 hover:shadow-card transition-all">
+                  {communications.map((comm, index) => <div key={index} className="p-4 border border-border rounded-lg space-y-2 hover:shadow-card transition-all">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <Badge variant="outline">{comm.type}</Badge>
@@ -737,14 +775,12 @@ export default function StudentProfile() {
                       </div>
                       <h4 className="font-semibold text-foreground">{comm.subject}</h4>
                       <p className="text-sm text-muted-foreground">{comm.message}</p>
-                    </div>
-                  ))}
+                    </div>)}
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
-    </div>
-  );
+    </div>;
 }
