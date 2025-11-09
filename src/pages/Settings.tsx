@@ -3,15 +3,112 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
+import { useState, useEffect } from "react";
 
 export default function Settings() {
   const { theme, setTheme } = useTheme();
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
+  const [zapierWebhook, setZapierWebhook] = useState("");
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("zapier-webhook-url");
+    if (saved) setZapierWebhook(saved);
+  }, []);
 
   const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme);
     toast.success(`Theme changed to ${newTheme === 'system' ? 'auto' : newTheme}`);
+  };
+
+  const handleSaveWebhook = () => {
+    if (!zapierWebhook.trim()) {
+      toast.error("Please enter a valid webhook URL");
+      return;
+    }
+    
+    if (!zapierWebhook.startsWith('https://hooks.zapier.com/')) {
+      toast.error("Please enter a valid Zapier webhook URL");
+      return;
+    }
+
+    localStorage.setItem("zapier-webhook-url", zapierWebhook);
+    setSyncDialogOpen(false);
+    toast.success("Zapier webhook configured successfully");
+  };
+
+  const handleSyncNow = async () => {
+    const webhookUrl = localStorage.getItem("zapier-webhook-url");
+    
+    if (!webhookUrl) {
+      toast.error("Please configure your Zapier webhook first");
+      setSyncDialogOpen(true);
+      return;
+    }
+
+    setIsSyncing(true);
+
+    try {
+      // Gather data from localStorage
+      const students = JSON.parse(localStorage.getItem("students") || "[]");
+      const tutors = JSON.parse(localStorage.getItem("tutors") || "[]");
+      const leads = JSON.parse(localStorage.getItem("crm-leads") || "[]");
+      
+      const syncData = {
+        timestamp: new Date().toISOString(),
+        academy: "49ice Academy of Music",
+        data: {
+          students: students.map((s: any) => ({
+            id: s.id,
+            name: s.name,
+            instrument: s.instrument,
+            level: s.level,
+            status: s.status,
+            email: s.email,
+          })),
+          tutors: tutors.map((t: any) => ({
+            id: t.id,
+            name: t.name,
+            instrument: t.instrument,
+            students: t.students,
+            email: t.email,
+          })),
+          leads: leads.filter((l: any) => !l.archived).map((l: any) => ({
+            id: l.id,
+            name: l.name,
+            email: l.email,
+            phone: l.phone,
+            stage: l.stage,
+            instrument: l.instrument,
+            source: l.source,
+          })),
+        },
+        stats: {
+          total_students: students.length,
+          total_tutors: tutors.length,
+          total_leads: leads.filter((l: any) => !l.archived).length,
+        },
+      };
+
+      await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        mode: "no-cors",
+        body: JSON.stringify(syncData),
+      });
+
+      toast.success("Data sync triggered! Check your Google Sheets in a moment.");
+    } catch (error) {
+      console.error("Sync error:", error);
+      toast.error("Failed to sync data. Please check your webhook URL.");
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   return (
@@ -148,11 +245,24 @@ export default function Settings() {
                 <CardContent className="p-4">
                   <h3 className="font-semibold mb-2">Google Sheets Sync</h3>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Sync data with Google Sheets
+                    Sync data with Google Sheets via Zapier
                   </p>
-                  <Button variant="outline" className="w-full">
-                    Configure Sync
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => setSyncDialogOpen(true)}
+                    >
+                      Configure Sync
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={handleSyncNow}
+                      disabled={isSyncing}
+                    >
+                      {isSyncing ? "Syncing..." : "Sync Now"}
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -170,6 +280,65 @@ export default function Settings() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Google Sheets Sync Dialog */}
+        <Dialog open={syncDialogOpen} onOpenChange={setSyncDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Configure Google Sheets Sync</DialogTitle>
+              <DialogDescription>
+                Connect your academy data to Google Sheets using Zapier webhooks
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-3">
+                <div className="bg-muted p-4 rounded-lg space-y-2 text-sm">
+                  <h4 className="font-semibold">Setup Instructions:</h4>
+                  <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+                    <li>Go to Zapier and create a new Zap</li>
+                    <li>Select "Webhooks by Zapier" as the trigger</li>
+                    <li>Choose "Catch Hook" as the trigger event</li>
+                    <li>Copy the webhook URL provided by Zapier</li>
+                    <li>Paste the webhook URL below</li>
+                    <li>Add "Google Sheets" as your action app</li>
+                    <li>Configure how you want the data mapped to your sheet</li>
+                  </ol>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="webhook-url">Zapier Webhook URL</Label>
+                  <Input
+                    id="webhook-url"
+                    placeholder="https://hooks.zapier.com/hooks/catch/..."
+                    value={zapierWebhook}
+                    onChange={(e) => setZapierWebhook(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Your webhook URL is stored locally and never sent to our servers
+                  </p>
+                </div>
+
+                <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg text-sm">
+                  <h4 className="font-semibold mb-2">What data gets synced?</h4>
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                    <li>Student records (name, instrument, level, status)</li>
+                    <li>Tutor information (name, instrument, student count)</li>
+                    <li>Active leads (name, contact info, stage)</li>
+                    <li>Summary statistics</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setSyncDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveWebhook}>
+                Save Configuration
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Appearance */}
         <Card className="shadow-card">
