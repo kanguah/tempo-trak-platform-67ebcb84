@@ -121,6 +121,7 @@ export default function Tutors() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingTutor, setEditingTutor] = useState<any>(null);
   const [tutors, setTutors] = useState(() => {
     const savedTutors = localStorage.getItem("academy-tutors");
     return savedTutors ? JSON.parse(savedTutors) : initialTutors;
@@ -133,7 +134,6 @@ export default function Tutors() {
     status: "Active",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [editingTutor, setEditingTutor] = useState<any>(null);
 
   useEffect(() => {
     localStorage.setItem("academy-tutors", JSON.stringify(tutors));
@@ -408,13 +408,15 @@ export default function Tutors() {
           {tutors.map((tutor, index) => (
             <Card
               key={tutor.id}
-              className="shadow-card hover:shadow-primary transition-all duration-300 animate-scale-in cursor-pointer"
+              className="shadow-card hover:shadow-primary transition-all duration-300 animate-scale-in"
               style={{ animationDelay: `${index * 0.1}s` }}
-              onClick={() => navigate(`/tutors/${tutor.id}`)}
             >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3 flex-1">
+                  <div
+                    className="flex items-center gap-3 flex-1 cursor-pointer"
+                    onClick={() => navigate(`/tutors/${tutor.id}`)}
+                  >
                     <div
                       className={`flex h-14 w-14 items-center justify-center rounded-xl ${getAvatarGradient(
                         index,
@@ -432,13 +434,12 @@ export default function Tutors() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
-                      variant="ghost"
                       size="icon"
+                      variant="ghost"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleEditTutor(tutor);
                       }}
-                      className="h-8 w-8"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -448,7 +449,10 @@ export default function Tutors() {
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div
+                  className="space-y-3 cursor-pointer"
+                  onClick={() => navigate(`/tutors/${tutor.id}`)}
+                >
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Mail className="h-4 w-4" />
                     {tutor.email}
@@ -478,7 +482,11 @@ export default function Tutors() {
                   </div>
                 </div>
 
-                <Button className="w-full mt-4" variant="outline">
+                <Button
+                  className="w-full mt-4"
+                  variant="outline"
+                  onClick={() => navigate(`/tutors/${tutor.id}`)}
+                >
                   View Profile
                 </Button>
               </CardContent>
