@@ -455,7 +455,7 @@ export default function StudentProfile() {
                   <div className="flex items-center justify-between mb-3">
                     
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="parent-toggle" className="text-sm text-muted-foreground cursor-pointer">
+                      <Label htmlFor="parent-toggle" className="cursor-pointer">
                         Add parent/guardian
                       </Label>
                       <Switch id="parent-toggle" checked={hasParent} onCheckedChange={setHasParent} />
