@@ -1,7 +1,5 @@
-import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Mail, Phone, Music, Calendar as CalendarIcon, DollarSign, Award, MessageSquare, CalendarIcon as CalendarIconPicker } from "lucide-react";
-import { format, parse } from "date-fns";
+import { ArrowLeft, Mail, Phone, Music, Calendar, DollarSign, Award, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,29 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import { z } from "zod";
-
-const editStudentSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
-  email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
-  phone: z.string().trim().min(1, "Phone is required").max(20, "Phone must be less than 20 characters"),
-  instrument: z.string().min(1, "Instrument is required"),
-  level: z.string().min(1, "Level is required"),
-  parentName: z.string().trim().max(100, "Parent name must be less than 100 characters").optional(),
-  parentEmail: z.string().trim().email("Invalid parent email").max(255, "Parent email must be less than 255 characters").optional().or(z.literal("")),
-  parentPhone: z.string().trim().max(20, "Parent phone must be less than 20 characters").optional(),
-  dateOfBirth: z.string().min(1, "Date of birth is required"),
-  address: z.string().trim().max(200, "Address must be less than 200 characters"),
-});
 
 // Mock data - replace with actual data fetching
 const studentData = {
@@ -105,93 +80,12 @@ const communications = [
 export default function StudentProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [students, setStudents] = useState(() => {
-    const savedStudents = localStorage.getItem("academy-students");
-    return savedStudents ? JSON.parse(savedStudents) : [];
-  });
   
-  const student = students.find((s: any) => s.id === Number(id)) || studentData[id as keyof typeof studentData];
-  
-  const [formData, setFormData] = useState({
-    name: student?.name || "",
-    email: student?.email || "",
-    phone: student?.phone || "",
-    instrument: student?.instrument || "",
-    level: student?.level || "",
-    parentName: student?.parentName || "",
-    parentEmail: student?.parentEmail || "",
-    parentPhone: student?.parentPhone || "",
-    dateOfBirth: student?.dateOfBirth || "",
-    address: student?.address || "",
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showParentFields, setShowParentFields] = useState(false);
-
-  useEffect(() => {
-    localStorage.setItem("academy-students", JSON.stringify(students));
-  }, [students]);
-
-  useEffect(() => {
-    if (student) {
-      setFormData({
-        name: student.name || "",
-        email: student.email || "",
-        phone: student.phone || "",
-        instrument: student.instrument || "",
-        level: student.level || "",
-        parentName: student.parentName || "",
-        parentEmail: student.parentEmail || "",
-        parentPhone: student.parentPhone || "",
-        dateOfBirth: student.dateOfBirth || "",
-        address: student.address || "",
-      });
-    }
-  }, [student]);
+  const student = studentData[id as keyof typeof studentData];
 
   if (!student) {
     return <div className="p-8">Student not found</div>;
   }
-
-  const handleUpdateStudent = () => {
-    try {
-      const validated = editStudentSchema.parse(formData);
-      
-      const updatedStudents = students.map((s: any) =>
-        s.id === Number(id)
-          ? {
-              ...s,
-              name: validated.name,
-              email: validated.email,
-              phone: validated.phone,
-              instrument: validated.instrument,
-              level: validated.level,
-              parentName: validated.parentName,
-              parentEmail: validated.parentEmail,
-              parentPhone: validated.parentPhone,
-              dateOfBirth: validated.dateOfBirth,
-              address: validated.address,
-              avatar: validated.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2),
-            }
-          : s
-      );
-
-      setStudents(updatedStudents);
-      setDialogOpen(false);
-      setErrors({});
-      toast.success(`${validated.name}'s profile updated successfully!`);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const newErrors: Record<string, string> = {};
-        error.errors.forEach((err) => {
-          if (err.path[0]) {
-            newErrors[err.path[0].toString()] = err.message;
-          }
-        });
-        setErrors(newErrors);
-      }
-    }
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -219,200 +113,10 @@ export default function StudentProfile() {
             <h1 className="text-4xl font-bold text-foreground">Student Profile</h1>
             <p className="text-muted-foreground">Comprehensive student information and history</p>
           </div>
-          <Button 
-            className="gradient-primary text-primary-foreground shadow-primary"
-            onClick={() => setDialogOpen(true)}
-          >
+          <Button className="gradient-primary text-primary-foreground shadow-primary">
             Edit Profile
           </Button>
         </div>
-
-        {/* Edit Student Dialog */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Edit Student Profile</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2 col-span-2">
-                  <Label htmlFor="edit-name">Full Name</Label>
-                  <Input
-                    id="edit-name"
-                    placeholder="Enter student's full name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  />
-                  {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="edit-email">Email</Label>
-                  <Input
-                    id="edit-email"
-                    type="email"
-                    placeholder="student@email.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  />
-                  {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-phone">Phone</Label>
-                  <Input
-                    id="edit-phone"
-                    placeholder="+233 24 123 4567"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  />
-                  {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-instrument">Instrument</Label>
-                  <Select value={formData.instrument} onValueChange={(value) => setFormData({ ...formData, instrument: value })}>
-                    <SelectTrigger id="edit-instrument">
-                      <SelectValue placeholder="Select instrument" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Piano">Piano</SelectItem>
-                      <SelectItem value="Guitar">Guitar</SelectItem>
-                      <SelectItem value="Violin">Violin</SelectItem>
-                      <SelectItem value="Drums">Drums</SelectItem>
-                      <SelectItem value="Voice">Voice</SelectItem>
-                      <SelectItem value="Saxophone">Saxophone</SelectItem>
-                      <SelectItem value="Flute">Flute</SelectItem>
-                      <SelectItem value="Bass">Bass</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.instrument && <p className="text-sm text-destructive">{errors.instrument}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-level">Level</Label>
-                  <Select value={formData.level} onValueChange={(value) => setFormData({ ...formData, level: value })}>
-                    <SelectTrigger id="edit-level">
-                      <SelectValue placeholder="Select level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Beginner">Beginner</SelectItem>
-                      <SelectItem value="Intermediate">Intermediate</SelectItem>
-                      <SelectItem value="Advanced">Advanced</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.level && <p className="text-sm text-destructive">{errors.level}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-dob">Date of Birth</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !formData.dateOfBirth && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIconPicker className="mr-2 h-4 w-4" />
-                        {formData.dateOfBirth ? formData.dateOfBirth : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={formData.dateOfBirth ? parse(formData.dateOfBirth, "MMMM dd, yyyy", new Date()) : undefined}
-                        onSelect={(date) => setFormData({ ...formData, dateOfBirth: date ? format(date, "MMMM dd, yyyy") : "" })}
-                        disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                        initialFocus
-                        captionLayout="dropdown-buttons"
-                        fromYear={1900}
-                        toYear={new Date().getFullYear()}
-                        className={cn("p-3 pointer-events-auto")}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  {errors.dateOfBirth && <p className="text-sm text-destructive">{errors.dateOfBirth}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-address">Address</Label>
-                  <Input
-                    id="edit-address"
-                    placeholder="123 Music Street, Accra"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  />
-                  {errors.address && <p className="text-sm text-destructive">{errors.address}</p>}
-                </div>
-
-                <div className="col-span-2 pt-2">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <Checkbox 
-                      id="show-parent-fields" 
-                      checked={showParentFields}
-                      onCheckedChange={(checked) => setShowParentFields(checked as boolean)}
-                    />
-                    <Label 
-                      htmlFor="show-parent-fields" 
-                      className="text-sm font-semibold text-foreground cursor-pointer"
-                    >
-                      Add Parent/Guardian Information
-                    </Label>
-                  </div>
-                </div>
-
-                {showParentFields && (
-                  <>
-                    <div className="space-y-2 col-span-2">
-                      <Label htmlFor="edit-parent-name">Parent/Guardian Name</Label>
-                      <Input
-                        id="edit-parent-name"
-                        placeholder="Parent's full name"
-                        value={formData.parentName}
-                        onChange={(e) => setFormData({ ...formData, parentName: e.target.value })}
-                      />
-                      {errors.parentName && <p className="text-sm text-destructive">{errors.parentName}</p>}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-parent-email">Parent Email</Label>
-                      <Input
-                        id="edit-parent-email"
-                        type="email"
-                        placeholder="parent@email.com"
-                        value={formData.parentEmail}
-                        onChange={(e) => setFormData({ ...formData, parentEmail: e.target.value })}
-                      />
-                      {errors.parentEmail && <p className="text-sm text-destructive">{errors.parentEmail}</p>}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-parent-phone">Parent Phone</Label>
-                      <Input
-                        id="edit-parent-phone"
-                        placeholder="+233 24 123 4560"
-                        value={formData.parentPhone}
-                        onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
-                      />
-                      {errors.parentPhone && <p className="text-sm text-destructive">{errors.parentPhone}</p>}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <Button variant="outline" className="flex-1" onClick={() => setDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button className="flex-1 gradient-primary text-primary-foreground" onClick={handleUpdateStudent}>
-                  Save Changes
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
 
         {/* Student Overview Card */}
         <Card className="shadow-card">
@@ -466,7 +170,7 @@ export default function StudentProfile() {
                       <Badge className={getStatusColor(student.status)}>{student.status}</Badge>
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <CalendarIcon className="h-4 w-4" />
+                      <Calendar className="h-4 w-4" />
                       DOB: {student.dateOfBirth}
                     </div>
                     <div className="text-muted-foreground">
@@ -494,7 +198,7 @@ export default function StudentProfile() {
             <Card className="shadow-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <CalendarIcon className="h-5 w-5 text-primary" />
+                  <Calendar className="h-5 w-5 text-primary" />
                   Enrollment History
                 </CardTitle>
               </CardHeader>
@@ -572,7 +276,7 @@ export default function StudentProfile() {
             <Card className="shadow-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <CalendarIcon className="h-5 w-5 text-primary" />
+                  <Calendar className="h-5 w-5 text-primary" />
                   Attendance Timeline
                 </CardTitle>
               </CardHeader>
