@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -21,9 +22,9 @@ const editStudentSchema = z.object({
   phone: z.string().trim().min(1, "Phone is required").max(20, "Phone must be less than 20 characters"),
   instrument: z.string().min(1, "Instrument is required"),
   level: z.string().min(1, "Level is required"),
-  parentName: z.string().trim().min(1, "Parent name is required").max(100, "Parent name must be less than 100 characters"),
-  parentEmail: z.string().trim().email("Invalid parent email").max(255, "Parent email must be less than 255 characters"),
-  parentPhone: z.string().trim().min(1, "Parent phone is required").max(20, "Parent phone must be less than 20 characters"),
+  parentName: z.string().trim().max(100, "Parent name must be less than 100 characters").optional(),
+  parentEmail: z.string().trim().email("Invalid parent email").max(255, "Parent email must be less than 255 characters").optional().or(z.literal("")),
+  parentPhone: z.string().trim().max(20, "Parent phone must be less than 20 characters").optional(),
   dateOfBirth: z.string().min(1, "Date of birth is required"),
   address: z.string().trim().max(200, "Address must be less than 200 characters"),
 });
@@ -121,6 +122,7 @@ export default function StudentProfile() {
     return { day: "", month: "", year: "" };
   };
 
+  const [hasParent, setHasParent] = useState(true);
   const [formData, setFormData] = useState({
     name: student?.name || "",
     email: student?.email || "",
@@ -173,7 +175,15 @@ export default function StudentProfile() {
         ? `${new Date(parseInt(formData.dobYear), parseInt(formData.dobMonth) - 1, parseInt(formData.dobDay)).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`
         : formData.dateOfBirth;
       
-      const validated = editStudentSchema.parse({ ...formData, dateOfBirth: combinedDob });
+      const dataToValidate = {
+        ...formData,
+        dateOfBirth: combinedDob,
+        parentName: hasParent ? formData.parentName : "",
+        parentEmail: hasParent ? formData.parentEmail : "",
+        parentPhone: hasParent ? formData.parentPhone : "",
+      };
+      
+      const validated = editStudentSchema.parse(dataToValidate);
       
       const updatedStudents = students.map((s: any) =>
         s.id === Number(id)
@@ -382,42 +392,58 @@ export default function StudentProfile() {
                 </div>
 
                 <div className="col-span-2 pt-2">
-                  <h4 className="font-semibold text-foreground mb-3">Parent/Guardian Information</h4>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold text-foreground">Parent/Guardian Information</h4>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="parent-toggle" className="text-sm text-muted-foreground cursor-pointer">
+                        Add parent/guardian
+                      </Label>
+                      <Switch
+                        id="parent-toggle"
+                        checked={hasParent}
+                        onCheckedChange={setHasParent}
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-2 col-span-2">
-                  <Label htmlFor="edit-parent-name">Parent/Guardian Name</Label>
-                  <Input
-                    id="edit-parent-name"
-                    placeholder="Parent's full name"
-                    value={formData.parentName}
-                    onChange={(e) => setFormData({ ...formData, parentName: e.target.value })}
-                  />
-                  {errors.parentName && <p className="text-sm text-destructive">{errors.parentName}</p>}
-                </div>
+                {hasParent && (
+                  <>
+                    <div className="space-y-2 col-span-2">
+                      <Label htmlFor="edit-parent-name">Parent/Guardian Name</Label>
+                      <Input
+                        id="edit-parent-name"
+                        placeholder="Parent's full name"
+                        value={formData.parentName}
+                        onChange={(e) => setFormData({ ...formData, parentName: e.target.value })}
+                      />
+                      {errors.parentName && <p className="text-sm text-destructive">{errors.parentName}</p>}
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="edit-parent-email">Parent Email</Label>
-                  <Input
-                    id="edit-parent-email"
-                    type="email"
-                    placeholder="parent@email.com"
-                    value={formData.parentEmail}
-                    onChange={(e) => setFormData({ ...formData, parentEmail: e.target.value })}
-                  />
-                  {errors.parentEmail && <p className="text-sm text-destructive">{errors.parentEmail}</p>}
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-parent-email">Parent Email</Label>
+                      <Input
+                        id="edit-parent-email"
+                        type="email"
+                        placeholder="parent@email.com"
+                        value={formData.parentEmail}
+                        onChange={(e) => setFormData({ ...formData, parentEmail: e.target.value })}
+                      />
+                      {errors.parentEmail && <p className="text-sm text-destructive">{errors.parentEmail}</p>}
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="edit-parent-phone">Parent Phone</Label>
-                  <Input
-                    id="edit-parent-phone"
-                    placeholder="+233 24 123 4560"
-                    value={formData.parentPhone}
-                    onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
-                  />
-                  {errors.parentPhone && <p className="text-sm text-destructive">{errors.parentPhone}</p>}
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-parent-phone">Parent Phone</Label>
+                      <Input
+                        id="edit-parent-phone"
+                        placeholder="+233 24 123 4560"
+                        value={formData.parentPhone}
+                        onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
+                      />
+                      {errors.parentPhone && <p className="text-sm text-destructive">{errors.parentPhone}</p>}
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="flex gap-3 pt-4">
