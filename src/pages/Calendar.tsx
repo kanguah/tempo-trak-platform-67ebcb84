@@ -773,11 +773,14 @@ export default function Calendar() {
             <CardContent>
               <div className="space-y-2">
                 {rooms.map((room) => {
-                  const roomLessons = lessons.filter((l) => l.room === room);
+                  // Get current day index (0=Mon, 6=Sun)
+                  const today = new Date().getDay();
+                  const currentDayIndex = today === 0 ? 6 : today - 1;
+                  const roomLessons = lessons.filter((l) => l.room === room && l.day === currentDayIndex);
                   return (
                     <div key={room} className="flex items-center justify-between p-3 rounded-lg bg-muted">
                       <span className="font-medium">{room}</span>
-                      <Badge variant="secondary">{roomLessons.length} lessons</Badge>
+                      <Badge variant="secondary">{roomLessons.length} lessons today</Badge>
                     </div>
                   );
                 })}
