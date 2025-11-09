@@ -33,6 +33,7 @@ import {
   closestCenter,
 } from "@dnd-kit/core";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { startOfWeek, endOfWeek, format, addWeeks, subWeeks } from "date-fns";
 
 const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const timeSlots = Array.from({ length: 11 }, (_, i) => `${8 + i}:00`);
@@ -127,7 +128,7 @@ function DroppableSlot({ dayIndex, time, children }: { dayIndex: number; time: s
 export default function Calendar() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [currentWeek, setCurrentWeek] = useState("June 3-9, 2024");
+  const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [activeId, setActiveId] = useState<string | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
@@ -215,6 +216,21 @@ export default function Calendar() {
   const handleInstrumentClick = (instrument: string) => {
     setSelectedInstrument(selectedInstrument === instrument ? null : instrument);
   };
+
+  const goToPreviousWeek = () => {
+    setCurrentWeekStart((prev) => subWeeks(prev, 1));
+  };
+
+  const goToNextWeek = () => {
+    setCurrentWeekStart((prev) => addWeeks(prev, 1));
+  };
+
+  const goToCurrentWeek = () => {
+    setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  };
+
+  const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
+  const currentWeekDisplay = `${format(currentWeekStart, "MMM d")} - ${format(weekEnd, "MMM d, yyyy")}`;
 
   // Add lesson mutation
   const addLessonMutation = useMutation({
@@ -709,11 +725,16 @@ export default function Calendar() {
         <Card className="shadow-card">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" onClick={goToPreviousWeek}>
                 <ChevronLeft className="h-5 w-5" />
               </Button>
-              <CardTitle className="text-2xl">{currentWeek}</CardTitle>
-              <Button variant="outline" size="icon">
+              <div className="flex items-center gap-3">
+                <CardTitle className="text-2xl">{currentWeekDisplay}</CardTitle>
+                <Button variant="outline" size="sm" onClick={goToCurrentWeek}>
+                  Today
+                </Button>
+              </div>
+              <Button variant="outline" size="icon" onClick={goToNextWeek}>
                 <ChevronRight className="h-5 w-5" />
               </Button>
             </div>
