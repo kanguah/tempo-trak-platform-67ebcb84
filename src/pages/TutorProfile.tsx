@@ -1,11 +1,19 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Music, Mail, Phone, Download, Upload, FileText, Calendar, TrendingUp, Star, Clock, DollarSign, Award } from "lucide-react";
+import { ArrowLeft, Music, Mail, Phone, Download, Upload, FileText, Calendar, TrendingUp, Star, Clock, DollarSign, Award, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { z } from "zod";
 
 const tutorData = {
   id: 1,
@@ -132,14 +140,79 @@ const documents = [
   { id: 4, name: "ABRSM Grade 8 Certificate.pdf", type: "PDF", size: "210 KB", date: "2022-01-15" },
 ];
 
+const availableInstruments = [
+  "Piano",
+  "Guitar",
+  "Violin",
+  "Drums",
+  "Voice",
+  "Saxophone",
+  "Flute",
+  "Bass",
+  "Cello",
+  "Clarinet",
+  "Music Theory",
+  "Choir",
+  "Percussion",
+];
+
+const editTutorSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
+  email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
+  phone: z.string().trim().min(1, "Phone is required").max(20, "Phone must be less than 20 characters"),
+  instruments: z.array(z.string()).min(1, "Select at least one instrument"),
+  status: z.string().min(1, "Status is required"),
+  bio: z.string().trim().max(500, "Bio must be less than 500 characters").optional(),
+});
+
 export default function TutorProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: tutorData.name,
+    email: tutorData.email,
+    phone: tutorData.phone,
+    instruments: tutorData.instruments,
+    status: tutorData.status,
+    bio: tutorData.bio,
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const averageRating = (
     studentFeedback.reduce((acc, f) => acc + f.rating, 0) / studentFeedback.length
   ).toFixed(1);
+
+  const handleEditTutor = () => {
+    try {
+      const validated = editTutorSchema.parse(formData);
+      
+      // In a real app, this would update the backend
+      toast.success("Tutor profile updated successfully!");
+      setEditDialogOpen(false);
+      setErrors({});
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const newErrors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            newErrors[err.path[0].toString()] = err.message;
+          }
+        });
+        setErrors(newErrors);
+      }
+    }
+  };
+
+  const toggleInstrument = (instrument: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      instruments: prev.instruments.includes(instrument)
+        ? prev.instruments.filter((i) => i !== instrument)
+        : [...prev.instruments, instrument],
+    }));
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -153,11 +226,131 @@ export default function TutorProfile() {
             <h1 className="text-4xl font-bold text-foreground mb-2">Tutor Profile</h1>
             <p className="text-muted-foreground">Detailed information and performance metrics</p>
           </div>
-          <Button className="gradient-primary text-primary-foreground shadow-primary">
-            <Mail className="mr-2 h-4 w-4" />
-            Send Message
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit Profile
+            </Button>
+            <Button className="gradient-primary text-primary-foreground shadow-primary">
+              <Mail className="mr-2 h-4 w-4" />
+              Send Message
+            </Button>
+          </div>
         </div>
+
+        {/* Edit Tutor Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Tutor Profile</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Full Name</Label>
+                <Input
+                  id="edit-name"
+                  placeholder="Enter tutor's full name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+                {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  placeholder="tutor@email.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+                {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-phone">Phone</Label>
+                <Input
+                  id="edit-phone"
+                  placeholder="+233 24 123 4567"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                />
+                {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Instruments</Label>
+                <div className="grid grid-cols-2 gap-3 p-4 border rounded-lg bg-muted/50">
+                  {availableInstruments.map((instrument) => (
+                    <div key={instrument} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`edit-${instrument}`}
+                        checked={formData.instruments.includes(instrument)}
+                        onCheckedChange={() => toggleInstrument(instrument)}
+                      />
+                      <Label htmlFor={`edit-${instrument}`} className="text-sm font-normal cursor-pointer">
+                        {instrument}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                {errors.instruments && <p className="text-sm text-destructive">{errors.instruments}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-status">Status</Label>
+                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                  <SelectTrigger id="edit-status">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="On Leave">On Leave</SelectItem>
+                    <SelectItem value="Inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.status && <p className="text-sm text-destructive">{errors.status}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-bio">Bio</Label>
+                <Textarea
+                  id="edit-bio"
+                  placeholder="Enter tutor's bio..."
+                  value={formData.bio}
+                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                  rows={4}
+                />
+                {errors.bio && <p className="text-sm text-destructive">{errors.bio}</p>}
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setEditDialogOpen(false);
+                    setFormData({
+                      name: tutorData.name,
+                      email: tutorData.email,
+                      phone: tutorData.phone,
+                      instruments: tutorData.instruments,
+                      status: tutorData.status,
+                      bio: tutorData.bio,
+                    });
+                    setErrors({});
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button className="flex-1 gradient-primary text-primary-foreground" onClick={handleEditTutor}>
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Profile Header Card */}
         <Card className="shadow-card">
