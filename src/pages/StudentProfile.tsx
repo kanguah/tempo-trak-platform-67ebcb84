@@ -25,9 +25,9 @@ const editStudentSchema = z.object({
   phone: z.string().trim().min(1, "Phone is required").max(20, "Phone must be less than 20 characters"),
   instrument: z.string().min(1, "Instrument is required"),
   level: z.string().min(1, "Level is required"),
-  parentName: z.string().trim().min(1, "Parent name is required").max(100, "Parent name must be less than 100 characters"),
-  parentEmail: z.string().trim().email("Invalid parent email").max(255, "Parent email must be less than 255 characters"),
-  parentPhone: z.string().trim().min(1, "Parent phone is required").max(20, "Parent phone must be less than 20 characters"),
+  parentName: z.string().trim().max(100, "Parent name must be less than 100 characters").optional(),
+  parentEmail: z.string().trim().email("Invalid parent email").max(255, "Parent email must be less than 255 characters").optional().or(z.literal("")),
+  parentPhone: z.string().trim().max(20, "Parent phone must be less than 20 characters").optional(),
   dateOfBirth: z.string().min(1, "Date of birth is required"),
   address: z.string().trim().max(200, "Address must be less than 200 characters"),
 });
