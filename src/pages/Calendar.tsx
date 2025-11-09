@@ -1,5 +1,15 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Clock, Music, Users, MapPin, Calendar as CalendarIcon, Sparkles } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Clock,
+  Music,
+  Users,
+  MapPin,
+  Calendar as CalendarIcon,
+  Sparkles,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -13,7 +23,15 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor, closestCenter } from "@dnd-kit/core";
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  closestCenter,
+} from "@dnd-kit/core";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 
 const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -141,11 +159,7 @@ export default function Calendar() {
   const { data: tutors = [] } = useQuery({
     queryKey: ["tutors", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("tutors")
-        .select("*")
-        .eq("user_id", user?.id)
-        .eq("status", "active");
+      const { data, error } = await supabase.from("tutors").select("*").eq("user_id", user?.id).eq("status", "Active");
       if (error) throw error;
       return data || [];
     },
@@ -158,11 +172,13 @@ export default function Calendar() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lessons")
-        .select(`
+        .select(
+          `
           *,
           students (name, subjects),
           tutors (name)
-        `)
+        `,
+        )
         .eq("user_id", user?.id)
         .eq("status", "scheduled");
       if (error) throw error;
@@ -213,7 +229,7 @@ export default function Calendar() {
         const baseDay = parseInt(lesson.day);
         const occurrences = parseInt(lesson.occurrences);
         const weekIncrement = lesson.repeatPattern === "weekly" ? 1 : lesson.repeatPattern === "biweekly" ? 2 : 4;
-        
+
         for (let i = 0; i < occurrences; i++) {
           lessonsToInsert.push({
             user_id: user?.id,
@@ -227,18 +243,15 @@ export default function Calendar() {
             status: "scheduled",
           });
         }
-        
-        const { data, error } = await supabase
-          .from("lessons")
-          .insert(lessonsToInsert)
-          .select();
+
+        const { data, error } = await supabase.from("lessons").insert(lessonsToInsert).select();
         if (error) throw error;
         return data;
       }
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["lessons"] });
-      const message = newLesson.isRecurring 
+      const message = newLesson.isRecurring
         ? `${Array.isArray(data) ? data.length : 1} recurring lessons scheduled successfully!`
         : "Lesson scheduled successfully!";
       toast.success(message);
@@ -292,14 +305,21 @@ export default function Calendar() {
       activationConstraint: {
         distance: 8,
       },
-    })
+    }),
   );
 
-  const checkConflict = (updatedLesson: { day: number; time: string; tutorId: string; studentId: string; room?: string }, excludeId?: string) => {
+  const checkConflict = (
+    updatedLesson: { day: number; time: string; tutorId: string; studentId: string; room?: string },
+    excludeId?: string,
+  ) => {
     return lessons.some((lesson) => {
       if (excludeId && lesson.id === excludeId) return false;
       if (lesson.day !== updatedLesson.day || lesson.time !== updatedLesson.time) return false;
-      return lesson.tutorId === updatedLesson.tutorId || lesson.studentId === updatedLesson.studentId || (lesson.room && lesson.room === updatedLesson.room);
+      return (
+        lesson.tutorId === updatedLesson.tutorId ||
+        lesson.studentId === updatedLesson.studentId ||
+        (lesson.room && lesson.room === updatedLesson.room)
+      );
     });
   };
 
@@ -498,10 +518,13 @@ export default function Calendar() {
                 <div className="space-y-4 py-4 overflow-y-auto max-h-[calc(90vh-120px)] pr-2">
                   <div className="space-y-2">
                     <Label>Student</Label>
-                    <Select value={newLesson.studentId} onValueChange={(value) => {
-                      const student = students.find(s => s.id === value);
-                      setNewLesson({ ...newLesson, studentId: value, subject: student?.subjects?.[0] || "" });
-                    }}>
+                    <Select
+                      value={newLesson.studentId}
+                      onValueChange={(value) => {
+                        const student = students.find((s) => s.id === value);
+                        setNewLesson({ ...newLesson, studentId: value, subject: student?.subjects?.[0] || "" });
+                      }}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select student" />
                       </SelectTrigger>
@@ -516,7 +539,10 @@ export default function Calendar() {
                   </div>
                   <div className="space-y-2">
                     <Label>Tutor</Label>
-                    <Select value={newLesson.tutorId} onValueChange={(value) => setNewLesson({ ...newLesson, tutorId: value })}>
+                    <Select
+                      value={newLesson.tutorId}
+                      onValueChange={(value) => setNewLesson({ ...newLesson, tutorId: value })}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select tutor" />
                       </SelectTrigger>
@@ -531,7 +557,10 @@ export default function Calendar() {
                   </div>
                   <div className="space-y-2">
                     <Label>Instrument</Label>
-                    <Select value={newLesson.subject} onValueChange={(value) => setNewLesson({ ...newLesson, subject: value })}>
+                    <Select
+                      value={newLesson.subject}
+                      onValueChange={(value) => setNewLesson({ ...newLesson, subject: value })}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select instrument" />
                       </SelectTrigger>
@@ -546,7 +575,10 @@ export default function Calendar() {
                   </div>
                   <div className="space-y-2">
                     <Label>Room</Label>
-                    <Select value={newLesson.room} onValueChange={(value) => setNewLesson({ ...newLesson, room: value })}>
+                    <Select
+                      value={newLesson.room}
+                      onValueChange={(value) => setNewLesson({ ...newLesson, room: value })}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select room" />
                       </SelectTrigger>
@@ -562,7 +594,10 @@ export default function Calendar() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Day</Label>
-                      <Select value={newLesson.day} onValueChange={(value) => setNewLesson({ ...newLesson, day: value })}>
+                      <Select
+                        value={newLesson.day}
+                        onValueChange={(value) => setNewLesson({ ...newLesson, day: value })}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Day" />
                         </SelectTrigger>
@@ -577,7 +612,10 @@ export default function Calendar() {
                     </div>
                     <div className="space-y-2">
                       <Label>Time</Label>
-                      <Select value={newLesson.time} onValueChange={(value) => setNewLesson({ ...newLesson, time: value })}>
+                      <Select
+                        value={newLesson.time}
+                        onValueChange={(value) => setNewLesson({ ...newLesson, time: value })}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Time" />
                         </SelectTrigger>
@@ -593,28 +631,33 @@ export default function Calendar() {
                   </div>
                   <div className="space-y-2">
                     <Label>Duration (minutes)</Label>
-                    <Input 
+                    <Input
                       type="number"
                       value={newLesson.duration}
                       onChange={(e) => setNewLesson({ ...newLesson, duration: e.target.value })}
                       placeholder="60"
                     />
                   </div>
-                  
+
                   <div className="flex items-center justify-between space-x-2 border-t pt-4">
-                    <Label htmlFor="recurring" className="cursor-pointer">Recurring Lesson</Label>
-                    <Switch 
+                    <Label htmlFor="recurring" className="cursor-pointer">
+                      Recurring Lesson
+                    </Label>
+                    <Switch
                       id="recurring"
                       checked={newLesson.isRecurring}
                       onCheckedChange={(checked) => setNewLesson({ ...newLesson, isRecurring: checked })}
                     />
                   </div>
-                  
+
                   {newLesson.isRecurring && (
                     <>
                       <div className="space-y-2">
                         <Label>Repeat Pattern</Label>
-                        <Select value={newLesson.repeatPattern} onValueChange={(value) => setNewLesson({ ...newLesson, repeatPattern: value })}>
+                        <Select
+                          value={newLesson.repeatPattern}
+                          onValueChange={(value) => setNewLesson({ ...newLesson, repeatPattern: value })}
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="Select pattern" />
                           </SelectTrigger>
@@ -627,7 +670,7 @@ export default function Calendar() {
                       </div>
                       <div className="space-y-2">
                         <Label>Number of Occurrences</Label>
-                        <Input 
+                        <Input
                           type="number"
                           value={newLesson.occurrences}
                           onChange={(e) => setNewLesson({ ...newLesson, occurrences: e.target.value })}
@@ -638,13 +681,20 @@ export default function Calendar() {
                       </div>
                     </>
                   )}
-                  
-                  <Button 
+
+                  <Button
                     className="w-full gradient-primary text-primary-foreground"
                     onClick={() => addLessonMutation.mutate(newLesson)}
-                    disabled={!newLesson.studentId || !newLesson.tutorId || !newLesson.subject || !newLesson.day || !newLesson.time || (newLesson.isRecurring && !newLesson.occurrences)}
+                    disabled={
+                      !newLesson.studentId ||
+                      !newLesson.tutorId ||
+                      !newLesson.subject ||
+                      !newLesson.day ||
+                      !newLesson.time ||
+                      (newLesson.isRecurring && !newLesson.occurrences)
+                    }
                   >
-                    {newLesson.isRecurring ? `Schedule ${newLesson.occurrences} Lessons` : 'Schedule Lesson'}
+                    {newLesson.isRecurring ? `Schedule ${newLesson.occurrences} Lessons` : "Schedule Lesson"}
                   </Button>
                 </div>
               </DialogContent>
@@ -688,13 +738,9 @@ export default function Calendar() {
                   <div className="space-y-1">
                     {timeSlots.map((time) => (
                       <div key={time} className="grid grid-cols-8 gap-2">
-                        <div className="text-sm text-muted-foreground text-center py-4 font-medium">
-                          {time}
-                        </div>
+                        <div className="text-sm text-muted-foreground text-center py-4 font-medium">{time}</div>
                         {daysOfWeek.map((_, dayIndex) => {
-                          const lesson = lessons.find(
-                            (l) => l.day === dayIndex && l.time === time
-                          );
+                          const lesson = lessons.find((l) => l.day === dayIndex && l.time === time);
 
                           return (
                             <DroppableSlot key={`${dayIndex}-${time}`} dayIndex={dayIndex} time={time}>
