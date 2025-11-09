@@ -780,7 +780,7 @@ export default function Calendar() {
                   return (
                     <div key={room} className="flex items-center justify-between p-3 rounded-lg bg-muted">
                       <span className="font-medium">{room}</span>
-                      <Badge variant="secondary">{roomLessons.length} lessons today</Badge>
+                      <Badge variant="secondary">{roomLessons.length}</Badge>
                     </div>
                   );
                 })}
