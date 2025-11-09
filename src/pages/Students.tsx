@@ -269,9 +269,7 @@ export default function Students() {
                           
                           <div className="min-w-0">
                             <p className="font-semibold text-foreground truncate">{student.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              Enrolled: {new Date(student.enrollment_date || student.created_at).toLocaleDateString()}
-                            </p>
+                            
                           </div>
                         </div>
                       </TableCell>
