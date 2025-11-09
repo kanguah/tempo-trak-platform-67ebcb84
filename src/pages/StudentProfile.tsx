@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Mail, Phone, Music, Calendar, DollarSign, Award, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,12 +8,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
+import { z } from "zod";
+
+const editStudentSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
+  email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
+  phone: z.string().trim().min(1, "Phone is required").max(20, "Phone must be less than 20 characters"),
+  instrument: z.string().min(1, "Instrument is required"),
+  level: z.string().min(1, "Level is required"),
+  parentName: z.string().trim().min(1, "Parent name is required").max(100, "Parent name must be less than 100 characters"),
+  parentEmail: z.string().trim().email("Invalid parent email").max(255, "Parent email must be less than 255 characters"),
+  parentPhone: z.string().trim().min(1, "Parent phone is required").max(20, "Parent phone must be less than 20 characters"),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  address: z.string().trim().max(200, "Address must be less than 200 characters"),
+});
 
 // Mock data - replace with actual data fetching
 const studentData = {
@@ -86,19 +100,92 @@ const communications = [
 export default function StudentProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editedStudent, setEditedStudent] = useState<typeof student | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [students, setStudents] = useState(() => {
+    const savedStudents = localStorage.getItem("academy-students");
+    return savedStudents ? JSON.parse(savedStudents) : [];
+  });
   
-  const student = studentData[id as keyof typeof studentData];
+  const student = students.find((s: any) => s.id === Number(id)) || studentData[id as keyof typeof studentData];
+  
+  const [formData, setFormData] = useState({
+    name: student?.name || "",
+    email: student?.email || "",
+    phone: student?.phone || "",
+    instrument: student?.instrument || "",
+    level: student?.level || "",
+    parentName: student?.parentName || "",
+    parentEmail: student?.parentEmail || "",
+    parentPhone: student?.parentPhone || "",
+    dateOfBirth: student?.dateOfBirth || "",
+    address: student?.address || "",
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  if (student && !editedStudent) {
-    setEditedStudent(student);
-  }
+  useEffect(() => {
+    localStorage.setItem("academy-students", JSON.stringify(students));
+  }, [students]);
+
+  useEffect(() => {
+    if (student) {
+      setFormData({
+        name: student.name || "",
+        email: student.email || "",
+        phone: student.phone || "",
+        instrument: student.instrument || "",
+        level: student.level || "",
+        parentName: student.parentName || "",
+        parentEmail: student.parentEmail || "",
+        parentPhone: student.parentPhone || "",
+        dateOfBirth: student.dateOfBirth || "",
+        address: student.address || "",
+      });
+    }
+  }, [student]);
 
   if (!student) {
     return <div className="p-8">Student not found</div>;
   }
+
+  const handleUpdateStudent = () => {
+    try {
+      const validated = editStudentSchema.parse(formData);
+      
+      const updatedStudents = students.map((s: any) =>
+        s.id === Number(id)
+          ? {
+              ...s,
+              name: validated.name,
+              email: validated.email,
+              phone: validated.phone,
+              instrument: validated.instrument,
+              level: validated.level,
+              parentName: validated.parentName,
+              parentEmail: validated.parentEmail,
+              parentPhone: validated.parentPhone,
+              dateOfBirth: validated.dateOfBirth,
+              address: validated.address,
+              avatar: validated.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2),
+            }
+          : s
+      );
+
+      setStudents(updatedStudents);
+      setDialogOpen(false);
+      setErrors({});
+      toast.success(`${validated.name}'s profile updated successfully!`);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const newErrors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            newErrors[err.path[0].toString()] = err.message;
+          }
+        });
+        setErrors(newErrors);
+      }
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -114,15 +201,6 @@ export default function StudentProfile() {
     }
   };
 
-  const handleSaveProfile = () => {
-    // In a real app, this would make an API call to update the student
-    toast({
-      title: "Profile Updated",
-      description: "Student profile has been updated successfully.",
-    });
-    setIsEditDialogOpen(false);
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <div className="p-8 space-y-8 animate-fade-in">
@@ -135,151 +213,163 @@ export default function StudentProfile() {
             <h1 className="text-4xl font-bold text-foreground">Student Profile</h1>
             <p className="text-muted-foreground">Comprehensive student information and history</p>
           </div>
-          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gradient-primary text-primary-foreground shadow-primary">
-                Edit Profile
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Edit Student Profile</DialogTitle>
-                <DialogDescription>
-                  Update student information and parent/guardian details.
-                </DialogDescription>
-              </DialogHeader>
-              {editedStudent && (
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Student Name</Label>
-                      <Input
-                        id="name"
-                        value={editedStudent.name}
-                        onChange={(e) => setEditedStudent({ ...editedStudent, name: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={editedStudent.email}
-                        onChange={(e) => setEditedStudent({ ...editedStudent, email: e.target.value })}
-                      />
-                    </div>
-                  </div>
+          <Button 
+            className="gradient-primary text-primary-foreground shadow-primary"
+            onClick={() => setDialogOpen(true)}
+          >
+            Edit Profile
+          </Button>
+        </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone</Label>
-                      <Input
-                        id="phone"
-                        value={editedStudent.phone}
-                        onChange={(e) => setEditedStudent({ ...editedStudent, phone: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="dob">Date of Birth</Label>
-                      <Input
-                        id="dob"
-                        value={editedStudent.dateOfBirth}
-                        onChange={(e) => setEditedStudent({ ...editedStudent, dateOfBirth: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="instrument">Instrument</Label>
-                      <Select
-                        value={editedStudent.instrument}
-                        onValueChange={(value) => setEditedStudent({ ...editedStudent, instrument: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Piano">Piano</SelectItem>
-                          <SelectItem value="Guitar">Guitar</SelectItem>
-                          <SelectItem value="Violin">Violin</SelectItem>
-                          <SelectItem value="Drums">Drums</SelectItem>
-                          <SelectItem value="Voice">Voice</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="level">Level</Label>
-                      <Select
-                        value={editedStudent.level}
-                        onValueChange={(value) => setEditedStudent({ ...editedStudent, level: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Beginner">Beginner</SelectItem>
-                          <SelectItem value="Intermediate">Intermediate</SelectItem>
-                          <SelectItem value="Advanced">Advanced</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Address</Label>
-                    <Input
-                      id="address"
-                      value={editedStudent.address}
-                      onChange={(e) => setEditedStudent({ ...editedStudent, address: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="pt-4 border-t">
-                    <h4 className="font-semibold mb-4">Parent/Guardian Information</h4>
-                    <div className="grid gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="parentName">Parent/Guardian Name</Label>
-                        <Input
-                          id="parentName"
-                          value={editedStudent.parentName}
-                          onChange={(e) => setEditedStudent({ ...editedStudent, parentName: e.target.value })}
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="parentEmail">Parent Email</Label>
-                          <Input
-                            id="parentEmail"
-                            type="email"
-                            value={editedStudent.parentEmail}
-                            onChange={(e) => setEditedStudent({ ...editedStudent, parentEmail: e.target.value })}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="parentPhone">Parent Phone</Label>
-                          <Input
-                            id="parentPhone"
-                            value={editedStudent.parentPhone}
-                            onChange={(e) => setEditedStudent({ ...editedStudent, parentPhone: e.target.value })}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+        {/* Edit Student Dialog */}
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Student Profile</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="edit-name">Full Name</Label>
+                  <Input
+                    id="edit-name"
+                    placeholder="Enter student's full name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                  {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                 </div>
-              )}
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-email">Email</Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    placeholder="student@email.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                  {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-phone">Phone</Label>
+                  <Input
+                    id="edit-phone"
+                    placeholder="+233 24 123 4567"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  />
+                  {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-instrument">Instrument</Label>
+                  <Select value={formData.instrument} onValueChange={(value) => setFormData({ ...formData, instrument: value })}>
+                    <SelectTrigger id="edit-instrument">
+                      <SelectValue placeholder="Select instrument" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Piano">Piano</SelectItem>
+                      <SelectItem value="Guitar">Guitar</SelectItem>
+                      <SelectItem value="Violin">Violin</SelectItem>
+                      <SelectItem value="Drums">Drums</SelectItem>
+                      <SelectItem value="Voice">Voice</SelectItem>
+                      <SelectItem value="Saxophone">Saxophone</SelectItem>
+                      <SelectItem value="Flute">Flute</SelectItem>
+                      <SelectItem value="Bass">Bass</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.instrument && <p className="text-sm text-destructive">{errors.instrument}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-level">Level</Label>
+                  <Select value={formData.level} onValueChange={(value) => setFormData({ ...formData, level: value })}>
+                    <SelectTrigger id="edit-level">
+                      <SelectValue placeholder="Select level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Beginner">Beginner</SelectItem>
+                      <SelectItem value="Intermediate">Intermediate</SelectItem>
+                      <SelectItem value="Advanced">Advanced</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.level && <p className="text-sm text-destructive">{errors.level}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-dob">Date of Birth</Label>
+                  <Input
+                    id="edit-dob"
+                    placeholder="March 12, 2008"
+                    value={formData.dateOfBirth}
+                    onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                  />
+                  {errors.dateOfBirth && <p className="text-sm text-destructive">{errors.dateOfBirth}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-address">Address</Label>
+                  <Input
+                    id="edit-address"
+                    placeholder="123 Music Street, Accra"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  />
+                  {errors.address && <p className="text-sm text-destructive">{errors.address}</p>}
+                </div>
+
+                <div className="col-span-2 pt-2">
+                  <h4 className="font-semibold text-foreground mb-3">Parent/Guardian Information</h4>
+                </div>
+
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="edit-parent-name">Parent/Guardian Name</Label>
+                  <Input
+                    id="edit-parent-name"
+                    placeholder="Parent's full name"
+                    value={formData.parentName}
+                    onChange={(e) => setFormData({ ...formData, parentName: e.target.value })}
+                  />
+                  {errors.parentName && <p className="text-sm text-destructive">{errors.parentName}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-parent-email">Parent Email</Label>
+                  <Input
+                    id="edit-parent-email"
+                    type="email"
+                    placeholder="parent@email.com"
+                    value={formData.parentEmail}
+                    onChange={(e) => setFormData({ ...formData, parentEmail: e.target.value })}
+                  />
+                  {errors.parentEmail && <p className="text-sm text-destructive">{errors.parentEmail}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-parent-phone">Parent Phone</Label>
+                  <Input
+                    id="edit-parent-phone"
+                    placeholder="+233 24 123 4560"
+                    value={formData.parentPhone}
+                    onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
+                  />
+                  {errors.parentPhone && <p className="text-sm text-destructive">{errors.parentPhone}</p>}
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button variant="outline" className="flex-1" onClick={() => setDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button className="gradient-primary text-primary-foreground" onClick={handleSaveProfile}>
+                <Button className="flex-1 gradient-primary text-primary-foreground" onClick={handleUpdateStudent}>
                   Save Changes
                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Student Overview Card */}
         <Card className="shadow-card">
