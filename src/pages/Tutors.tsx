@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Filter, Music, Mail, Phone, DollarSign, Calendar, Pencil } from "lucide-react";
+import { Search, Plus, Filter, Music, Mail, Phone, DollarSign, Calendar } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -121,7 +121,6 @@ export default function Tutors() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingTutor, setEditingTutor] = useState<any>(null);
   const [tutors, setTutors] = useState(() => {
     const savedTutors = localStorage.getItem("academy-tutors");
     return savedTutors ? JSON.parse(savedTutors) : initialTutors;
@@ -143,54 +142,27 @@ export default function Tutors() {
     try {
       const validated = addTutorSchema.parse(formData);
 
-      if (editingTutor) {
-        // Update existing tutor
-        const updatedTutors = tutors.map((t: any) =>
-          t.id === editingTutor.id
-            ? {
-                ...t,
-                name: validated.name,
-                email: validated.email,
-                phone: validated.phone,
-                instruments: validated.instruments,
-                status: validated.status,
-                avatar: validated.name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .toUpperCase()
-                  .slice(0, 2),
-              }
-            : t
-        );
-        setTutors(updatedTutors);
-        toast.success(`${validated.name} updated successfully!`);
-      } else {
-        // Add new tutor
-        const newTutor = {
-          id: Math.max(...tutors.map((t: any) => t.id), 0) + 1,
-          name: validated.name,
-          email: validated.email,
-          phone: validated.phone,
-          instruments: validated.instruments,
-          status: validated.status,
-          avatar: validated.name
-            .split(" ")
-            .map((n) => n[0])
-            .join("")
-            .toUpperCase()
-            .slice(0, 2),
-          students: 0,
-          hoursPerWeek: 0,
-          monthlyPay: "GH₵ 0",
-          nextLesson: "Not scheduled",
-        };
-        setTutors([...tutors, newTutor]);
-        toast.success(`${validated.name} added successfully!`);
-      }
+      const newTutor = {
+        id: Math.max(...tutors.map((t: any) => t.id), 0) + 1,
+        name: validated.name,
+        email: validated.email,
+        phone: validated.phone,
+        instruments: validated.instruments,
+        status: validated.status,
+        avatar: validated.name
+          .split(" ")
+          .map((n) => n[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 2),
+        students: 0,
+        hoursPerWeek: 0,
+        monthlyPay: "GH₵ 0",
+        nextLesson: "Not scheduled",
+      };
 
+      setTutors([...tutors, newTutor]);
       setDialogOpen(false);
-      setEditingTutor(null);
       setFormData({
         name: "",
         email: "",
@@ -199,6 +171,7 @@ export default function Tutors() {
         status: "Active",
       });
       setErrors({});
+      toast.success(`${validated.name} added successfully!`);
     } catch (error) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
@@ -210,18 +183,6 @@ export default function Tutors() {
         setErrors(newErrors);
       }
     }
-  };
-
-  const handleEditTutor = (tutor: any) => {
-    setEditingTutor(tutor);
-    setFormData({
-      name: tutor.name,
-      email: tutor.email,
-      phone: tutor.phone,
-      instruments: tutor.instruments,
-      status: tutor.status,
-    });
-    setDialogOpen(true);
   };
 
   const toggleInstrument = (instrument: string) => {
@@ -270,23 +231,10 @@ export default function Tutors() {
         </div>
 
         {/* Add Tutor Dialog */}
-        <Dialog open={dialogOpen} onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) {
-            setEditingTutor(null);
-            setFormData({
-              name: "",
-              email: "",
-              phone: "",
-              instruments: [],
-              status: "Active",
-            });
-            setErrors({});
-          }
-        }}>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingTutor ? "Edit Tutor" : "Add New Tutor"}</DialogTitle>
+              <DialogTitle>Add New Tutor</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
@@ -362,7 +310,6 @@ export default function Tutors() {
                   className="flex-1"
                   onClick={() => {
                     setDialogOpen(false);
-                    setEditingTutor(null);
                     setFormData({
                       name: "",
                       email: "",
@@ -376,7 +323,7 @@ export default function Tutors() {
                   Cancel
                 </Button>
                 <Button className="flex-1 gradient-primary text-primary-foreground" onClick={handleAddTutor}>
-                  {editingTutor ? "Update Tutor" : "Add Tutor"}
+                  Add Tutor
                 </Button>
               </div>
             </div>
@@ -408,15 +355,13 @@ export default function Tutors() {
           {tutors.map((tutor, index) => (
             <Card
               key={tutor.id}
-              className="shadow-card hover:shadow-primary transition-all duration-300 animate-scale-in"
+              className="shadow-card hover:shadow-primary transition-all duration-300 animate-scale-in cursor-pointer"
               style={{ animationDelay: `${index * 0.1}s` }}
+              onClick={() => navigate(`/tutors/${tutor.id}`)}
             >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
-                  <div
-                    className="flex items-center gap-3 flex-1 cursor-pointer"
-                    onClick={() => navigate(`/tutors/${tutor.id}`)}
-                  >
+                  <div className="flex items-center gap-3">
                     <div
                       className={`flex h-14 w-14 items-center justify-center rounded-xl ${getAvatarGradient(
                         index,
@@ -432,27 +377,12 @@ export default function Tutors() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditTutor(tutor);
-                      }}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Badge className={getStatusColor(tutor.status)} variant="outline">
-                      {tutor.status}
-                    </Badge>
-                  </div>
+                  <Badge className={getStatusColor(tutor.status)} variant="outline">
+                    {tutor.status}
+                  </Badge>
                 </div>
 
-                <div
-                  className="space-y-3 cursor-pointer"
-                  onClick={() => navigate(`/tutors/${tutor.id}`)}
-                >
+                <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Mail className="h-4 w-4" />
                     {tutor.email}
@@ -482,11 +412,7 @@ export default function Tutors() {
                   </div>
                 </div>
 
-                <Button
-                  className="w-full mt-4"
-                  variant="outline"
-                  onClick={() => navigate(`/tutors/${tutor.id}`)}
-                >
+                <Button className="w-full mt-4" variant="outline">
                   View Profile
                 </Button>
               </CardContent>
