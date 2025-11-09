@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DollarSign, Search, Filter, Download, CheckCircle, Clock, XCircle, CreditCard } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import {
   BarChart,
   Bar,
@@ -16,7 +17,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const payments = [
+const initialPayments = [
   {
     id: "INV-001",
     student: "Sarah Johnson",
@@ -90,6 +91,33 @@ const revenueData = [
 
 export default function Payments() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [payments, setPayments] = useState(() => {
+    const savedPayments = localStorage.getItem("academy-payments");
+    return savedPayments ? JSON.parse(savedPayments) : initialPayments;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("academy-payments", JSON.stringify(payments));
+  }, [payments]);
+
+  const handleVerifyPayment = (paymentId: string) => {
+    setPayments((prevPayments) =>
+      prevPayments.map((payment) =>
+        payment.id === paymentId
+          ? {
+              ...payment,
+              status: "paid",
+              date: new Date().toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              }),
+            }
+          : payment
+      )
+    );
+    toast.success("Payment verified successfully!");
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -279,7 +307,11 @@ export default function Payments() {
                       <div className="text-right ml-4">
                         <p className="text-2xl font-bold text-foreground">{payment.amount}</p>
                         {payment.status === "pending" && (
-                          <Button size="sm" className="mt-2">
+                          <Button 
+                            size="sm" 
+                            className="mt-2"
+                            onClick={() => handleVerifyPayment(payment.id)}
+                          >
                             <CreditCard className="h-4 w-4 mr-1" />
                             Verify Payment
                           </Button>
