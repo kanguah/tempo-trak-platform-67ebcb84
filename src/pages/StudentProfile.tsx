@@ -108,6 +108,19 @@ export default function StudentProfile() {
   
   const student = students.find((s: any) => s.id === Number(id)) || studentData[id as keyof typeof studentData];
   
+  const parseDateOfBirth = (dob: string) => {
+    if (!dob) return { day: "", month: "", year: "" };
+    const date = new Date(dob);
+    if (!isNaN(date.getTime())) {
+      return {
+        day: date.getDate().toString(),
+        month: (date.getMonth() + 1).toString(),
+        year: date.getFullYear().toString()
+      };
+    }
+    return { day: "", month: "", year: "" };
+  };
+
   const [formData, setFormData] = useState({
     name: student?.name || "",
     email: student?.email || "",
@@ -119,6 +132,9 @@ export default function StudentProfile() {
     parentPhone: student?.parentPhone || "",
     dateOfBirth: student?.dateOfBirth || "",
     address: student?.address || "",
+    dobDay: parseDateOfBirth(student?.dateOfBirth || "").day,
+    dobMonth: parseDateOfBirth(student?.dateOfBirth || "").month,
+    dobYear: parseDateOfBirth(student?.dateOfBirth || "").year,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -128,6 +144,7 @@ export default function StudentProfile() {
 
   useEffect(() => {
     if (student) {
+      const parsed = parseDateOfBirth(student.dateOfBirth || "");
       setFormData({
         name: student.name || "",
         email: student.email || "",
@@ -139,6 +156,9 @@ export default function StudentProfile() {
         parentPhone: student.parentPhone || "",
         dateOfBirth: student.dateOfBirth || "",
         address: student.address || "",
+        dobDay: parsed.day,
+        dobMonth: parsed.month,
+        dobYear: parsed.year,
       });
     }
   }, [student]);
@@ -149,7 +169,11 @@ export default function StudentProfile() {
 
   const handleUpdateStudent = () => {
     try {
-      const validated = editStudentSchema.parse(formData);
+      const combinedDob = formData.dobDay && formData.dobMonth && formData.dobYear
+        ? `${new Date(parseInt(formData.dobYear), parseInt(formData.dobMonth) - 1, parseInt(formData.dobDay)).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`
+        : formData.dateOfBirth;
+      
+      const validated = editStudentSchema.parse({ ...formData, dateOfBirth: combinedDob });
       
       const updatedStudents = students.map((s: any) =>
         s.id === Number(id)
@@ -298,14 +322,51 @@ export default function StudentProfile() {
                   {errors.level && <p className="text-sm text-destructive">{errors.level}</p>}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="edit-dob">Date of Birth</Label>
-                  <Input
-                    id="edit-dob"
-                    placeholder="March 12, 2008"
-                    value={formData.dateOfBirth}
-                    onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                  />
+                <div className="space-y-2 col-span-2">
+                  <Label>Date of Birth</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Select value={formData.dobMonth} onValueChange={(value) => setFormData({ ...formData, dobMonth: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Month" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">January</SelectItem>
+                        <SelectItem value="2">February</SelectItem>
+                        <SelectItem value="3">March</SelectItem>
+                        <SelectItem value="4">April</SelectItem>
+                        <SelectItem value="5">May</SelectItem>
+                        <SelectItem value="6">June</SelectItem>
+                        <SelectItem value="7">July</SelectItem>
+                        <SelectItem value="8">August</SelectItem>
+                        <SelectItem value="9">September</SelectItem>
+                        <SelectItem value="10">October</SelectItem>
+                        <SelectItem value="11">November</SelectItem>
+                        <SelectItem value="12">December</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    <Select value={formData.dobDay} onValueChange={(value) => setFormData({ ...formData, dobDay: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Day" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                          <SelectItem key={day} value={day.toString()}>{day}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    
+                    <Select value={formData.dobYear} onValueChange={(value) => setFormData({ ...formData, dobYear: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Year" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                          <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   {errors.dateOfBirth && <p className="text-sm text-destructive">{errors.dateOfBirth}</p>}
                 </div>
 
