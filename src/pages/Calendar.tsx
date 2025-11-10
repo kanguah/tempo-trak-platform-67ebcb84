@@ -1,21 +1,17 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Clock, Music, Users, MapPin, Calendar as CalendarIcon, Sparkles } from "lucide-react";
+import { Plus, Clock, Music, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor, closestCenter } from "@dnd-kit/core";
-import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { startOfWeek, endOfWeek, format, addWeeks, subWeeks } from "date-fns";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
+import { format, addDays, startOfWeek, isSameDay, parseISO } from "date-fns";
 const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const timeSlots = Array.from({
   length: 22
@@ -38,87 +34,39 @@ type Lesson = {
   duration: number;
   room?: string;
 };
+type LessonWithDate = {
+  id: string;
+  date: Date;
+  time: string;
+  student: string;
+  studentId: string;
+  instrument: string;
+  tutor: string;
+  tutorId: string;
+  duration: number;
+  room?: string;
+};
+
 const getInstrumentColor = (instrument: string) => {
   const colors: Record<string, string> = {
-    Piano: "bg-primary text-primary-foreground",
-    Guitar: "bg-secondary text-secondary-foreground",
-    Violin: "bg-accent text-accent-foreground",
-    Drums: "bg-orange-500 text-white",
-    Voice: "bg-purple-500 text-white",
-    Saxophone: "bg-blue-500 text-white",
-    Flute: "bg-pink-500 text-white",
-    Cello: "bg-amber-600 text-white",
-    Trumpet: "bg-emerald-500 text-white",
-    Bass: "bg-cyan-500 text-white"
+    Piano: "240 70% 55%",
+    Guitar: "270 60% 60%",
+    Violin: "45 90% 60%",
+    Drums: "25 85% 55%",
+    Voice: "280 65% 60%",
+    Saxophone: "210 80% 55%",
+    Flute: "330 75% 65%",
+    Cello: "35 85% 50%",
+    Trumpet: "160 70% 50%",
+    Bass: "190 75% 55%"
   };
-  return colors[instrument] || "bg-muted text-muted-foreground";
+  return colors[instrument] || "240 10% 50%";
 };
-function DraggableLesson({
-  lesson
-}: {
-  lesson: Lesson;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    isDragging
-  } = useDraggable({
-    id: lesson.id
-  });
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-    opacity: isDragging ? 0.5 : 1
-  } : undefined;
-  return <div ref={setNodeRef} style={style} {...listeners} {...attributes} className={`${getInstrumentColor(lesson.instrument)} p-3 rounded-lg h-full shadow-sm cursor-move hover:scale-105 transition-transform`}>
-      <div className="flex items-start justify-between mb-1">
-        <Music className="h-4 w-4" />
-        <Badge variant="outline" className="text-xs border-current">
-          {lesson.duration}h
-        </Badge>
-      </div>
-      <p className="font-semibold text-sm mb-1">{lesson.student}</p>
-      <p className="text-xs opacity-90">{lesson.instrument}</p>
-      <p className="text-xs opacity-75 mt-1">{lesson.tutor}</p>
-      {lesson.room && <div className="flex items-center gap-1 mt-1">
-          <MapPin className="h-3 w-3 opacity-75" />
-          <p className="text-xs opacity-75">{lesson.room}</p>
-        </div>}
-    </div>;
-}
-function DroppableSlot({
-  dayIndex,
-  time,
-  children
-}: {
-  dayIndex: number;
-  time: string;
-  children?: React.ReactNode;
-}) {
-  const {
-    setNodeRef,
-    isOver
-  } = useDroppable({
-    id: `${dayIndex}-${time}`
-  });
-  return <div ref={setNodeRef} className={`min-h-[80px] border-2 rounded-lg p-2 transition-colors ${isOver ? "bg-primary/10 border-primary" : "border-border hover:bg-muted/50"}`}>
-      {children}
-    </div>;
-}
 export default function Calendar() {
-  const {
-    user
-  } = useAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), {
-    weekStartsOn: 1
-  }));
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
-  const [matchDialogOpen, setMatchDialogOpen] = useState(false);
-  const [selectedInstrument, setSelectedInstrument] = useState<string | null>(null);
   const [newLesson, setNewLesson] = useState({
     studentId: "",
     tutorId: "",
@@ -185,42 +133,37 @@ export default function Calendar() {
     enabled: !!user?.id
   });
 
-  // Transform database lessons to UI format
-  const lessons: Lesson[] = lessonsData.map((lesson: any) => ({
-    id: lesson.id,
-    day: lesson.day_of_week,
-    time: lesson.start_time.substring(0, 5),
-    // Convert "HH:MM:SS" to "HH:MM"
-    student: lesson.students?.name || "Unknown",
-    studentId: lesson.student_id,
-    instrument: lesson.subject,
-    tutor: lesson.tutors?.name || "Unknown",
-    tutorId: lesson.tutor_id,
-    duration: lesson.duration / 60,
-    // Convert minutes to hours
-    room: lesson.room
-  }));
-
-  // Filter lessons by selected instrument
-  const filteredLessons = selectedInstrument ? lessons.filter(lesson => lesson.instrument === selectedInstrument) : lessons;
-  const handleInstrumentClick = (instrument: string) => {
-    setSelectedInstrument(selectedInstrument === instrument ? null : instrument);
-  };
-  const goToPreviousWeek = () => {
-    setCurrentWeekStart(prev => subWeeks(prev, 1));
-  };
-  const goToNextWeek = () => {
-    setCurrentWeekStart(prev => addWeeks(prev, 1));
-  };
-  const goToCurrentWeek = () => {
-    setCurrentWeekStart(startOfWeek(new Date(), {
-      weekStartsOn: 1
-    }));
-  };
-  const weekEnd = endOfWeek(currentWeekStart, {
-    weekStartsOn: 1
+  // Transform database lessons to UI format with actual dates
+  const currentWeekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+  const lessonsWithDates: LessonWithDate[] = lessonsData.map((lesson: any) => {
+    const lessonDate = addDays(currentWeekStart, lesson.day_of_week);
+    return {
+      id: lesson.id,
+      date: lessonDate,
+      time: lesson.start_time.substring(0, 5),
+      student: lesson.students?.name || "Unknown",
+      studentId: lesson.student_id,
+      instrument: lesson.subject,
+      tutor: lesson.tutors?.name || "Unknown",
+      tutorId: lesson.tutor_id,
+      duration: lesson.duration / 60,
+      room: lesson.room
+    };
   });
-  const currentWeekDisplay = `${format(currentWeekStart, "MMM d")} - ${format(weekEnd, "MMM d, yyyy")}`;
+
+  // Group lessons by date
+  const lessonsByDate = lessonsWithDates.reduce((acc, lesson) => {
+    const dateKey = format(lesson.date, "yyyy-MM-dd");
+    if (!acc[dateKey]) {
+      acc[dateKey] = [];
+    }
+    acc[dateKey].push(lesson);
+    return acc;
+  }, {} as Record<string, LessonWithDate[]>);
+
+  // Sort dates and get lessons for selected date and upcoming days
+  const sortedDates = Object.keys(lessonsByDate).sort();
+  const selectedDateKey = format(selectedDate, "yyyy-MM-dd");
 
   // Add lesson mutation
   const addLessonMutation = useMutation({
@@ -296,236 +239,22 @@ export default function Calendar() {
     }
   });
 
-  // Update lesson mutation
-  const updateLessonMutation = useMutation({
-    mutationFn: async ({
-      id,
-      day,
-      time
-    }: {
-      id: string;
-      day: number;
-      time: string;
-    }) => {
-      const {
-        data,
-        error
-      } = await supabase.from("lessons").update({
-        day_of_week: day,
-        start_time: time + ":00"
-      }).eq("id", id).select().single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["lessons"]
-      });
-      toast.success("Lesson rescheduled successfully!");
-    },
-    onError: error => {
-      toast.error("Failed to reschedule lesson");
-      console.error(error);
-    }
-  });
-  const sensors = useSensors(useSensor(PointerSensor, {
-    activationConstraint: {
-      distance: 8
-    }
-  }));
-  const checkConflict = (updatedLesson: {
-    day: number;
-    time: string;
-    tutorId: string;
-    studentId: string;
-    room?: string;
-  }, excludeId?: string) => {
-    return filteredLessons.some(lesson => {
-      if (excludeId && lesson.id === excludeId) return false;
-      if (lesson.day !== updatedLesson.day || lesson.time !== updatedLesson.time) return false;
-      return lesson.tutorId === updatedLesson.tutorId || lesson.studentId === updatedLesson.studentId || lesson.room && lesson.room === updatedLesson.room;
-    });
-  };
-  const handleDragStart = (event: DragEndEvent) => {
-    setActiveId(event.active.id as string);
-  };
-  const handleDragEnd = (event: DragEndEvent) => {
-    const {
-      active,
-      over
-    } = event;
-    setActiveId(null);
-    if (!over) return;
-    const lessonId = active.id as string;
-    const [dayIndex, time] = (over.id as string).split("-");
-    const lesson = filteredLessons.find(l => l.id === lessonId);
-    if (!lesson) return;
-    const updatedLesson = {
-      day: parseInt(dayIndex),
-      time,
-      tutorId: lesson.tutorId,
-      studentId: lesson.studentId,
-      room: lesson.room
-    };
-    if (checkConflict(updatedLesson, lessonId)) {
-      toast.error("Conflict detected! Tutor, student, or room already booked at this time.");
-      return;
-    }
-    updateLessonMutation.mutate({
-      id: lessonId,
-      day: updatedLesson.day,
-      time: updatedLesson.time
-    });
-  };
-  const handleAutoMatch = () => {
-    toast.success("Auto-matching tutors to students based on availability and expertise...");
-    // Simulation of auto-matching
-    setTimeout(() => {
-      toast.success("3 new lessons scheduled automatically!");
-    }, 1500);
-  };
-  const handleBulkSchedule = () => {
-    toast.success("Processing bulk schedule...");
-    // Simulation of bulk scheduling
-    setTimeout(() => {
-      toast.success("15 lessons scheduled across the week!");
-      setBulkDialogOpen(false);
-    }, 2000);
-  };
-  const activeDragLesson = activeId ? filteredLessons.find(l => l.id === activeId) : null;
-  return <div className="min-h-screen bg-background">
-      <div className="p-8 space-y-8 animate-fade-in">
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="p-6 max-w-[1400px] mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-4xl font-bold text-foreground mb-2">Intelligent Scheduler</h1>
-            <p className="text-muted-foreground">Drag & drop lessons with smart conflict detection</p>
+            <h1 className="text-3xl font-bold text-foreground">Schedule</h1>
+            <p className="text-sm text-muted-foreground mt-1">Manage your lessons and appointments</p>
           </div>
-          <div className="flex gap-2">
-            <Dialog open={matchDialogOpen} onOpenChange={setMatchDialogOpen}>
-              <DialogTrigger asChild>
-                
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Automatic Tutor-Student Matching</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>Match Criteria</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select criteria" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="availability">By Availability</SelectItem>
-                        <SelectItem value="expertise">By Expertise Match</SelectItem>
-                        <SelectItem value="location">By Location</SelectItem>
-                        <SelectItem value="student-pref">Student Preferences</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Time Range</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select time range" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="this-week">This Week</SelectItem>
-                        <SelectItem value="next-week">Next Week</SelectItem>
-                        <SelectItem value="this-month">This Month</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button onClick={handleAutoMatch} className="w-full gradient-primary text-primary-foreground">
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Run Auto Match
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="shadow-sm">
-                  <CalendarIcon className="mr-2 h-5 w-5" />
-                  Bulk Schedule
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Bulk Scheduling</DialogTitle>
-                </DialogHeader>
-                <Tabs defaultValue="recurring">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="recurring">Recurring</TabsTrigger>
-                    <TabsTrigger value="multiple">Multiple Lessons</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="recurring" className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Repeat Pattern</Label>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select pattern" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="weekly">Weekly</SelectItem>
-                          <SelectItem value="biweekly">Bi-weekly</SelectItem>
-                          <SelectItem value="monthly">Monthly</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Number of Occurrences</Label>
-                      <Input type="number" placeholder="10" defaultValue="10" />
-                    </div>
-                    <Button onClick={handleBulkSchedule} className="w-full gradient-primary text-primary-foreground">
-                      Schedule Recurring Lessons
-                    </Button>
-                  </TabsContent>
-                  <TabsContent value="multiple" className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Select Students (Multiple)</Label>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose students" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Students</SelectItem>
-                          <SelectItem value="piano">Piano Students</SelectItem>
-                          <SelectItem value="guitar">Guitar Students</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Time Preference</Label>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select time" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="morning">Morning (8-12)</SelectItem>
-                          <SelectItem value="afternoon">Afternoon (12-17)</SelectItem>
-                          <SelectItem value="evening">Evening (17-19)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Button onClick={handleBulkSchedule} className="w-full gradient-primary text-primary-foreground">
-                      Schedule All
-                    </Button>
-                  </TabsContent>
-                </Tabs>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="gradient-primary text-primary-foreground shadow-primary">
-                  <Plus className="mr-2 h-5 w-5" />
-                  Add Lesson
-                </Button>
-              </DialogTrigger>
+          <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gradient-primary text-primary-foreground">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Lesson
+              </Button>
+            </DialogTrigger>
               <DialogContent className="max-h-[90vh]">
                 <DialogHeader>
                   <DialogTitle>Schedule New Lesson</DialogTitle>
@@ -680,130 +409,143 @@ export default function Calendar() {
                       </div>
                     </>}
 
-                  <Button className="w-full gradient-primary text-primary-foreground" onClick={() => addLessonMutation.mutate(newLesson)} disabled={!newLesson.studentId || !newLesson.tutorId || !newLesson.subject || !newLesson.day || !newLesson.time}>
+                  <Button 
+                    className="w-full gradient-primary text-primary-foreground" 
+                    onClick={() => addLessonMutation.mutate(newLesson)} 
+                    disabled={!newLesson.studentId || !newLesson.tutorId || !newLesson.subject || !newLesson.day || !newLesson.time}
+                  >
                     {newLesson.isRecurring ? "Schedule Monthly Lessons" : "Schedule Lesson"}
                   </Button>
                 </div>
               </DialogContent>
             </Dialog>
           </div>
-        </div>
 
-        {/* Calendar Grid */}
-        <Card className="shadow-card">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <Button variant="outline" size="icon" onClick={goToPreviousWeek}>
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-              <div className="flex items-center gap-3">
-                <CardTitle className="text-2xl">{currentWeekDisplay}</CardTitle>
-                <Button variant="outline" size="sm" onClick={goToCurrentWeek}>
-                  Today
-                </Button>
-              </div>
-              <Button variant="outline" size="icon" onClick={goToNextWeek}>
-                <ChevronRight className="h-5 w-5" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-              <div className="overflow-x-auto">
-                <div className="min-w-[900px]">
-                  {/* Header Row */}
-                  <div className="grid grid-cols-8 gap-2 mb-2">
-                    <div className="font-semibold text-center text-muted-foreground">Time</div>
-                    {daysOfWeek.map(day => <div key={day} className="font-semibold text-center p-2 rounded-lg bg-muted">
-                        {day}
-                      </div>)}
-                  </div>
+        {/* Main Content - Split Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
+        {/* Left: Calendar Picker */}
+        <div className="space-y-4">
+          <Card className="p-4">
+            <CalendarPicker
+              mode="single"
+              selected={selectedDate}
+              onSelect={(date) => date && setSelectedDate(date)}
+              className="rounded-md"
+            />
+          </Card>
 
-                  {/* Time Slots Grid */}
-                  <div className="space-y-1">
-                    {timeSlots.map(time => <div key={time} className="grid grid-cols-8 gap-2">
-                        <div className="text-sm text-muted-foreground text-center py-4 font-medium">{time}</div>
-                        {daysOfWeek.map((_, dayIndex) => {
-                      const lesson = filteredLessons.find(l => l.day === dayIndex && l.time === time);
-                      return <DroppableSlot key={`${dayIndex}-${time}`} dayIndex={dayIndex} time={time}>
-                              {lesson && <DraggableLesson lesson={lesson} />}
-                            </DroppableSlot>;
-                    })}
-                      </div>)}
-                  </div>
-                </div>
-              </div>
-
-              <DragOverlay>
-                {activeDragLesson && <div className={`${getInstrumentColor(activeDragLesson.instrument)} p-3 rounded-lg shadow-lg w-40`}>
-                    <div className="flex items-start justify-between mb-1">
-                      <Music className="h-4 w-4" />
-                      <Badge variant="outline" className="text-xs border-current">
-                        {activeDragLesson.duration}h
-                      </Badge>
+          {/* Instrument Legend */}
+          <Card className="p-4">
+            <h3 className="text-sm font-semibold mb-3 text-foreground">Instruments</h3>
+            <div className="space-y-2">
+              {instruments.map((instrument) => {
+                const count = lessonsWithDates.filter((l) => l.instrument === instrument).length;
+                const color = getInstrumentColor(instrument);
+                return (
+                  <div key={instrument} className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: `hsl(${color})` }}
+                      />
+                      <span className="text-foreground">{instrument}</span>
                     </div>
-                    <p className="font-semibold text-sm mb-1">{activeDragLesson.student}</p>
-                    <p className="text-xs opacity-90">{activeDragLesson.instrument}</p>
-                    <p className="text-xs opacity-75 mt-1">{activeDragLesson.tutor}</p>
-                  </div>}
-              </DragOverlay>
-            </DndContext>
-          </CardContent>
-        </Card>
-
-        {/* Room Allocation & Legend */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-primary" />
-                Room Allocation
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {rooms.map(room => {
-                // Get current day index (0=Mon, 6=Sun)
-                const today = new Date().getDay();
-                const currentDayIndex = today === 0 ? 6 : today - 1;
-                const roomLessons = lessons.filter(l => l.room === room && l.day === currentDayIndex);
-                return <div key={room} className="flex items-center justify-between p-3 rounded-lg bg-muted">
-                      <span className="font-medium">{room}</span>
-                      <Badge variant="secondary">{roomLessons.length}</Badge>
-                    </div>;
+                    <span className="text-muted-foreground">{count}</span>
+                  </div>
+                );
               })}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Music className="h-5 w-5 text-primary" />
-                Instrument Legend
-                {selectedInstrument && <Badge variant="outline" className="ml-auto">
-                    Filtering: {selectedInstrument}
-                  </Badge>}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-3">
-                {["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Cello", "Trumpet", "Bass"].map(instrument => {
-                const count = lessons.filter(l => l.instrument === instrument).length;
-                return <Badge key={instrument} className={`${getInstrumentColor(instrument)} cursor-pointer transition-all hover:scale-105 ${selectedInstrument === instrument ? "ring-2 ring-foreground ring-offset-2" : ""} flex items-center gap-2`} onClick={() => handleInstrumentClick(instrument)}>
-                      {instrument}
-                      <span className="ml-1 px-1.5 py-0.5 rounded-full bg-background/20 text-xs font-semibold">
-                        {count}
-                      </span>
-                    </Badge>;
-              })}
-              </div>
-              {selectedInstrument && <Button variant="ghost" size="sm" className="mt-3 w-full" onClick={() => setSelectedInstrument(null)}>
-                  Clear Filter
-                </Button>}
-            </CardContent>
+            </div>
           </Card>
         </div>
+
+        {/* Right: Event List */}
+        <Card className="p-6">
+          <div className="space-y-6">
+            {sortedDates
+              .filter((dateKey) => {
+                const date = parseISO(dateKey);
+                return date >= selectedDate || isSameDay(date, selectedDate);
+              })
+              .slice(0, 7)
+              .map((dateKey) => {
+                const date = parseISO(dateKey);
+                const dayLessons = lessonsByDate[dateKey].sort((a, b) => 
+                  a.time.localeCompare(b.time)
+                );
+                
+                return (
+                  <div key={dateKey}>
+                    {/* Date Header */}
+                    <div className="mb-4">
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        {format(date, "EEEE d")}
+                      </h3>
+                    </div>
+
+                    {/* Lessons for this date */}
+                    <div className="space-y-3">
+                      {dayLessons.map((lesson) => {
+                        const color = getInstrumentColor(lesson.instrument);
+                        const endTime = `${parseInt(lesson.time.split(':')[0]) + lesson.duration}:${lesson.time.split(':')[1]}`;
+                        
+                        return (
+                          <div
+                            key={lesson.id}
+                            className="flex gap-4 p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                          >
+                            {/* Time */}
+                            <div className="flex flex-col items-center min-w-[60px]">
+                              <span className="text-sm font-medium text-foreground">{lesson.time}</span>
+                              <span className="text-xs text-muted-foreground">{endTime}</span>
+                            </div>
+
+                            {/* Color indicator */}
+                            <div className="flex items-start pt-1">
+                              <div 
+                                className="w-1 h-full rounded-full" 
+                                style={{ backgroundColor: `hsl(${color})` }}
+                              />
+                            </div>
+
+                            {/* Lesson details */}
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-foreground mb-1">{lesson.student}</h4>
+                              <p className="text-sm text-muted-foreground">{lesson.instrument}</p>
+                              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                  <Music className="h-3 w-3" />
+                                  <span>{lesson.tutor}</span>
+                                </div>
+                                {lesson.room && (
+                                  <div className="flex items-center gap-1">
+                                    <MapPin className="h-3 w-3" />
+                                    <span>{lesson.room}</span>
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  <span>{lesson.duration}h</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+
+            {sortedDates.length === 0 && (
+              <div className="text-center py-12">
+                <Music className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">No lessons scheduled</p>
+              </div>
+            )}
+          </div>
+        </Card>
       </div>
-    </div>;
+    </div>
+  </div>
+  );
 }
