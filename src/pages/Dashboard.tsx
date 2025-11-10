@@ -1,4 +1,4 @@
-import { Users, Calendar, DollarSign, TrendingUp, Music2, Clock, Bell, UserPlus, CreditCard } from "lucide-react";
+import { Users, Calendar, DollarSign, TrendingUp, Clock, Bell, UserPlus, CreditCard } from "lucide-react";
 import { MetricCard } from "@/components/MetricCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -272,7 +272,7 @@ export default function Dashboard() {
         }}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Music2 className="h-5 w-5 text-accent" />
+                
                 Subject Distribution
               </CardTitle>
             </CardHeader>

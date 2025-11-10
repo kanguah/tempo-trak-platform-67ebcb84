@@ -1,6 +1,5 @@
 import { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-
 interface MetricCardProps {
   title: string;
   value: string | number;
@@ -11,8 +10,13 @@ interface MetricCardProps {
   };
   variant?: "default" | "primary" | "accent";
 }
-
-export function MetricCard({ title, value, icon: Icon, trend, variant = "default" }: MetricCardProps) {
+export function MetricCard({
+  title,
+  value,
+  icon: Icon,
+  trend,
+  variant = "default"
+}: MetricCardProps) {
   const getVariantClasses = () => {
     switch (variant) {
       case "primary":
@@ -23,9 +27,7 @@ export function MetricCard({ title, value, icon: Icon, trend, variant = "default
         return "gradient-card shadow-card";
     }
   };
-
-  return (
-    <Card className={`${getVariantClasses()} border-0 overflow-hidden animate-scale-in`}>
+  return <Card className={`${getVariantClasses()} border-0 overflow-hidden animate-scale-in`}>
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -33,17 +35,12 @@ export function MetricCard({ title, value, icon: Icon, trend, variant = "default
               {title}
             </p>
             <h3 className="text-3xl font-bold mb-2">{value}</h3>
-            {trend && (
-              <p className={`text-xs font-medium ${variant === "default" ? (trend.isPositive ? "text-green-600" : "text-red-600") : "opacity-75"}`}>
+            {trend && <p className={`text-xs font-medium ${variant === "default" ? trend.isPositive ? "text-green-600" : "text-red-600" : "opacity-75"}`}>
                 {trend.isPositive ? "↑" : "↓"} {trend.value}
-              </p>
-            )}
+              </p>}
           </div>
-          <div className={`p-3 rounded-xl ${variant === "default" ? "bg-primary/10" : "bg-white/20"}`}>
-            <Icon className={`h-6 w-6 ${variant === "default" ? "text-primary" : ""}`} />
-          </div>
+          
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 }
