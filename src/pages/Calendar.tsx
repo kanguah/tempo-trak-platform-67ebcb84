@@ -464,7 +464,9 @@ export default function Calendar() {
             <h3 className="text-sm font-semibold mb-3 text-foreground">Instruments</h3>
             <div className="space-y-2">
               {instruments.map((instrument) => {
-                const count = lessonsWithDates.filter((l) => l.instrument === instrument).length;
+                const count = lessonsWithDates.filter(
+                  (l) => l.instrument === instrument && isSameDay(l.date, selectedDate)
+                ).length;
                 const color = getInstrumentColor(instrument);
                 return (
                   <div key={instrument} className="flex items-center justify-between text-sm">

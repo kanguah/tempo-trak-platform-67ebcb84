@@ -178,7 +178,7 @@ export default function Dashboard() {
       <div className="p-8 space-y-8 animate-fade-in">
         {/* Header */}
         <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">Welcome back! 👋</h1>
+          <h1 className="text-4xl font-bold text-foreground mb-2">Welcome back!</h1>
           <p className="text-muted-foreground">Here's what's happening at your academy today</p>
         </div>
 
@@ -203,7 +203,7 @@ export default function Dashboard() {
         </div>
 
         {/* Charts Row */}
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-2">
           {/* Revenue Chart */}
           <Card className="shadow-card animate-slide-up">
             <CardHeader>
@@ -265,7 +265,7 @@ export default function Dashboard() {
         </div>
 
         {/* Bottom Row */}
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-2">
           {/* Instrument Distribution */}
           <Card className="shadow-card animate-slide-up" style={{
           animationDelay: "0.2s"
@@ -294,7 +294,7 @@ export default function Dashboard() {
           </Card>
 
           {/* Recent Activity */}
-          <Card className="md:col-span-2 shadow-card animate-slide-up" style={{
+          <Card className="shadow-card animate-slide-up" style={{
           animationDelay: "0.3s"
         }}>
             <CardHeader>
@@ -354,7 +354,7 @@ export default function Dashboard() {
 
           
 
-          <Card className="shadow-card">
+          <Card className="shadow-card col-span-2">
             <CardHeader>
               <CardTitle className="text-lg">Recent Payments</CardTitle>
             </CardHeader>

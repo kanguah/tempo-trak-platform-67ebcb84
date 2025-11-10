@@ -564,17 +564,15 @@ export default function Students() {
                       <div className="flex items-center justify-between">
                         <div>
                           <h3 className="font-semibold text-lg">{student.name}</h3>
-                          <p className="text-sm text-muted-foreground">{student.email}</p>
                         </div>
                         <Badge variant={student.status === "active" ? "default" : "secondary"}>{student.status}</Badge>
                       </div>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="flex items-center justify-between text-sm">
                         <div>
                           <span className="text-muted-foreground">Instrument:</span>
                           <p className="font-medium">{student.subjects?.join(", ") || "N/A"}</p>
                         </div>
                         <div>
-                          <span className="text-muted-foreground">Grade:</span>
                           <p>
                             <Badge className={getLevelColor(student.grade || "Beginner")}>
                               {student.grade || "Beginner"}
@@ -582,18 +580,7 @@ export default function Students() {
                           </p>
                         </div>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/students/${student.id}`);
-                        }}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View Profile
-                      </Button>
+                      
                     </div>
                   </div>
                 </CardContent>
@@ -623,8 +610,8 @@ export default function Students() {
                         <ArrowUpDown className="h-4 w-4" />
                       </div>
                     </TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
+                    <TableHead className="hidden xl:table-cell">Email</TableHead>
+                    <TableHead className="hidden lg:table-cell">Phone</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -656,10 +643,10 @@ export default function Students() {
                           {student.grade || "Beginner"}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden xl:table-cell">
                         <span className="text-sm truncate max-w-[200px]">{student.email}</span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         <span className="text-sm">{student.phone || "N/A"}</span>
                       </TableCell>
                       <TableCell>
