@@ -434,6 +434,31 @@ export default function Calendar() {
             />
           </Card>
 
+          {/* Room Allocation for Selected Date */}
+          <Card className="p-4">
+            <h3 className="text-sm font-semibold mb-3 text-foreground flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-primary" />
+              Room Allocation
+            </h3>
+            <p className="text-xs text-muted-foreground mb-3">
+              {format(selectedDate, "MMMM d, yyyy")}
+            </p>
+            <div className="space-y-2">
+              {rooms.map((room) => {
+                const selectedDateKey = format(selectedDate, "yyyy-MM-dd");
+                const roomLessons = lessonsWithDates.filter(
+                  (l) => l.room === room && format(l.date, "yyyy-MM-dd") === selectedDateKey
+                ).length;
+                return (
+                  <div key={room} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                    <span className="text-sm font-medium text-foreground">{room}</span>
+                    <span className="text-sm font-semibold text-primary">{roomLessons}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+
           {/* Instrument Legend */}
           <Card className="p-4">
             <h3 className="text-sm font-semibold mb-3 text-foreground">Instruments</h3>
