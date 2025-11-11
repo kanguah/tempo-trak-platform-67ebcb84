@@ -6,11 +6,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useSidebar } from "@/components/ui/sidebar";
 const COLORS = ["hsl(240 70% 55%)", "hsl(270 60% 60%)", "hsl(45 90% 60%)", "hsl(200 70% 55%)", "hsl(320 65% 60%)"];
 export default function Dashboard() {
   const {
     user
   } = useAuth();
+  const { state } = useSidebar();
 
   // Fetch all data
   const {
@@ -175,7 +177,7 @@ export default function Dashboard() {
     color: p.status === "completed" ? "text-green-600" : "text-orange-600"
   }))].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 8);
   return <div className="min-h-screen bg-background">
-      <div className="p-8 space-y-8 animate-fade-in">
+      <div className={`p-8 space-y-8 animate-fade-in ${state === "collapsed" ? "max-w-7xl mx-auto" : ""}`}>
         {/* Header */}
         <div>
           <h1 className="text-4xl font-bold text-foreground mb-2">Welcome back!</h1>
