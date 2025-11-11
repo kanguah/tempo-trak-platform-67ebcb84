@@ -130,8 +130,52 @@ export default function DataImport({
           return;
         }
 
+        // Check for duplicate emails in database
+        const emailsToCheck = validRows.map(row => row.email.trim().toLowerCase());
+        const { data: existingRecords, error: checkError } = await supabase
+          .from(type)
+          .select('email')
+          .eq('user_id', user?.id)
+          .in('email', emailsToCheck);
+
+        if (checkError) {
+          console.error("Error checking duplicates:", checkError);
+          errors.push(`Failed to check for duplicates: ${checkError.message}`);
+          setResult({
+            success: 0,
+            failed: validRows.length,
+            errors
+          });
+          setImporting(false);
+          return;
+        }
+
+        // Filter out rows with existing emails
+        const existingEmails = new Set((existingRecords || []).map(r => r.email));
+        const nonDuplicateRows: any[] = [];
+        
+        validRows.forEach((row, index) => {
+          const email = row.email.trim().toLowerCase();
+          if (existingEmails.has(email)) {
+            errors.push(`Row ${rows.findIndex(r => r.email?.trim().toLowerCase() === email) + 1}: Email ${email} already exists`);
+          } else {
+            nonDuplicateRows.push(row);
+          }
+        });
+
+        if (nonDuplicateRows.length === 0) {
+          setResult({
+            success: 0,
+            failed: rows.length,
+            errors
+          });
+          setImporting(false);
+          toast.error("No new records to import (all duplicates)");
+          return;
+        }
+
         // Prepare data for insertion
-        const dataToInsert = validRows.map(row => {
+        const dataToInsert = nonDuplicateRows.map(row => {
           const baseData = {
             name: row.name.trim(),
             email: row.email.trim().toLowerCase(),
