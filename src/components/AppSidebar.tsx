@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, UserCheck, Calendar, ClipboardCheck, CreditCard, Megaphone, MessageSquare, TrendingUp, FileText, Bell, Settings, Music, Archive } from "lucide-react";
+import { LayoutDashboard, Users, UserCheck, Calendar, ClipboardCheck, CreditCard, Megaphone, MessageSquare, TrendingUp, FileText, Bell, Settings, Music, Archive, TrendingDown } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter } from "@/components/ui/sidebar";
 const directorItems = [{
@@ -38,6 +38,10 @@ const directorItems = [{
   title: "Messaging",
   url: "/messaging",
   icon: MessageSquare
+}, {
+  title: "Expenses",
+  url: "/expenses",
+  icon: TrendingDown
 }, {
   title: "Business Analytics",
   url: "/analytics",

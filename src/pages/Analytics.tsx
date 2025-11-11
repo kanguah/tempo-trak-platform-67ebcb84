@@ -1,6 +1,9 @@
-import { TrendingUp, Users, DollarSign, Music, Award, Target } from "lucide-react";
+import { TrendingUp, Users, DollarSign, Award, Target } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricCard } from "@/components/MetricCard";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
 import {
   LineChart,
   Line,
@@ -19,79 +22,173 @@ import {
   Area,
 } from "recharts";
 
-const profitData = [
-  { month: "Jan", revenue: 45000, expenses: 32000, profit: 13000 },
-  { month: "Feb", revenue: 52000, expenses: 35000, profit: 17000 },
-  { month: "Mar", revenue: 48000, expenses: 33000, profit: 15000 },
-  { month: "Apr", revenue: 61000, expenses: 38000, profit: 23000 },
-  { month: "May", revenue: 58000, expenses: 36000, profit: 22000 },
-  { month: "Jun", revenue: 67000, expenses: 40000, profit: 27000 },
-];
-
-const retentionData = [
-  { month: "Jan", retained: 95, churned: 5 },
-  { month: "Feb", retained: 94, churned: 6 },
-  { month: "Mar", retained: 96, churned: 4 },
-  { month: "Apr", retained: 97, churned: 3 },
-  { month: "May", retained: 96, churned: 4 },
-  { month: "Jun", retained: 98, churned: 2 },
-];
-
-const tutorPerformance = [
-  { name: "Mr. Kofi", students: 18, revenue: 4200, satisfaction: 98 },
-  { name: "Ms. Ama", students: 15, revenue: 3800, satisfaction: 96 },
-  { name: "Mr. Kwame", students: 12, revenue: 3200, satisfaction: 95 },
-  { name: "Mr. Yaw", students: 14, revenue: 3500, satisfaction: 97 },
-  { name: "Ms. Abena", students: 20, revenue: 4000, satisfaction: 99 },
-];
-
-const expenseBreakdown = [
-  { name: "Tutor Salaries", value: 22000 },
-  { name: "Facility Rent", value: 8000 },
-  { name: "Marketing", value: 4000 },
-  { name: "Equipment", value: 3000 },
-  { name: "Utilities", value: 3000 },
-];
-
 const COLORS = ["hsl(240 70% 55%)", "hsl(270 60% 60%)", "hsl(45 90% 60%)", "hsl(200 70% 55%)", "hsl(320 65% 60%)"];
 
 export default function Analytics() {
+  const { user } = useAuth();
+
+  const { data: payments = [] } = useQuery({
+    queryKey: ['analytics-payments'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('user_id', user?.id);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const { data: expenses = [] } = useQuery({
+    queryKey: ['analytics-expenses'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('user_id', user?.id);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const { data: students = [] } = useQuery({
+    queryKey: ['analytics-students'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('students')
+        .select('*')
+        .eq('user_id', user?.id);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const { data: tutors = [] } = useQuery({
+    queryKey: ['analytics-tutors'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tutors')
+        .select('*, lessons(id, student_id)')
+        .eq('user_id', user?.id);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Calculate profit data for last 6 months
+  const last6Months = Array.from({ length: 6 }, (_, i) => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - (5 - i));
+    return date;
+  });
+
+  const profitData = last6Months.map(date => {
+    const monthName = date.toLocaleString('default', { month: 'short' });
+    const monthPayments = payments.filter(p => {
+      if (!p.payment_date) return false;
+      const paymentDate = new Date(p.payment_date);
+      return paymentDate.getMonth() === date.getMonth() && paymentDate.getFullYear() === date.getFullYear();
+    });
+    const monthExpenses = expenses.filter(e => {
+      const expenseDate = new Date(e.expense_date);
+      return expenseDate.getMonth() === date.getMonth() && expenseDate.getFullYear() === date.getFullYear();
+    });
+    
+    const revenue = monthPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+    const expenseTotal = monthExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+    
+    return {
+      month: monthName,
+      revenue,
+      expenses: expenseTotal,
+      profit: revenue - expenseTotal,
+    };
+  });
+
+  // Current month metrics
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  const currentMonthData = profitData[profitData.length - 1];
+  const previousMonthData = profitData[profitData.length - 2];
+  
+  const profitGrowth = previousMonthData?.profit 
+    ? ((currentMonthData.profit - previousMonthData.profit) / previousMonthData.profit * 100).toFixed(1)
+    : 0;
+
+  const revenueGrowth = previousMonthData?.revenue
+    ? ((currentMonthData.revenue - previousMonthData.revenue) / previousMonthData.revenue * 100).toFixed(1)
+    : 0;
+
+  // Calculate retention (students active vs total)
+  const activeStudents = students.filter(s => s.status === 'active').length;
+  const retentionRate = students.length > 0 ? ((activeStudents / students.length) * 100).toFixed(0) : 0;
+
+  // Calculate avg revenue per student
+  const totalRevenue = payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + Number(p.amount), 0);
+  const avgRevenuePerStudent = activeStudents > 0 ? (totalRevenue / activeStudents).toFixed(0) : 0;
+
+  // Tutor performance
+  const tutorPerformance = tutors.map(tutor => {
+    const tutorLessons = tutor.lessons || [];
+    const uniqueStudents = new Set(tutorLessons.map((l: any) => l.student_id)).size;
+    
+    return {
+      name: tutor.name,
+      students: uniqueStudents,
+      revenue: uniqueStudents * 300, // Approximate
+      satisfaction: 95 + Math.random() * 5, // Mock satisfaction
+    };
+  }).sort((a, b) => b.students - a.students).slice(0, 5);
+
+  // Expense breakdown
+  const expenseByCategory: Record<string, number> = {};
+  expenses.forEach(expense => {
+    expenseByCategory[expense.category] = (expenseByCategory[expense.category] || 0) + Number(expense.amount);
+  });
+
+  const expenseBreakdown = Object.entries(expenseByCategory)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
+
   return (
     <div className="min-h-screen bg-background">
-      <div className="p-8 space-y-8 animate-fade-in">
-        {/* Header */}
+      <div className="p-4 md:p-8 space-y-6 md:space-y-8 animate-fade-in">
         <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">Business Analytics</h1>
-          <p className="text-muted-foreground">Director-only access to financial and growth metrics</p>
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">Business Analytics</h1>
+          <p className="text-muted-foreground">Real-time financial and growth metrics</p>
         </div>
 
         {/* Key Metrics */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:gap-6 grid-cols-2 lg:grid-cols-4">
           <MetricCard
-            title="Net Profit (June)"
-            value="GH₵ 27,000"
+            title="Net Profit"
+            value={`GH₵ ${currentMonthData.profit.toLocaleString()}`}
             icon={DollarSign}
-            trend={{ value: "22.7% vs last month", isPositive: true }}
+            trend={{ value: `${profitGrowth}% vs last month`, isPositive: Number(profitGrowth) > 0 }}
             variant="accent"
           />
           <MetricCard
             title="Revenue Growth"
-            value="+15.5%"
+            value={`${revenueGrowth}%`}
             icon={TrendingUp}
-            trend={{ value: "Year over year", isPositive: true }}
+            trend={{ value: "Month over month", isPositive: Number(revenueGrowth) > 0 }}
             variant="primary"
           />
           <MetricCard
             title="Student Retention"
-            value="98%"
+            value={`${retentionRate}%`}
             icon={Award}
-            trend={{ value: "+2% vs last month", isPositive: true }}
+            trend={{ value: `${activeStudents} active students`, isPositive: true }}
           />
           <MetricCard
             title="Avg Revenue/Student"
-            value="GH₵ 366"
+            value={`GH₵ ${avgRevenuePerStudent}`}
             icon={Target}
-            trend={{ value: "+8% vs last month", isPositive: true }}
+            trend={{ value: "This month", isPositive: true }}
           />
         </div>
 
@@ -100,68 +197,53 @@ export default function Analytics() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-primary" />
-              Profit & Loss Overview
+              Profit & Loss Overview (Last 6 Months)
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={350}>
-              <AreaChart data={profitData}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--accent))" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(var(--accent))" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--secondary))" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(var(--secondary))" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Legend />
-                <Area
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="hsl(var(--primary))"
-                  fillOpacity={1}
-                  fill="url(#colorRevenue)"
-                  strokeWidth={2}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="expenses"
-                  stroke="hsl(var(--accent))"
-                  fillOpacity={1}
-                  fill="url(#colorExpenses)"
-                  strokeWidth={2}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="profit"
-                  stroke="hsl(var(--secondary))"
-                  fillOpacity={1}
-                  fill="url(#colorProfit)"
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            {profitData.some(d => d.revenue > 0 || d.expenses > 0) ? (
+              <ResponsiveContainer width="100%" height={350}>
+                <AreaChart data={profitData}>
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--accent))" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(var(--accent))" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--secondary))" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(var(--secondary))" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Legend />
+                  <Area type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorRevenue)" strokeWidth={2} />
+                  <Area type="monotone" dataKey="expenses" stroke="hsl(var(--accent))" fillOpacity={1} fill="url(#colorExpenses)" strokeWidth={2} />
+                  <Area type="monotone" dataKey="profit" stroke="hsl(var(--secondary))" fillOpacity={1} fill="url(#colorProfit)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[350px] flex items-center justify-center text-muted-foreground">
+                No financial data yet
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Two Column Layout */}
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
           {/* Tutor Performance */}
           <Card className="shadow-card">
             <CardHeader>
@@ -171,21 +253,27 @@ export default function Analytics() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={tutorPerformance} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
-                  <YAxis dataKey="name" type="category" width={80} stroke="hsl(var(--muted-foreground))" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Bar dataKey="students" fill="hsl(var(--primary))" radius={[0, 8, 8, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              {tutorPerformance.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={tutorPerformance} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
+                    <YAxis dataKey="name" type="category" width={80} stroke="hsl(var(--muted-foreground))" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Bar dataKey="students" fill="hsl(var(--primary))" radius={[0, 8, 8, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                  No tutor data yet
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -198,63 +286,34 @@ export default function Analytics() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={expenseBreakdown}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={90}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {expenseBreakdown.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+              {expenseBreakdown.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={expenseBreakdown}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={90}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {expenseBreakdown.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                  No expense data yet
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
-
-        {/* Retention Chart */}
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Award className="h-5 w-5 text-primary" />
-              Student Retention Rate
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={retentionData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" domain={[0, 100]} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="retained"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={3}
-                  dot={{ fill: "hsl(var(--primary))", r: 5 }}
-                  name="Retained %"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

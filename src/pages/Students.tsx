@@ -43,6 +43,9 @@ const studentSchema = z.object({
   phone: z.string().trim().min(1, "Phone is required").max(20, "Phone must be less than 20 characters"),
   grade: z.string().min(1, "Grade is required"),
   instrument: z.string().min(1, "Please select an instrument"),
+  package_type: z.string().optional(),
+  discount_percentage: z.number().min(0).max(100).optional(),
+  discount_end_date: z.string().optional(),
   date_of_birth: z.string().optional(),
   parent_name: z.string().trim().max(100, "Parent name must be less than 100 characters").optional().or(z.literal("")),
   parent_email: z
@@ -68,6 +71,9 @@ export default function Students() {
     phone: "",
     grade: "",
     instrument: "",
+    package_type: "",
+    discount_percentage: 0,
+    discount_end_date: "",
     date_of_birth: "",
     parent_name: "",
     parent_email: "",
@@ -99,7 +105,17 @@ export default function Students() {
   });
   const addStudentMutation = useMutation({
     mutationFn: async (newStudent: any) => {
-      const { instrument, ...studentData } = newStudent;
+      const { instrument, package_type, discount_percentage, discount_end_date, ...studentData } = newStudent;
+      
+      // Calculate monthly fee and final fee based on package
+      let monthly_fee = 0;
+      if (package_type === "1x Weekly") monthly_fee = 300;
+      else if (package_type === "2x Weekly") monthly_fee = 500;
+      else if (package_type === "3x Weekly") monthly_fee = 800;
+      
+      const discount_amount = discount_percentage ? (monthly_fee * discount_percentage / 100) : 0;
+      const final_monthly_fee = monthly_fee - discount_amount;
+      
       const { data, error } = await supabase
         .from("students")
         .insert([
@@ -107,6 +123,12 @@ export default function Students() {
             ...studentData,
             subjects: [instrument],
             user_id: user?.id,
+            package_type: package_type || null,
+            monthly_fee: monthly_fee || null,
+            discount_percentage: discount_percentage || 0,
+            discount_end_date: discount_end_date || null,
+            final_monthly_fee: final_monthly_fee || null,
+            payment_status: package_type ? 'pending' : null,
           },
         ])
         .select()
@@ -124,6 +146,9 @@ export default function Students() {
         phone: "",
         grade: "",
         instrument: "",
+        package_type: "",
+        discount_percentage: 0,
+        discount_end_date: "",
         date_of_birth: "",
         parent_name: "",
         parent_email: "",
@@ -371,6 +396,100 @@ export default function Students() {
                       </SelectContent>
                     </Select>
                     {errors.instrument && <p className="text-sm text-destructive">{errors.instrument}</p>}
+                  </div>
+
+                  <div className="border-t pt-4 space-y-4">
+                    <h3 className="text-sm font-semibold">Package & Fees (Optional)</h3>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="package_type">Package Type</Label>
+                      <Select
+                        value={formData.package_type}
+                        onValueChange={(value) =>
+                          setFormData({
+                            ...formData,
+                            package_type: value,
+                          })
+                        }
+                      >
+                        <SelectTrigger id="package_type">
+                          <SelectValue placeholder="Select package" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1x Weekly">1x Weekly - GH₵300/month</SelectItem>
+                          <SelectItem value="2x Weekly">2x Weekly - GH₵500/month</SelectItem>
+                          <SelectItem value="3x Weekly">3x Weekly - GH₵800/month</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {formData.package_type && (
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="discount_percentage">Discount (%) - Admin Only</Label>
+                          <Input
+                            id="discount_percentage"
+                            type="number"
+                            min="0"
+                            max="100"
+                            placeholder="0"
+                            value={formData.discount_percentage}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                discount_percentage: parseFloat(e.target.value) || 0,
+                              })
+                            }
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="discount_end_date">Discount End Date (Optional)</Label>
+                          <Input
+                            id="discount_end_date"
+                            type="date"
+                            value={formData.discount_end_date}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                discount_end_date: e.target.value,
+                              })
+                            }
+                          />
+                          <p className="text-xs text-muted-foreground">Leave empty for permanent discount</p>
+                        </div>
+
+                        {/* Fee Summary */}
+                        <div className="rounded-lg bg-muted p-4 space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span>Base Fee:</span>
+                            <span className="font-medium">
+                              GH₵ {formData.package_type === "1x Weekly" ? "300" : formData.package_type === "2x Weekly" ? "500" : "800"}
+                            </span>
+                          </div>
+                          {formData.discount_percentage > 0 && (
+                            <div className="flex justify-between text-sm text-orange-600">
+                              <span>Discount ({formData.discount_percentage}%):</span>
+                              <span className="font-medium">
+                                - GH₵ {(
+                                  (formData.package_type === "1x Weekly" ? 300 : formData.package_type === "2x Weekly" ? 500 : 800) * 
+                                  formData.discount_percentage / 100
+                                ).toFixed(0)}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex justify-between text-base font-bold border-t pt-2">
+                            <span>Final Monthly Fee:</span>
+                            <span className="text-primary">
+                              GH₵ {(
+                                (formData.package_type === "1x Weekly" ? 300 : formData.package_type === "2x Weekly" ? 500 : 800) * 
+                                (1 - formData.discount_percentage / 100)
+                              ).toFixed(0)}
+                            </span>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <div className="space-y-2">
