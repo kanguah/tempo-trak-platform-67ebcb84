@@ -92,6 +92,23 @@ export default function Payments() {
     },
   });
 
+  const sendSingleReminderMutation = useMutation({
+    mutationFn: async (paymentId: string) => {
+      const { data, error } = await supabase.functions.invoke('send-payment-reminders', {
+        body: { paymentId }
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      toast.success(data.remindersSent > 0 ? "Reminder sent successfully!" : "No reminder was sent (may not meet reminder criteria)");
+    },
+    onError: () => {
+      toast.error("Failed to send reminder");
+    },
+  });
+
   const verifyPaymentMutation = useMutation({
     mutationFn: async ({ paymentId, method }: { paymentId: string; method: string }) => {
       const { error } = await supabase
@@ -499,15 +516,27 @@ export default function Payments() {
                             {payment.discount_amount > 0 && (
                               <p className="text-xs text-orange-600">Discount: GH₵{payment.discount_amount}</p>
                             )}
-                            {payment.status === "pending" && (
-                              <Button 
-                                size="sm" 
-                                className="mt-2"
-                                onClick={() => openVerifyDialog(payment.id)}
-                              >
-                                <CreditCard className="h-4 w-4 mr-1" />
-                                Verify Payment
-                              </Button>
+                            {(payment.status === "pending" || payment.status === "failed") && (
+                              <div className="flex flex-col gap-2 mt-2">
+                                {payment.status === "pending" && (
+                                  <Button 
+                                    size="sm" 
+                                    onClick={() => openVerifyDialog(payment.id)}
+                                  >
+                                    <CreditCard className="h-4 w-4 mr-1" />
+                                    Verify Payment
+                                  </Button>
+                                )}
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => sendSingleReminderMutation.mutate(payment.id)}
+                                  disabled={sendSingleReminderMutation.isPending}
+                                >
+                                  <Send className="h-4 w-4 mr-1" />
+                                  Send Reminder
+                                </Button>
+                              </div>
                             )}
                           </div>
                         </div>

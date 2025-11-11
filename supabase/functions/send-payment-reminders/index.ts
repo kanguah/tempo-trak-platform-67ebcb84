@@ -39,17 +39,27 @@ serve(async (req) => {
     const smsApiKey = Deno.env.get('SMSONLINEGH_API_KEY');
     const senderId = '49ice Music';
 
-    console.log('Starting payment reminders...');
+    // Get optional paymentId from request body
+    const { paymentId } = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
+    
+    console.log('Starting payment reminders...', paymentId ? `for payment ${paymentId}` : 'for all pending payments');
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Get all pending payments
-    const { data: payments, error: paymentsError } = await supabase
+    // Build query for pending payments
+    let query = supabase
       .from('payments')
       .select('*, students(*)')
       .in('status', ['pending', 'failed'])
       .not('due_date', 'is', null);
+    
+    // If paymentId is provided, filter by it
+    if (paymentId) {
+      query = query.eq('id', paymentId);
+    }
+
+    const { data: payments, error: paymentsError } = await query;
 
     if (paymentsError) {
       console.error('Error fetching payments:', paymentsError);
