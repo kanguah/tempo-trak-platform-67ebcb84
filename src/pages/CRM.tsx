@@ -83,6 +83,7 @@ interface Lead {
   notes: string;
   lastContact: string;
   archived: boolean;
+  createdAt: string;
 }
 interface DraggableLeadCardProps {
   lead: Lead;
@@ -157,6 +158,8 @@ function DraggableLeadCard({
             Email
           </Button>
         </div>
+
+        <p className="text-xs text-muted-foreground">Added {lead.createdAt}</p>
       </CardContent>
     </Card>;
 }
@@ -254,7 +257,8 @@ export default function CRM() {
         source: lead.source || "",
         notes: lead.notes || "",
         lastContact: new Date(lead.updated_at).toLocaleDateString(),
-        archived: lead.stage === 'lost'
+        archived: lead.stage === 'lost',
+        createdAt: new Date(lead.created_at).toLocaleDateString()
       }));
     },
     enabled: !!user
