@@ -24,11 +24,7 @@ export function Layout({ children }: LayoutProps) {
               Sign Out
             </Button>
           </header>
-          <main className="flex-1 overflow-auto p-6">
-            <div className="max-w-7xl mx-auto w-full">
-              {children}
-            </div>
-          </main>
+          <main className="flex-1 overflow-auto p-6">{children}</main>
         </div>
       </div>
     </SidebarProvider>
