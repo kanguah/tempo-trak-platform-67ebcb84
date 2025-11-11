@@ -140,10 +140,10 @@ function DraggableLeadCard({
           </Button>
           <Button size="sm" variant="outline" className="flex-1" onClick={e => {
           e.stopPropagation();
-          toast.success(`Opening message to ${lead.name}...`);
+          window.location.href = `mailto:${lead.email}?subject=Follow up - ${lead.instrument} Lessons`;
         }}>
-            <MessageSquare className="h-3 w-3 mr-1" />
-            Message
+            <Mail className="h-3 w-3 mr-1" />
+            Email
           </Button>
         </div>
 
