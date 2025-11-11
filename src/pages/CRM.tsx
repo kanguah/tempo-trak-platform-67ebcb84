@@ -73,7 +73,7 @@ const stages = [
 ];
 
 interface Lead {
-  id: number;
+  id: string;
   name: string;
   email: string;
   phone: string;
@@ -89,7 +89,7 @@ interface DraggableLeadCardProps {
   lead: Lead;
   index: number;
   stageIndex: number;
-  onArchive: (leadId: number) => void;
+  onArchive: (leadId: string) => void;
   onEdit: (lead: Lead) => void;
 }
 
@@ -198,7 +198,7 @@ interface DroppableStageProps {
   stage: { id: string; label: string; color: string };
   leads: Lead[];
   stageIndex: number;
-  onArchive: (leadId: number) => void;
+  onArchive: (leadId: string) => void;
   onEdit: (lead: Lead) => void;
 }
 
@@ -272,12 +272,20 @@ export default function CRM() {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
+      
+      // Map database stages to UI stages
+      const stageMap: Record<string, string> = {
+        'new': 'new',
+        'contacted': 'contacted',
+        'qualified': 'enrolled',
+      };
+      
       return data.map(lead => ({
-        id: parseInt(lead.id),
+        id: lead.id,
         name: lead.name,
         email: lead.email,
         phone: lead.phone || "",
-        stage: lead.stage,
+        stage: stageMap[lead.stage] || lead.stage,
         instrument: lead.notes?.split(":")[0] || "",
         source: lead.source || "",
         notes: lead.notes || "",
@@ -289,12 +297,7 @@ export default function CRM() {
   });
 
   const getLeadsByStage = (stage: string) => {
-    const stageMap: Record<string, string> = {
-      'new': 'new',
-      'contacted': 'contacted',
-      'enrolled': 'qualified',
-    };
-    return leads.filter((lead) => lead.stage === stageMap[stage]);
+    return leads.filter((lead) => lead.stage === stage);
   };
 
   const archiveLeadMutation = useMutation({
@@ -312,11 +315,8 @@ export default function CRM() {
     },
   });
 
-  const handleArchiveLead = (leadId: number) => {
-    const lead = leads.find(l => l.id === leadId);
-    if (lead) {
-      archiveLeadMutation.mutate(lead.id.toString());
-    }
+  const handleArchiveLead = (leadId: string) => {
+    archiveLeadMutation.mutate(leadId);
   };
 
   const addLeadMutation = useMutation({
@@ -386,7 +386,7 @@ export default function CRM() {
           source: updatedLead.source,
           notes: `${updatedLead.instrument}: ${updatedLead.notes}`,
         })
-        .eq('id', updatedLead.id.toString());
+        .eq('id', updatedLead.id);
       
       if (error) throw error;
     },
@@ -439,13 +439,13 @@ export default function CRM() {
 
     if (!over) return;
 
-    const leadId = parseInt(active.id.toString().replace('lead-', ''));
+    const leadId = active.id.toString().replace('lead-', '');
     const newStage = over.id.toString();
     const lead = leads.find(l => l.id === leadId);
 
     if (lead && lead.stage !== newStage) {
       updateStageMutation.mutate({
-        leadId: lead.id.toString(),
+        leadId: lead.id,
         newStage,
       });
       toast.success(`${lead.name} moved to ${stages.find(s => s.id === newStage)?.label}`);
