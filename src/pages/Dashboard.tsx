@@ -301,7 +301,7 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {recentActivity.length > 0 ? <div className="space-y-3">
+              {recentActivity.length > 0 ? <div className="space-y-3 h-[270px] overflow-y-auto pr-2">
                   {recentActivity.map((activity, index) => {
                 const Icon = activity.icon;
                 return <div key={index} className="flex items-start gap-4 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
