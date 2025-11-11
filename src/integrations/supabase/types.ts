@@ -123,6 +123,51 @@ export type Database = {
         }
         Relationships: []
       }
+      expenses: {
+        Row: {
+          amount: number
+          approved_by: string | null
+          category: string
+          created_at: string
+          description: string | null
+          expense_date: string
+          id: string
+          paid_by: string | null
+          payment_method: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          approved_by?: string | null
+          category: string
+          created_at?: string
+          description?: string | null
+          expense_date: string
+          id?: string
+          paid_by?: string | null
+          payment_method?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          approved_by?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          expense_date?: string
+          id?: string
+          paid_by?: string | null
+          payment_method?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lessons: {
         Row: {
           created_at: string
@@ -254,9 +299,12 @@ export type Database = {
           amount: number
           created_at: string
           description: string | null
+          discount_amount: number | null
           due_date: string | null
           id: string
+          package_type: string | null
           payment_date: string | null
+          reminder_sent: Json | null
           status: Database["public"]["Enums"]["payment_status"]
           student_id: string | null
           updated_at: string
@@ -266,9 +314,12 @@ export type Database = {
           amount: number
           created_at?: string
           description?: string | null
+          discount_amount?: number | null
           due_date?: string | null
           id?: string
+          package_type?: string | null
           payment_date?: string | null
+          reminder_sent?: Json | null
           status?: Database["public"]["Enums"]["payment_status"]
           student_id?: string | null
           updated_at?: string
@@ -278,9 +329,12 @@ export type Database = {
           amount?: number
           created_at?: string
           description?: string | null
+          discount_amount?: number | null
           due_date?: string | null
           id?: string
+          package_type?: string | null
           payment_date?: string | null
+          reminder_sent?: Json | null
           status?: Database["public"]["Enums"]["payment_status"]
           student_id?: string | null
           updated_at?: string
@@ -328,14 +382,21 @@ export type Database = {
           address: string | null
           created_at: string
           date_of_birth: string | null
+          discount_end_date: string | null
+          discount_percentage: number | null
           email: string
           enrollment_date: string
+          final_monthly_fee: number | null
           grade: string | null
           id: string
+          last_payment_date: string | null
+          monthly_fee: number | null
           name: string
+          package_type: string | null
           parent_email: string | null
           parent_name: string | null
           parent_phone: string | null
+          payment_status: string | null
           phone: string | null
           status: string
           subjects: string[] | null
@@ -346,14 +407,21 @@ export type Database = {
           address?: string | null
           created_at?: string
           date_of_birth?: string | null
+          discount_end_date?: string | null
+          discount_percentage?: number | null
           email: string
           enrollment_date?: string
+          final_monthly_fee?: number | null
           grade?: string | null
           id?: string
+          last_payment_date?: string | null
+          monthly_fee?: number | null
           name: string
+          package_type?: string | null
           parent_email?: string | null
           parent_name?: string | null
           parent_phone?: string | null
+          payment_status?: string | null
           phone?: string | null
           status?: string
           subjects?: string[] | null
@@ -364,14 +432,21 @@ export type Database = {
           address?: string | null
           created_at?: string
           date_of_birth?: string | null
+          discount_end_date?: string | null
+          discount_percentage?: number | null
           email?: string
           enrollment_date?: string
+          final_monthly_fee?: number | null
           grade?: string | null
           id?: string
+          last_payment_date?: string | null
+          monthly_fee?: number | null
           name?: string
+          package_type?: string | null
           parent_email?: string | null
           parent_name?: string | null
           parent_phone?: string | null
+          payment_status?: string | null
           phone?: string | null
           status?: string
           subjects?: string[] | null
