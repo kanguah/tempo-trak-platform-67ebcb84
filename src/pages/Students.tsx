@@ -296,11 +296,11 @@ export default function Students() {
                   <span className="sm:hidden">Add</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
+              <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col">
+                <DialogHeader className="flex-shrink-0">
                   <DialogTitle>Add New Student</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
+                <div className="space-y-4 py-4 overflow-y-auto flex-1">
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
                     <Input
@@ -577,7 +577,7 @@ export default function Students() {
                     </div>
                   </div>
 
-                  <div className="flex gap-3 pt-4">
+                  <div className="flex gap-3 pt-4 sticky bottom-0 bg-background border-t mt-4 -mx-4 px-4 pb-4">
                     <Button variant="outline" className="flex-1" onClick={() => setDialogOpen(false)}>
                       Cancel
                     </Button>
