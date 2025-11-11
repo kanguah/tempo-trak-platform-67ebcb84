@@ -58,18 +58,11 @@ const settingsItems = [{
 }];
 export function AppSidebar() {
   const [isHovered, setIsHovered] = useState(false);
-  
-  return <div 
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className="relative"
-    >
+  return <div onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} className="relative">
       <Sidebar className={`border-r border-sidebar-border transition-all duration-300 ${isHovered ? 'w-64' : 'w-16'}`}>
       <SidebarHeader className={`border-b border-sidebar-border transition-all duration-300 ${isHovered ? 'p-6' : 'p-3'}`}>
         <div className="flex items-center gap-3">
-          <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-accent ${isHovered ? '' : 'mx-auto'}`}>
-            <Music className="h-4 w-4 text-accent-foreground" />
-          </div>
+          
           {isHovered && <div>
             <h2 className="text-lg font-bold text-sidebar-foreground whitespace-nowrap">49ice Academy</h2>
             <p className="text-xs text-sidebar-foreground/70 whitespace-nowrap">Music Management</p>
