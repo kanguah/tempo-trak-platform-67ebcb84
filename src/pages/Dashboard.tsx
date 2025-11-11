@@ -1,4 +1,4 @@
-import { Users, Calendar, DollarSign, TrendingUp, Clock, Bell, UserPlus, CreditCard } from "lucide-react";
+import { Users, Calendar, DollarSign, TrendingUp, Clock, Bell, UserPlus, CreditCard, Music2 } from "lucide-react";
 import { MetricCard } from "@/components/MetricCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
