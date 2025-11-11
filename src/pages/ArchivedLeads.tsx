@@ -1,5 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Mail, Phone, Archive, ArchiveRestore, Search } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,45 +11,76 @@ import { toast } from "sonner";
 
 export default function ArchivedLeads() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [leads, setLeads] = useState(() => {
-    const savedLeads = localStorage.getItem("crm-leads");
-    return savedLeads ? JSON.parse(savedLeads) : [];
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const { data: archivedLeads = [], isLoading } = useQuery({
+    queryKey: ['archived-leads'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('crm_leads')
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('stage', 'lost')
+        .order('updated_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      return data.map(lead => ({
+        id: lead.id,
+        name: lead.name,
+        email: lead.email,
+        phone: lead.phone || "",
+        instrument: lead.notes?.split(":")[0] || "",
+        source: lead.source || "",
+        notes: lead.notes || "",
+        lastContact: new Date(lead.created_at).toLocaleDateString(),
+        archivedDate: new Date(lead.updated_at).toLocaleDateString(),
+      }));
+    },
+    enabled: !!user,
   });
 
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const savedLeads = localStorage.getItem("crm-leads");
-      if (savedLeads) {
-        setLeads(JSON.parse(savedLeads));
-      }
-    };
+  const restoreLeadMutation = useMutation({
+    mutationFn: async (leadId: string) => {
+      const { error } = await supabase
+        .from('crm_leads')
+        .update({ stage: 'new' })
+        .eq('id', leadId);
+      
+      if (error) throw error;
+    },
+    onSuccess: (_, leadId) => {
+      queryClient.invalidateQueries({ queryKey: ['archived-leads'] });
+      queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
+      const lead = archivedLeads.find((l: any) => l.id === leadId);
+      toast.success(`${lead?.name} restored successfully`);
+    },
+    onError: () => {
+      toast.error("Failed to restore lead");
+    },
+  });
 
-    window.addEventListener("storage", handleStorageChange);
-    const interval = setInterval(handleStorageChange, 500);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      clearInterval(interval);
-    };
-  }, []);
-
-  const archivedLeads = leads.filter((lead: any) => lead.archived);
-
-  const handleRestoreLead = (leadId: number) => {
-    const lead = leads.find((l: any) => l.id === leadId);
-    const updatedLeads = leads.map((lead: any) =>
-      lead.id === leadId ? { ...lead, archived: false } : lead
-    );
-    setLeads(updatedLeads);
-    localStorage.setItem("crm-leads", JSON.stringify(updatedLeads));
-    toast.success(`${lead?.name} restored to ${lead?.stage} stage`);
+  const handleRestoreLead = (leadId: string) => {
+    restoreLeadMutation.mutate(leadId);
   };
 
-  const filteredLeads = archivedLeads.filter((lead) =>
+  const filteredLeads = archivedLeads.filter((lead: any) =>
     lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     lead.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     lead.instrument.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="p-8">
+          <h1 className="text-4xl font-bold text-foreground mb-2">Archived Leads</h1>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -80,7 +114,7 @@ export default function ArchivedLeads() {
 
         {/* Archived Leads List */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredLeads.map((lead, index) => (
+          {filteredLeads.map((lead: any, index: number) => (
             <Card
               key={lead.id}
               className="border-2 hover:shadow-lg transition-all animate-scale-in"
@@ -134,9 +168,10 @@ export default function ArchivedLeads() {
                   variant="outline" 
                   className="w-full"
                   onClick={() => handleRestoreLead(lead.id)}
+                  disabled={restoreLeadMutation.isPending}
                 >
                   <ArchiveRestore className="h-3 w-3 mr-2" />
-                  Restore Lead
+                  {restoreLeadMutation.isPending ? "Restoring..." : "Restore Lead"}
                 </Button>
               </CardContent>
             </Card>
