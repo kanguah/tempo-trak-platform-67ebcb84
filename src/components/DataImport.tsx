@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Upload, Download, FileSpreadsheet, AlertCircle } from "lucide-react";
+import { Upload, Download, FileSpreadsheet, AlertCircle, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -200,14 +200,81 @@ export default function DataImport({
     // Reset file input
     event.target.value = "";
   };
-  return <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <Upload className="h-4 w-4" />
-          <span className="hidden sm:inline">Import CSV</span>
-          <span className="sm:hidden">Import</span>
-        </Button>
-      </DialogTrigger>
+
+  const handleExport = async () => {
+    try {
+      toast.loading("Exporting data...");
+      
+      const { data, error } = await supabase
+        .from(type)
+        .select('*')
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        toast.dismiss();
+        toast.error(`No ${type} to export`);
+        return;
+      }
+
+      // Format data for CSV
+      const formattedData: any[] = type === "students" 
+        ? data.map((item: any) => ({
+            name: item.name,
+            email: item.email,
+            phone: item.phone || '',
+            grade: item.grade || '',
+            instrument: item.subjects?.[0] || '',
+            date_of_birth: item.date_of_birth || '',
+            parent_name: item.parent_name || '',
+            parent_email: item.parent_email || '',
+            parent_phone: item.parent_phone || '',
+            address: item.address || '',
+            status: item.status,
+            enrollment_date: item.enrollment_date
+          }))
+        : data.map((item: any) => ({
+            name: item.name,
+            email: item.email,
+            phone: item.phone || '',
+            instrument: item.subjects?.[0] || '',
+            status: item.status,
+            hourly_rate: item.hourly_rate || '',
+            availability: item.availability || ''
+          }));
+
+      const csv = Papa.unparse(formattedData);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${type}_export_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast.dismiss();
+      toast.success(`${data.length} ${type} exported successfully!`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.dismiss();
+      toast.error('Failed to export data');
+    }
+  };
+
+  return (
+    <>
+      <div className="flex gap-2">
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="gap-2">
+              <Upload className="h-4 w-4" />
+              <span className="hidden sm:inline">Import CSV</span>
+              <span className="sm:hidden">Import</span>
+            </Button>
+          </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Import {type === "students" ? "Students" : "Tutors"} from CSV</DialogTitle>
@@ -289,5 +356,14 @@ export default function DataImport({
             </div>}
         </div>
       </DialogContent>
-    </Dialog>;
+        </Dialog>
+
+        <Button variant="outline" className="gap-2" onClick={handleExport}>
+          <FileDown className="h-4 w-4" />
+          <span className="hidden sm:inline">Export CSV</span>
+          <span className="sm:hidden">Export</span>
+        </Button>
+      </div>
+    </>
+  );
 }
