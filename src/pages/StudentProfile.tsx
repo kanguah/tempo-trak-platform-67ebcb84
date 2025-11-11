@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Mail, Phone, Music, Calendar, DollarSign, CheckCircle, XCircle, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -359,7 +359,7 @@ export default function StudentProfile() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex items-center gap-3">
-                    <Mail className="h-5 w-5 text-muted-foreground" />
+                    
                     <div>
                       <p className="text-sm text-muted-foreground">Email</p>
                       <p className="text-sm font-medium">{student.email}</p>
@@ -367,7 +367,7 @@ export default function StudentProfile() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <Phone className="h-5 w-5 text-muted-foreground" />
+                    
                     <div>
                       <p className="text-sm text-muted-foreground">Phone</p>
                       <p className="text-sm font-medium">{student.phone || "N/A"}</p>
@@ -375,7 +375,7 @@ export default function StudentProfile() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <Music className="h-5 w-5 text-muted-foreground" />
+                    
                     <div>
                       <p className="text-sm text-muted-foreground">Instruments</p>
                       <p className="text-sm font-medium">{student.subjects?.join(", ") || "None"}</p>
@@ -383,7 +383,7 @@ export default function StudentProfile() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <Calendar className="h-5 w-5 text-muted-foreground" />
+                    
                     <div>
                       <p className="text-sm text-muted-foreground">Enrolled</p>
                       <p className="text-sm font-medium">
@@ -393,7 +393,7 @@ export default function StudentProfile() {
                   </div>
 
                   {student.package_type && <div className="flex items-center gap-3">
-                      <DollarSign className="h-5 w-5 text-muted-foreground" />
+                      
                       <div>
                         <p className="text-sm text-muted-foreground">Package</p>
                         <p className="text-sm font-medium">{student.package_type}</p>
@@ -401,7 +401,7 @@ export default function StudentProfile() {
                     </div>}
 
                   {student.final_monthly_fee && <div className="flex items-center gap-3">
-                      <DollarSign className="h-5 w-5 text-muted-foreground" />
+                      
                       <div>
                         <p className="text-sm text-muted-foreground">Monthly Fee</p>
                         <p className="text-sm font-medium">GH₵ {Number(student.final_monthly_fee).toFixed(2)}</p>
