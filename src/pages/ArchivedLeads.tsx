@@ -36,21 +36,25 @@ export default function ArchivedLeads() {
         notes: lead.notes || "",
         lastContact: new Date(lead.created_at).toLocaleDateString(),
         archivedDate: new Date(lead.updated_at).toLocaleDateString(),
+        originalStage: lead.original_stage || 'new',
       }));
     },
     enabled: !!user,
   });
 
   const restoreLeadMutation = useMutation({
-    mutationFn: async (leadId: string) => {
+    mutationFn: async ({ leadId, originalStage }: { leadId: string; originalStage: string }) => {
       const { error } = await supabase
         .from('crm_leads')
-        .update({ stage: 'new' })
+        .update({ 
+          stage: originalStage as any,
+          original_stage: null
+        })
         .eq('id', leadId);
       
       if (error) throw error;
     },
-    onSuccess: (_, leadId) => {
+    onSuccess: (_, { leadId }) => {
       queryClient.invalidateQueries({ queryKey: ['archived-leads'] });
       queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
       const lead = archivedLeads.find((l: any) => l.id === leadId);
@@ -61,8 +65,8 @@ export default function ArchivedLeads() {
     },
   });
 
-  const handleRestoreLead = (leadId: string) => {
-    restoreLeadMutation.mutate(leadId);
+  const handleRestoreLead = (leadId: string, originalStage: string) => {
+    restoreLeadMutation.mutate({ leadId, originalStage });
   };
 
   const filteredLeads = archivedLeads.filter((lead: any) =>
@@ -167,7 +171,7 @@ export default function ArchivedLeads() {
                   size="sm" 
                   variant="outline" 
                   className="w-full"
-                  onClick={() => handleRestoreLead(lead.id)}
+                  onClick={() => handleRestoreLead(lead.id, lead.originalStage)}
                   disabled={restoreLeadMutation.isPending}
                 >
                   <ArchiveRestore className="h-3 w-3 mr-2" />

@@ -302,15 +302,29 @@ export default function CRM() {
 
   const archiveLeadMutation = useMutation({
     mutationFn: async (leadId: string) => {
+      // First get the current stage
+      const { data: currentLead, error: fetchError } = await supabase
+        .from('crm_leads')
+        .select('stage')
+        .eq('id', leadId)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      
+      // Update with archived status and save original stage
       const { error } = await supabase
         .from('crm_leads')
-        .update({ stage: 'lost' })
+        .update({ 
+          stage: 'lost',
+          original_stage: currentLead.stage
+        })
         .eq('id', leadId);
       
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
+      queryClient.invalidateQueries({ queryKey: ['archived-leads'] });
       toast.success("Lead archived successfully");
     },
   });

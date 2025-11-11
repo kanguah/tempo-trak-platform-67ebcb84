@@ -88,6 +88,7 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          original_stage: string | null
           phone: string | null
           source: string | null
           stage: Database["public"]["Enums"]["lead_stage"]
@@ -100,6 +101,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          original_stage?: string | null
           phone?: string | null
           source?: string | null
           stage?: Database["public"]["Enums"]["lead_stage"]
@@ -112,6 +114,7 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          original_stage?: string | null
           phone?: string | null
           source?: string | null
           stage?: Database["public"]["Enums"]["lead_stage"]
