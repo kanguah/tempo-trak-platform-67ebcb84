@@ -122,6 +122,17 @@ function DraggableLeadCard({
             <GripVertical className="h-4 w-4 text-muted-foreground" />
           </div>
           <h3 className="font-bold text-foreground flex-1">{lead.name}</h3>
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            className="h-6 w-6 text-muted-foreground hover:text-foreground" 
+            onClick={e => {
+              e.stopPropagation();
+              onArchive(lead.id);
+            }}
+          >
+            <Archive className="h-4 w-4" />
+          </Button>
         </div>
         
         
@@ -146,14 +157,6 @@ function DraggableLeadCard({
             Email
           </Button>
         </div>
-
-        <Button size="sm" variant="ghost" className="w-full text-muted-foreground hover:text-foreground" onClick={e => {
-        e.stopPropagation();
-        onArchive(lead.id);
-      }}>
-          <Archive className="h-3 w-3 mr-1" />
-          Archive
-        </Button>
       </CardContent>
     </Card>;
 }
