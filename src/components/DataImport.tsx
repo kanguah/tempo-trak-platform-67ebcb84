@@ -31,8 +31,12 @@ export default function DataImport({
   } = useAuth();
   const queryClient = useQueryClient();
   const downloadTemplate = () => {
-    const headers = type === "students" ? "name,email,phone,grade,instrument\n" : "name,email,phone,instrument,status,hourly_rate\n";
-    const sampleData = type === "students" ? "John Doe,john@email.com,+233 24 123 4567,Beginner,Piano\nJane Smith,jane@email.com,+233 24 123 4568,Intermediate,Guitar\n" : "Mr. Kofi,kofi@email.com,+233 24 123 4567,Piano,Active,50\nMs. Ama,ama@email.com,+233 24 123 4568,Guitar,Active,45\n";
+    const headers = type === "students" 
+      ? "name,email,phone,grade,instrument,date_of_birth,parent_name,parent_email,parent_phone,address\n" 
+      : "name,email,phone,instrument,status,hourly_rate\n";
+    const sampleData = type === "students" 
+      ? "John Doe,john@email.com,+233 24 123 4567,Beginner,Piano,2010-05-15,Mary Doe,mary@email.com,+233 24 123 4560,123 Music St\nJane Smith,jane@email.com,+233 24 123 4568,Intermediate,Guitar,2012-08-22,,,,\n" 
+      : "Mr. Kofi,kofi@email.com,+233 24 123 4567,Piano,Active,50\nMs. Ama,ama@email.com,+233 24 123 4568,Guitar,Active,45\n";
     const csv = headers + sampleData;
     const blob = new Blob([csv], {
       type: "text/csv"
@@ -139,7 +143,12 @@ export default function DataImport({
             return {
               ...baseData,
               grade: row.grade.trim(),
-              status: "active"
+              status: "active",
+              date_of_birth: row.date_of_birth?.trim() || null,
+              parent_name: row.parent_name?.trim() || null,
+              parent_email: row.parent_email?.trim() || null,
+              parent_phone: row.parent_phone?.trim() || null,
+              address: row.address?.trim() || null,
             };
           } else {
             return {
@@ -193,7 +202,11 @@ export default function DataImport({
   };
   return <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>
-        
+        <Button variant="outline" className="gap-2">
+          <Upload className="h-4 w-4" />
+          <span className="hidden sm:inline">Import CSV</span>
+          <span className="sm:hidden">Import</span>
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
@@ -207,7 +220,8 @@ export default function DataImport({
             <AlertDescription>
               Download the template below, fill it with your data, and upload the completed CSV file.
               {type === "students" ? <>
-                  <br />Required columns: name, email, phone, grade (Beginner/Intermediate/Advanced), instrument
+                  <br />Required: name, email, phone, grade (Beginner/Intermediate/Advanced), instrument
+                  <br />Optional: date_of_birth, parent_name, parent_email, parent_phone, address (leave empty if not available)
                 </> : <>
                   <br />Required columns: name, email, phone, instrument, status (Active/On Leave), hourly_rate (optional)
                 </>}
