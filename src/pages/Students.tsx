@@ -105,7 +105,11 @@ export default function Students() {
   });
   const addStudentMutation = useMutation({
     mutationFn: async (newStudent: any) => {
-      const { instrument, package_type, discount_percentage, discount_end_date, ...studentData } = newStudent;
+      const { instrument, package_type, discount_percentage, discount_end_date, date_of_birth, ...studentData } = newStudent;
+      
+      // Convert empty string dates to null
+      const processedDateOfBirth = date_of_birth?.trim() === "" ? null : date_of_birth;
+      const processedDiscountEndDate = discount_end_date?.trim() === "" ? null : discount_end_date;
       
       // Calculate monthly fee and final fee based on package
       let monthly_fee = 0;
@@ -123,10 +127,11 @@ export default function Students() {
             ...studentData,
             subjects: [instrument],
             user_id: user?.id,
+            date_of_birth: processedDateOfBirth,
             package_type: package_type || null,
             monthly_fee: monthly_fee || null,
             discount_percentage: discount_percentage || 0,
-            discount_end_date: discount_end_date || null,
+            discount_end_date: processedDiscountEndDate,
             final_monthly_fee: final_monthly_fee || null,
             payment_status: package_type ? 'pending' : null,
           },
