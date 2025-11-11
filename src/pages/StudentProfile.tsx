@@ -558,7 +558,7 @@ export default function StudentProfile() {
             <Card className="shadow-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
+                  
                   Attendance History
                 </CardTitle>
               </CardHeader>
@@ -601,7 +601,7 @@ export default function StudentProfile() {
             <Card className="shadow-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
+                  
                   Payment History
                 </CardTitle>
               </CardHeader>
