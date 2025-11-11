@@ -65,13 +65,7 @@ export function AppSidebar() {
   return <div onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} className="relative">
       <Sidebar className={`border-r border-sidebar-border transition-all duration-300 ${isHovered ? 'w-64' : 'w-16'}`}>
       <SidebarHeader className={`border-b border-sidebar-border transition-all duration-300 ${isHovered ? 'p-6' : 'p-3'}`}>
-        <div className="flex items-center gap-3">
-          
-          {isHovered && <div>
-            <h2 className="text-lg font-bold text-sidebar-foreground whitespace-nowrap">49ice Academy</h2>
-            <p className="text-xs text-sidebar-foreground/70 whitespace-nowrap">Music Management</p>
-          </div>}
-        </div>
+        
       </SidebarHeader>
 
       <SidebarContent>
