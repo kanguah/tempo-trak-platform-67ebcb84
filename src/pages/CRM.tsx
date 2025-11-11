@@ -124,31 +124,9 @@ function DraggableLeadCard({
           <h3 className="font-bold text-foreground flex-1">{lead.name}</h3>
         </div>
         
-        <div className="space-y-2 text-sm mb-3">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Mail className="h-4 w-4" />
-            <span className="truncate">{lead.email}</span>
-          </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Phone className="h-4 w-4" />
-            {lead.phone}
-          </div>
-        </div>
+        
 
-        <div className="space-y-2 mb-3">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Instrument:</span>
-            <Badge variant="outline">{lead.instrument}</Badge>
-          </div>
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Source:</span>
-            <span className="font-medium">{lead.source}</span>
-          </div>
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Last Contact:</span>
-            <span className="font-medium">{lead.lastContact}</span>
-          </div>
-        </div>
+        
 
         
 
