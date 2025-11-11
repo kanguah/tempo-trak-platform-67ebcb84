@@ -140,6 +140,29 @@ export default function Students() {
         .single();
 
       if (error) throw error;
+      
+      // Create payment record if student has a package
+      if (data.package_type && data.final_monthly_fee) {
+        const currentDate = new Date();
+        const dueDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 15);
+        const monthName = dueDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+        
+        const { error: paymentError } = await supabase.from('payments').insert({
+          user_id: data.user_id,
+          student_id: data.id,
+          amount: data.final_monthly_fee,
+          discount_amount: data.discount_percentage 
+            ? (data.monthly_fee * data.discount_percentage / 100) 
+            : 0,
+          package_type: data.package_type,
+          status: 'pending',
+          due_date: dueDate.toISOString(),
+          description: `Monthly Fee - ${data.package_type} - ${monthName}`,
+        });
+        
+        if (paymentError) console.error('Error creating payment:', paymentError);
+      }
+      
       return data;
     },
     onSuccess: () => {
