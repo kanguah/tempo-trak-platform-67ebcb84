@@ -268,8 +268,7 @@ export default function CRM() {
         .from('crm_leads')
         .select('*')
         .eq('user_id', user?.id)
-        .eq('stage', 'new')
-        .or('stage.eq.contacted,stage.eq.qualified')
+        .in('stage', ['new', 'contacted', 'qualified'])
         .order('created_at', { ascending: false });
       
       if (error) throw error;

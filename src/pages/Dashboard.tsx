@@ -214,6 +214,7 @@ export default function Dashboard() {
           <MetricCard
             title="Active Tutors"
             value={activeTutors}
+            icon={Users}
             trend={{
               value: `${tutors.length} total`,
               isPositive: true,
