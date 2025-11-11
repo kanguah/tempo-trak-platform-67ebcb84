@@ -14,64 +14,64 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { DndContext, DragEndEvent, DragOverlay, useDraggable, useDroppable, DragStartEvent } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-
-const initialLeads = [
-  {
-    id: 1,
-    name: "Alice Thompson",
-    email: "alice.t@email.com",
-    phone: "+233 24 777 8888",
-    stage: "new",
-    instrument: "Piano",
-    source: "Website Form",
-    notes: "Interested in beginner lessons for 7-year-old daughter",
-    lastContact: "2 hours ago",
-    archived: false,
-  },
-  {
-    id: 2,
-    name: "Robert Kim",
-    email: "robert.kim@email.com",
-    phone: "+233 24 888 9999",
-    stage: "contacted",
-    instrument: "Guitar",
-    source: "Facebook Ad",
-    notes: "Adult learner, wants weekend classes",
-    lastContact: "1 day ago",
-    archived: false,
-  },
-  {
-    id: 3,
-    name: "Maria Santos",
-    email: "maria.s@email.com",
-    phone: "+233 24 999 0000",
-    stage: "contacted",
-    instrument: "Voice",
-    source: "Referral",
-    notes: "Professional singer looking for advanced training",
-    lastContact: "3 days ago",
-    archived: false,
-  },
-  {
-    id: 4,
-    name: "John Appiah",
-    email: "j.appiah@email.com",
-    phone: "+233 24 000 1111",
-    stage: "enrolled",
-    instrument: "Drums",
-    source: "Walk-in",
-    notes: "Enrolled in 8-lesson package",
-    lastContact: "1 week ago",
-    archived: false,
-  },
-];
-
-const stages = [
-  { id: "new", label: "New Leads", color: "bg-blue-500" },
-  { id: "contacted", label: "Contacted", color: "bg-orange-500" },
-  { id: "enrolled", label: "Enrolled", color: "bg-green-500" },
-];
-
+const initialLeads = [{
+  id: 1,
+  name: "Alice Thompson",
+  email: "alice.t@email.com",
+  phone: "+233 24 777 8888",
+  stage: "new",
+  instrument: "Piano",
+  source: "Website Form",
+  notes: "Interested in beginner lessons for 7-year-old daughter",
+  lastContact: "2 hours ago",
+  archived: false
+}, {
+  id: 2,
+  name: "Robert Kim",
+  email: "robert.kim@email.com",
+  phone: "+233 24 888 9999",
+  stage: "contacted",
+  instrument: "Guitar",
+  source: "Facebook Ad",
+  notes: "Adult learner, wants weekend classes",
+  lastContact: "1 day ago",
+  archived: false
+}, {
+  id: 3,
+  name: "Maria Santos",
+  email: "maria.s@email.com",
+  phone: "+233 24 999 0000",
+  stage: "contacted",
+  instrument: "Voice",
+  source: "Referral",
+  notes: "Professional singer looking for advanced training",
+  lastContact: "3 days ago",
+  archived: false
+}, {
+  id: 4,
+  name: "John Appiah",
+  email: "j.appiah@email.com",
+  phone: "+233 24 000 1111",
+  stage: "enrolled",
+  instrument: "Drums",
+  source: "Walk-in",
+  notes: "Enrolled in 8-lesson package",
+  lastContact: "1 week ago",
+  archived: false
+}];
+const stages = [{
+  id: "new",
+  label: "New Leads",
+  color: "bg-blue-500"
+}, {
+  id: "contacted",
+  label: "Contacted",
+  color: "bg-orange-500"
+}, {
+  id: "enrolled",
+  label: "Enrolled",
+  color: "bg-green-500"
+}];
 interface Lead {
   id: string;
   name: string;
@@ -84,7 +84,6 @@ interface Lead {
   lastContact: string;
   archived: boolean;
 }
-
 interface DraggableLeadCardProps {
   lead: Lead;
   index: number;
@@ -92,26 +91,31 @@ interface DraggableLeadCardProps {
   onArchive: (leadId: string) => void;
   onEdit: (lead: Lead) => void;
 }
-
-function DraggableLeadCard({ lead, index, stageIndex, onArchive, onEdit }: DraggableLeadCardProps) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+function DraggableLeadCard({
+  lead,
+  index,
+  stageIndex,
+  onArchive,
+  onEdit
+}: DraggableLeadCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    isDragging
+  } = useDraggable({
     id: `lead-${lead.id}`,
-    data: { lead },
+    data: {
+      lead
+    }
   });
-
   const style = {
     transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0.5 : 1,
-    animationDelay: `${(stageIndex * 0.1) + (index * 0.05)}s`,
+    animationDelay: `${stageIndex * 0.1 + index * 0.05}s`
   };
-
-  return (
-    <Card
-      ref={setNodeRef}
-      style={style}
-      className={`border-2 hover:shadow-lg transition-all cursor-grab active:cursor-grabbing animate-scale-in ${isDragging ? 'shadow-2xl ring-2 ring-primary' : ''}`}
-      onClick={() => !isDragging && onEdit(lead)}
-    >
+  return <Card ref={setNodeRef} style={style} className={`border-2 hover:shadow-lg transition-all cursor-grab active:cursor-grabbing animate-scale-in ${isDragging ? 'shadow-2xl ring-2 ring-primary' : ''}`} onClick={() => !isDragging && onEdit(lead)}>
       <CardContent className="p-4">
         <div className="flex items-start gap-2 mb-2">
           <div {...listeners} {...attributes} className="touch-none mt-1">
@@ -146,72 +150,62 @@ function DraggableLeadCard({ lead, index, stageIndex, onArchive, onEdit }: Dragg
           </div>
         </div>
 
-        <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
-          {lead.notes}
-        </p>
+        
 
         <div className="flex gap-2 mb-2">
-          <Button 
-            size="sm" 
-            variant="outline" 
-            className="flex-1"
-            onClick={(e) => {
-              e.stopPropagation();
-              toast.success(`Calling ${lead.name}...`);
-            }}
-          >
+          <Button size="sm" variant="outline" className="flex-1" onClick={e => {
+          e.stopPropagation();
+          toast.success(`Calling ${lead.name}...`);
+        }}>
             <Phone className="h-3 w-3 mr-1" />
             Call
           </Button>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            className="flex-1"
-            onClick={(e) => {
-              e.stopPropagation();
-              toast.success(`Opening message to ${lead.name}...`);
-            }}
-          >
+          <Button size="sm" variant="outline" className="flex-1" onClick={e => {
+          e.stopPropagation();
+          toast.success(`Opening message to ${lead.name}...`);
+        }}>
             <MessageSquare className="h-3 w-3 mr-1" />
             Message
           </Button>
         </div>
 
-        <Button 
-          size="sm" 
-          variant="ghost" 
-          className="w-full text-muted-foreground hover:text-foreground"
-          onClick={(e) => {
-            e.stopPropagation();
-            onArchive(lead.id);
-          }}
-        >
+        <Button size="sm" variant="ghost" className="w-full text-muted-foreground hover:text-foreground" onClick={e => {
+        e.stopPropagation();
+        onArchive(lead.id);
+      }}>
           <Archive className="h-3 w-3 mr-1" />
           Archive
         </Button>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 }
-
 interface DroppableStageProps {
-  stage: { id: string; label: string; color: string };
+  stage: {
+    id: string;
+    label: string;
+    color: string;
+  };
   leads: Lead[];
   stageIndex: number;
   onArchive: (leadId: string) => void;
   onEdit: (lead: Lead) => void;
 }
-
-function DroppableStage({ stage, leads, stageIndex, onArchive, onEdit }: DroppableStageProps) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: stage.id,
+function DroppableStage({
+  stage,
+  leads,
+  stageIndex,
+  onArchive,
+  onEdit
+}: DroppableStageProps) {
+  const {
+    setNodeRef,
+    isOver
+  } = useDroppable({
+    id: stage.id
   });
-
-  return (
-    <Card 
-      className={`shadow-card animate-slide-up transition-all ${isOver ? 'ring-2 ring-primary' : ''}`} 
-      style={{ animationDelay: `${stageIndex * 0.1}s` }}
-    >
+  return <Card className={`shadow-card animate-slide-up transition-all ${isOver ? 'ring-2 ring-primary' : ''}`} style={{
+    animationDelay: `${stageIndex * 0.1}s`
+  }}>
       <CardHeader className={`${stage.color} text-white rounded-t-lg`}>
         <CardTitle className="text-lg flex items-center justify-between">
           <span>{stage.label}</span>
@@ -221,28 +215,15 @@ function DroppableStage({ stage, leads, stageIndex, onArchive, onEdit }: Droppab
         </CardTitle>
       </CardHeader>
       <CardContent ref={setNodeRef} className={`p-4 space-y-3 min-h-[400px] transition-colors ${isOver ? 'bg-accent/50' : ''}`}>
-        {leads.map((lead, index) => (
-          <DraggableLeadCard
-            key={lead.id}
-            lead={lead}
-            index={index}
-            stageIndex={stageIndex}
-            onArchive={onArchive}
-            onEdit={onEdit}
-          />
-        ))}
+        {leads.map((lead, index) => <DraggableLeadCard key={lead.id} lead={lead} index={index} stageIndex={stageIndex} onArchive={onArchive} onEdit={onEdit} />)}
 
-        {leads.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
+        {leads.length === 0 && <div className="text-center py-8 text-muted-foreground">
             <p className="text-sm">No leads in this stage</p>
             {isOver && <p className="text-xs mt-2">Drop here</p>}
-          </div>
-        )}
+          </div>}
       </CardContent>
-    </Card>
-  );
+    </Card>;
 }
-
 export default function CRM() {
   const [searchQuery, setSearchQuery] = useState("");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -256,30 +237,32 @@ export default function CRM() {
     instrument: "",
     source: "",
     stage: "new",
-    notes: "",
+    notes: ""
   });
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
   const queryClient = useQueryClient();
-
-  const { data: leads = [], isLoading } = useQuery({
+  const {
+    data: leads = [],
+    isLoading
+  } = useQuery({
     queryKey: ['crm-leads'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('crm_leads')
-        .select('*')
-        .eq('user_id', user?.id)
-        .in('stage', ['new', 'contacted', 'qualified'])
-        .order('created_at', { ascending: false });
-      
+      const {
+        data,
+        error
+      } = await supabase.from('crm_leads').select('*').eq('user_id', user?.id).in('stage', ['new', 'contacted', 'qualified']).order('created_at', {
+        ascending: false
+      });
       if (error) throw error;
-      
+
       // Map database stages to UI stages
       const stageMap: Record<string, string> = {
         'new': 'new',
         'contacted': 'contacted',
-        'qualified': 'enrolled',
+        'qualified': 'enrolled'
       };
-      
       return data.map(lead => ({
         id: lead.id,
         name: lead.name,
@@ -290,80 +273,74 @@ export default function CRM() {
         source: lead.source || "",
         notes: lead.notes || "",
         lastContact: new Date(lead.updated_at).toLocaleDateString(),
-        archived: lead.stage === 'lost',
+        archived: lead.stage === 'lost'
       }));
     },
-    enabled: !!user,
+    enabled: !!user
   });
-
   const getLeadsByStage = (stage: string) => {
-    return leads.filter((lead) => lead.stage === stage);
+    return leads.filter(lead => lead.stage === stage);
   };
-
   const archiveLeadMutation = useMutation({
     mutationFn: async (leadId: string) => {
       // First get the current stage
-      const { data: currentLead, error: fetchError } = await supabase
-        .from('crm_leads')
-        .select('stage')
-        .eq('id', leadId)
-        .single();
-      
+      const {
+        data: currentLead,
+        error: fetchError
+      } = await supabase.from('crm_leads').select('stage').eq('id', leadId).single();
       if (fetchError) throw fetchError;
-      
+
       // Update with archived status and save original stage
-      const { error } = await supabase
-        .from('crm_leads')
-        .update({ 
-          stage: 'lost',
-          original_stage: currentLead.stage
-        })
-        .eq('id', leadId);
-      
+      const {
+        error
+      } = await supabase.from('crm_leads').update({
+        stage: 'lost',
+        original_stage: currentLead.stage
+      }).eq('id', leadId);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
-      queryClient.invalidateQueries({ queryKey: ['archived-leads'] });
+      queryClient.invalidateQueries({
+        queryKey: ['crm-leads']
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['archived-leads']
+      });
       toast.success("Lead archived successfully");
-    },
+    }
   });
-
   const handleArchiveLead = (leadId: string) => {
     archiveLeadMutation.mutate(leadId);
   };
-
   const addLeadMutation = useMutation({
     mutationFn: async (newLead: any) => {
-      const { data, error } = await supabase
-        .from('crm_leads')
-        .insert([{
-          name: newLead.name,
-          email: newLead.email,
-          phone: newLead.phone,
-          stage: newLead.stage,
-          source: newLead.source,
-          notes: `${newLead.instrument}: ${newLead.notes}`,
-          user_id: user?.id,
-        }])
-        .select()
-        .single();
-      
+      const {
+        data,
+        error
+      } = await supabase.from('crm_leads').insert([{
+        name: newLead.name,
+        email: newLead.email,
+        phone: newLead.phone,
+        stage: newLead.stage,
+        source: newLead.source,
+        notes: `${newLead.instrument}: ${newLead.notes}`,
+        user_id: user?.id
+      }]).select().single();
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
+      queryClient.invalidateQueries({
+        queryKey: ['crm-leads']
+      });
       toast.success("Lead added successfully!");
-    },
+    }
   });
-
   const handleAddLead = () => {
     if (!newLead.name || !newLead.email || !newLead.phone || !newLead.instrument || !newLead.source) {
       toast.error("Please fill in all required fields");
       return;
     }
-
     addLeadMutation.mutate(newLead);
     setAddDialogOpen(false);
     setNewLead({
@@ -373,101 +350,100 @@ export default function CRM() {
       instrument: "",
       source: "",
       stage: "new",
-      notes: "",
+      notes: ""
     });
   };
-
   const handleOpenEditDialog = (lead: Lead) => {
     setEditingLead(lead);
     setEditDialogOpen(true);
   };
-
   const updateLeadMutation = useMutation({
     mutationFn: async (updatedLead: Lead) => {
       const stageMap: Record<string, string> = {
         'new': 'new',
         'contacted': 'contacted',
-        'enrolled': 'qualified',
+        'enrolled': 'qualified'
       };
-      
-      const { error } = await supabase
-        .from('crm_leads')
-        .update({
-          name: updatedLead.name,
-          email: updatedLead.email,
-          phone: updatedLead.phone,
-          stage: stageMap[updatedLead.stage] as any,
-          source: updatedLead.source,
-          notes: `${updatedLead.instrument}: ${updatedLead.notes}`,
-        })
-        .eq('id', updatedLead.id);
-      
+      const {
+        error
+      } = await supabase.from('crm_leads').update({
+        name: updatedLead.name,
+        email: updatedLead.email,
+        phone: updatedLead.phone,
+        stage: stageMap[updatedLead.stage] as any,
+        source: updatedLead.source,
+        notes: `${updatedLead.instrument}: ${updatedLead.notes}`
+      }).eq('id', updatedLead.id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
+      queryClient.invalidateQueries({
+        queryKey: ['crm-leads']
+      });
       toast.success("Lead updated successfully!");
-    },
+    }
   });
-
   const handleSaveEdit = () => {
     if (!editingLead?.name || !editingLead?.email || !editingLead?.phone || !editingLead?.instrument || !editingLead?.source) {
       toast.error("Please fill in all required fields");
       return;
     }
-
     updateLeadMutation.mutate(editingLead);
     setEditDialogOpen(false);
     setEditingLead(null);
   };
-
   const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
+    const {
+      active
+    } = event;
     const lead = active.data.current?.lead as Lead;
     setActiveLead(lead);
   };
-
   const updateStageMutation = useMutation({
-    mutationFn: async ({ leadId, newStage }: { leadId: string; newStage: string }) => {
+    mutationFn: async ({
+      leadId,
+      newStage
+    }: {
+      leadId: string;
+      newStage: string;
+    }) => {
       const stageMap: Record<string, string> = {
         'new': 'new',
         'contacted': 'contacted',
-        'enrolled': 'qualified',
+        'enrolled': 'qualified'
       };
-      
-      const { error } = await supabase
-        .from('crm_leads')
-        .update({ stage: stageMap[newStage] as any })
-        .eq('id', leadId);
-      
+      const {
+        error
+      } = await supabase.from('crm_leads').update({
+        stage: stageMap[newStage] as any
+      }).eq('id', leadId);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
-    },
+      queryClient.invalidateQueries({
+        queryKey: ['crm-leads']
+      });
+    }
   });
-
   const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
+    const {
+      active,
+      over
+    } = event;
     setActiveLead(null);
-
     if (!over) return;
-
     const leadId = active.id.toString().replace('lead-', '');
     const newStage = over.id.toString();
     const lead = leads.find(l => l.id === leadId);
-
     if (lead && lead.stage !== newStage) {
       updateStageMutation.mutate({
         leadId: lead.id,
-        newStage,
+        newStage
       });
       toast.success(`${lead.name} moved to ${stages.find(s => s.id === newStage)?.label}`);
     }
   };
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       <div className="p-8 space-y-8 animate-fade-in">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -475,10 +451,7 @@ export default function CRM() {
             <h1 className="text-4xl font-bold text-foreground mb-2">CRM & Leads</h1>
             <p className="text-muted-foreground">Manage prospects and student recruitment</p>
           </div>
-          <Button 
-            className="gradient-primary text-primary-foreground shadow-primary"
-            onClick={() => setAddDialogOpen(true)}
-          >
+          <Button className="gradient-primary text-primary-foreground shadow-primary" onClick={() => setAddDialogOpen(true)}>
             <Plus className="mr-2 h-5 w-5" />
             Add Lead
           </Button>
@@ -493,35 +466,31 @@ export default function CRM() {
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Name *</Label>
-                <Input
-                  id="name"
-                  value={newLead.name}
-                  onChange={(e) => setNewLead({ ...newLead, name: e.target.value })}
-                  placeholder="Enter full name"
-                />
+                <Input id="name" value={newLead.name} onChange={e => setNewLead({
+                ...newLead,
+                name: e.target.value
+              })} placeholder="Enter full name" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newLead.email}
-                  onChange={(e) => setNewLead({ ...newLead, email: e.target.value })}
-                  placeholder="email@example.com"
-                />
+                <Input id="email" type="email" value={newLead.email} onChange={e => setNewLead({
+                ...newLead,
+                email: e.target.value
+              })} placeholder="email@example.com" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone *</Label>
-                <Input
-                  id="phone"
-                  value={newLead.phone}
-                  onChange={(e) => setNewLead({ ...newLead, phone: e.target.value })}
-                  placeholder="+233 24 000 0000"
-                />
+                <Input id="phone" value={newLead.phone} onChange={e => setNewLead({
+                ...newLead,
+                phone: e.target.value
+              })} placeholder="+233 24 000 0000" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="instrument">Instrument *</Label>
-                <Select value={newLead.instrument} onValueChange={(value) => setNewLead({ ...newLead, instrument: value })}>
+                <Select value={newLead.instrument} onValueChange={value => setNewLead({
+                ...newLead,
+                instrument: value
+              })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select instrument" />
                   </SelectTrigger>
@@ -537,7 +506,10 @@ export default function CRM() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="source">Source *</Label>
-                <Select value={newLead.source} onValueChange={(value) => setNewLead({ ...newLead, source: value })}>
+                <Select value={newLead.source} onValueChange={value => setNewLead({
+                ...newLead,
+                source: value
+              })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select source" />
                   </SelectTrigger>
@@ -553,7 +525,10 @@ export default function CRM() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="stage">Stage</Label>
-                <Select value={newLead.stage} onValueChange={(value) => setNewLead({ ...newLead, stage: value })}>
+                <Select value={newLead.stage} onValueChange={value => setNewLead({
+                ...newLead,
+                stage: value
+              })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -566,13 +541,10 @@ export default function CRM() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes</Label>
-                <Textarea
-                  id="notes"
-                  value={newLead.notes}
-                  onChange={(e) => setNewLead({ ...newLead, notes: e.target.value })}
-                  placeholder="Add any relevant notes..."
-                  rows={3}
-                />
+                <Textarea id="notes" value={newLead.notes} onChange={e => setNewLead({
+                ...newLead,
+                notes: e.target.value
+              })} placeholder="Add any relevant notes..." rows={3} />
               </div>
             </div>
             <div className="flex gap-3 justify-end">
@@ -592,39 +564,34 @@ export default function CRM() {
             <DialogHeader>
               <DialogTitle>Edit Lead</DialogTitle>
             </DialogHeader>
-            {editingLead && (
-              <div className="space-y-4 py-4">
+            {editingLead && <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-name">Name *</Label>
-                  <Input
-                    id="edit-name"
-                    value={editingLead.name}
-                    onChange={(e) => setEditingLead({ ...editingLead, name: e.target.value })}
-                    placeholder="Enter full name"
-                  />
+                  <Input id="edit-name" value={editingLead.name} onChange={e => setEditingLead({
+                ...editingLead,
+                name: e.target.value
+              })} placeholder="Enter full name" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-email">Email *</Label>
-                  <Input
-                    id="edit-email"
-                    type="email"
-                    value={editingLead.email}
-                    onChange={(e) => setEditingLead({ ...editingLead, email: e.target.value })}
-                    placeholder="email@example.com"
-                  />
+                  <Input id="edit-email" type="email" value={editingLead.email} onChange={e => setEditingLead({
+                ...editingLead,
+                email: e.target.value
+              })} placeholder="email@example.com" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-phone">Phone *</Label>
-                  <Input
-                    id="edit-phone"
-                    value={editingLead.phone}
-                    onChange={(e) => setEditingLead({ ...editingLead, phone: e.target.value })}
-                    placeholder="+233 24 000 0000"
-                  />
+                  <Input id="edit-phone" value={editingLead.phone} onChange={e => setEditingLead({
+                ...editingLead,
+                phone: e.target.value
+              })} placeholder="+233 24 000 0000" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-instrument">Instrument *</Label>
-                  <Select value={editingLead.instrument} onValueChange={(value) => setEditingLead({ ...editingLead, instrument: value })}>
+                  <Select value={editingLead.instrument} onValueChange={value => setEditingLead({
+                ...editingLead,
+                instrument: value
+              })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select instrument" />
                     </SelectTrigger>
@@ -640,7 +607,10 @@ export default function CRM() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-source">Source *</Label>
-                  <Select value={editingLead.source} onValueChange={(value) => setEditingLead({ ...editingLead, source: value })}>
+                  <Select value={editingLead.source} onValueChange={value => setEditingLead({
+                ...editingLead,
+                source: value
+              })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select source" />
                     </SelectTrigger>
@@ -656,7 +626,10 @@ export default function CRM() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-stage">Stage</Label>
-                  <Select value={editingLead.stage} onValueChange={(value) => setEditingLead({ ...editingLead, stage: value })}>
+                  <Select value={editingLead.stage} onValueChange={value => setEditingLead({
+                ...editingLead,
+                stage: value
+              })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -669,21 +642,17 @@ export default function CRM() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-notes">Notes</Label>
-                  <Textarea
-                    id="edit-notes"
-                    value={editingLead.notes}
-                    onChange={(e) => setEditingLead({ ...editingLead, notes: e.target.value })}
-                    placeholder="Add any relevant notes..."
-                    rows={3}
-                  />
+                  <Textarea id="edit-notes" value={editingLead.notes} onChange={e => setEditingLead({
+                ...editingLead,
+                notes: e.target.value
+              })} placeholder="Add any relevant notes..." rows={3} />
                 </div>
-              </div>
-            )}
+              </div>}
             <div className="flex gap-3 justify-end">
               <Button variant="outline" onClick={() => {
-                setEditDialogOpen(false);
-                setEditingLead(null);
-              }}>
+              setEditDialogOpen(false);
+              setEditingLead(null);
+            }}>
                 Cancel
               </Button>
               <Button onClick={handleSaveEdit}>
@@ -696,32 +665,24 @@ export default function CRM() {
         {/* Summary Cards */}
         <div className="grid gap-6 md:grid-cols-3">
           {stages.map((stage, index) => {
-            const count = getLeadsByStage(stage.id).length;
-            return (
-              <Card
-                key={stage.id}
-                className={`shadow-card border-l-4 animate-scale-in`}
-                style={{
-                  borderLeftColor: `${stage.color.replace("bg-", "var(--")}`,
-                  animationDelay: `${index * 0.1}s`,
-                }}
-              >
+          const count = getLeadsByStage(stage.id).length;
+          return <Card key={stage.id} className={`shadow-card border-l-4 animate-scale-in`} style={{
+            borderLeftColor: `${stage.color.replace("bg-", "var(--")}`,
+            animationDelay: `${index * 0.1}s`
+          }}>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">{stage.label}</p>
                       <h3 className="text-3xl font-bold text-foreground">{count}</h3>
                     </div>
-                    <div
-                      className={`h-12 w-12 rounded-full ${stage.color}/10 flex items-center justify-center`}
-                    >
+                    <div className={`h-12 w-12 rounded-full ${stage.color}/10 flex items-center justify-center`}>
                       <UserPlus className={`h-6 w-6 ${stage.color.replace("bg-", "text-")}`} />
                     </div>
                   </div>
                 </CardContent>
-              </Card>
-            );
-          })}
+              </Card>;
+        })}
         </div>
 
         {/* Search Bar */}
@@ -729,12 +690,7 @@ export default function CRM() {
           <CardContent className="p-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input
-                placeholder="Search leads by name, email, or instrument..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+              <Input placeholder="Search leads by name, email, or instrument..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
             </div>
           </CardContent>
         </Card>
@@ -742,20 +698,10 @@ export default function CRM() {
         {/* Pipeline Board */}
         <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="grid gap-6 md:grid-cols-3">
-            {stages.map((stage, stageIndex) => (
-              <DroppableStage
-                key={stage.id}
-                stage={stage}
-                leads={getLeadsByStage(stage.id)}
-                stageIndex={stageIndex}
-                onArchive={handleArchiveLead}
-                onEdit={handleOpenEditDialog}
-              />
-            ))}
+            {stages.map((stage, stageIndex) => <DroppableStage key={stage.id} stage={stage} leads={getLeadsByStage(stage.id)} stageIndex={stageIndex} onArchive={handleArchiveLead} onEdit={handleOpenEditDialog} />)}
           </div>
           <DragOverlay>
-            {activeLead ? (
-              <Card className="border-2 shadow-2xl opacity-90 cursor-grabbing">
+            {activeLead ? <Card className="border-2 shadow-2xl opacity-90 cursor-grabbing">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-2">
                     <GripVertical className="h-4 w-4 text-muted-foreground mt-1" />
@@ -768,11 +714,9 @@ export default function CRM() {
                     </div>
                   </div>
                 </CardContent>
-              </Card>
-            ) : null}
+              </Card> : null}
           </DragOverlay>
         </DndContext>
       </div>
-    </div>
-  );
+    </div>;
 }
