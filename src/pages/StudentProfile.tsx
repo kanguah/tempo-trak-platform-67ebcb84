@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Mail, Phone, Music, Calendar, DollarSign, CheckCircle, XCircle, Clock, Edit, Trash2, BookOpen } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Music, Calendar, DollarSign, CheckCircle, XCircle, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-
 const editStudentSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
@@ -36,13 +35,15 @@ const editStudentSchema = z.object({
   discount_percentage: z.number().min(0).max(100).optional(),
   discount_end_date: z.string().optional()
 });
-
 const instruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Cello", "Trumpet", "Bass"];
-
 export default function StudentProfile() {
-  const { id } = useParams();
+  const {
+    id
+  } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -50,74 +51,75 @@ export default function StudentProfile() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Fetch student data
-  const { data: student, isLoading: studentLoading } = useQuery({
+  const {
+    data: student,
+    isLoading: studentLoading
+  } = useQuery({
     queryKey: ['student', id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('students')
-        .select('*')
-        .eq('id', id)
-        .eq('user_id', user?.id)
-        .single();
-      
+      const {
+        data,
+        error
+      } = await supabase.from('students').select('*').eq('id', id).eq('user_id', user?.id).single();
       if (error) throw error;
       return data;
     },
-    enabled: !!user && !!id,
+    enabled: !!user && !!id
   });
 
   // Fetch attendance records
-  const { data: attendanceRecords = [] } = useQuery({
+  const {
+    data: attendanceRecords = []
+  } = useQuery({
     queryKey: ['attendance', id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('attendance')
-        .select('*')
-        .eq('student_id', id)
-        .eq('user_id', user?.id)
-        .order('lesson_date', { ascending: false })
-        .limit(20);
-      
+      const {
+        data,
+        error
+      } = await supabase.from('attendance').select('*').eq('student_id', id).eq('user_id', user?.id).order('lesson_date', {
+        ascending: false
+      }).limit(20);
       if (error) throw error;
       return data;
     },
-    enabled: !!user && !!id,
+    enabled: !!user && !!id
   });
 
   // Fetch payment records
-  const { data: paymentRecords = [] } = useQuery({
+  const {
+    data: paymentRecords = []
+  } = useQuery({
     queryKey: ['payments', id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('payments')
-        .select('*')
-        .eq('student_id', id)
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
-      
+      const {
+        data,
+        error
+      } = await supabase.from('payments').select('*').eq('student_id', id).eq('user_id', user?.id).order('created_at', {
+        ascending: false
+      });
       if (error) throw error;
       return data;
     },
-    enabled: !!user && !!id,
+    enabled: !!user && !!id
   });
 
   // Fetch lessons
-  const { data: lessons = [] } = useQuery({
+  const {
+    data: lessons = []
+  } = useQuery({
     queryKey: ['lessons', id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('lessons')
-        .select('*')
-        .eq('student_id', id)
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
-      
+      const {
+        data,
+        error
+      } = await supabase.from('lessons').select('*').eq('student_id', id).eq('user_id', user?.id).order('created_at', {
+        ascending: false
+      });
       if (error) throw error;
       return data;
     },
-    enabled: !!user && !!id,
+    enabled: !!user && !!id
   });
-
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -133,7 +135,6 @@ export default function StudentProfile() {
     discount_percentage: 0,
     discount_end_date: ""
   });
-
   useEffect(() => {
     if (student) {
       const hasParentInfo = !!(student.parent_name || student.parent_email || student.parent_phone);
@@ -155,47 +156,48 @@ export default function StudentProfile() {
       });
     }
   }, [student]);
-
   const updateStudentMutation = useMutation({
     mutationFn: async (updatedData: any) => {
-      const { package_type, discount_percentage, discount_end_date, date_of_birth, ...restData } = updatedData;
-      
+      const {
+        package_type,
+        discount_percentage,
+        discount_end_date,
+        date_of_birth,
+        ...restData
+      } = updatedData;
+
       // Convert empty string dates to null
       const processedDateOfBirth = date_of_birth?.trim() === "" ? null : date_of_birth;
       const processedDiscountEndDate = discount_end_date?.trim() === "" ? null : discount_end_date;
-      
+
       // Calculate monthly fee and final fee based on package
       let monthly_fee = 0;
-      if (package_type === "1x Weekly") monthly_fee = 300;
-      else if (package_type === "2x Weekly") monthly_fee = 500;
-      else if (package_type === "3x Weekly") monthly_fee = 800;
-      
-      const discount_amount = discount_percentage ? (monthly_fee * discount_percentage / 100) : 0;
+      if (package_type === "1x Weekly") monthly_fee = 300;else if (package_type === "2x Weekly") monthly_fee = 500;else if (package_type === "3x Weekly") monthly_fee = 800;
+      const discount_amount = discount_percentage ? monthly_fee * discount_percentage / 100 : 0;
       const final_monthly_fee = monthly_fee - discount_amount;
-      
-      const { data, error } = await supabase
-        .from('students')
-        .update({
-          ...restData,
-          date_of_birth: processedDateOfBirth,
-          package_type: package_type || null,
-          monthly_fee: monthly_fee || null,
-          discount_percentage: discount_percentage || 0,
-          discount_end_date: processedDiscountEndDate,
-          final_monthly_fee: final_monthly_fee || null,
-          payment_status: package_type ? 'pending' : null
-        })
-        .eq('id', id)
-        .eq('user_id', user?.id)
-        .select()
-        .single();
-      
+      const {
+        data,
+        error
+      } = await supabase.from('students').update({
+        ...restData,
+        date_of_birth: processedDateOfBirth,
+        package_type: package_type || null,
+        monthly_fee: monthly_fee || null,
+        discount_percentage: discount_percentage || 0,
+        discount_end_date: processedDiscountEndDate,
+        final_monthly_fee: final_monthly_fee || null,
+        payment_status: package_type ? 'pending' : null
+      }).eq('id', id).eq('user_id', user?.id).select().single();
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['student', id] });
-      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({
+        queryKey: ['student', id]
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['students']
+      });
       setDialogOpen(false);
       setErrors({});
       toast.success("Student profile updated successfully!");
@@ -204,19 +206,17 @@ export default function StudentProfile() {
       toast.error(error.message || "Failed to update student");
     }
   });
-
   const deleteStudentMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from('students')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user?.id);
-      
+      const {
+        error
+      } = await supabase.from('students').delete().eq('id', id).eq('user_id', user?.id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({
+        queryKey: ['students']
+      });
       toast.success("Student deleted successfully!");
       navigate('/students');
     },
@@ -224,7 +224,6 @@ export default function StudentProfile() {
       toast.error(error.message || "Failed to delete student");
     }
   });
-
   const handleUpdateStudent = () => {
     try {
       const dataToValidate = {
@@ -247,11 +246,9 @@ export default function StudentProfile() {
       }
     }
   };
-
   const handleDelete = () => {
     deleteStudentMutation.mutate();
   };
-
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case "present":
@@ -268,7 +265,6 @@ export default function StudentProfile() {
         return "bg-muted text-muted-foreground";
     }
   };
-
   const getLevelColor = (level: string) => {
     switch (level) {
       case "Advanced":
@@ -281,40 +277,28 @@ export default function StudentProfile() {
         return "bg-muted text-muted-foreground";
     }
   };
-
   const calculateAttendanceRate = () => {
     if (attendanceRecords.length === 0) return 0;
     const present = attendanceRecords.filter(r => r.status === 'present').length;
-    return Math.round((present / attendanceRecords.length) * 100);
+    return Math.round(present / attendanceRecords.length * 100);
   };
-
   const calculateTotalPaid = () => {
-    return paymentRecords
-      .filter(p => p.status === 'completed')
-      .reduce((sum, p) => sum + Number(p.amount), 0);
+    return paymentRecords.filter(p => p.status === 'completed').reduce((sum, p) => sum + Number(p.amount), 0);
   };
-
   const calculateOutstanding = () => {
-    return paymentRecords
-      .filter(p => p.status === 'pending')
-      .reduce((sum, p) => sum + Number(p.amount), 0);
+    return paymentRecords.filter(p => p.status === 'pending').reduce((sum, p) => sum + Number(p.amount), 0);
   };
-
   if (studentLoading) {
-    return (
-      <div className="min-h-screen bg-background p-4 md:p-8">
+    return <div className="min-h-screen bg-background p-4 md:p-8">
         <div className="space-y-6">
           <Skeleton className="h-12 w-64" />
           <Skeleton className="h-64 w-full" />
           <Skeleton className="h-96 w-full" />
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (!student) {
-    return (
-      <div className="min-h-screen bg-background p-4 md:p-8">
+    return <div className="min-h-screen bg-background p-4 md:p-8">
         <Card>
           <CardContent className="p-12 text-center">
             <p className="text-muted-foreground mb-4">Student not found</p>
@@ -323,16 +307,12 @@ export default function StudentProfile() {
             </Button>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
-
   const getInitials = (name: string) => {
     return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
   };
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       <div className="p-4 md:p-8 space-y-6 md:space-y-8 animate-fade-in">
         {/* Header */}
         <div className="flex items-center gap-4">
@@ -412,25 +392,21 @@ export default function StudentProfile() {
                     </div>
                   </div>
 
-                  {student.package_type && (
-                    <div className="flex items-center gap-3">
+                  {student.package_type && <div className="flex items-center gap-3">
                       <DollarSign className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="text-sm text-muted-foreground">Package</p>
                         <p className="text-sm font-medium">{student.package_type}</p>
                       </div>
-                    </div>
-                  )}
+                    </div>}
 
-                  {student.final_monthly_fee && (
-                    <div className="flex items-center gap-3">
+                  {student.final_monthly_fee && <div className="flex items-center gap-3">
                       <DollarSign className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="text-sm text-muted-foreground">Monthly Fee</p>
                         <p className="text-sm font-medium">GH₵ {Number(student.final_monthly_fee).toFixed(2)}</p>
                       </div>
-                    </div>
-                  )}
+                    </div>}
                 </div>
               </div>
             </div>
@@ -467,18 +443,14 @@ export default function StudentProfile() {
                     <p className="text-sm text-muted-foreground">Name</p>
                     <p className="text-sm font-medium">{student.parent_name || "Not provided"}</p>
                   </div>
-                  {student.parent_email && (
-                    <div>
+                  {student.parent_email && <div>
                       <p className="text-sm text-muted-foreground">Email</p>
                       <p className="text-sm font-medium">{student.parent_email}</p>
-                    </div>
-                  )}
-                  {student.parent_phone && (
-                    <div>
+                    </div>}
+                  {student.parent_phone && <div>
                       <p className="text-sm text-muted-foreground">Phone</p>
                       <p className="text-sm font-medium">{student.parent_phone}</p>
-                    </div>
-                  )}
+                    </div>}
                 </div>
               </div>
             </div>
@@ -492,7 +464,7 @@ export default function StudentProfile() {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Attendance Rate
               </CardTitle>
-              <CheckCircle className="h-5 w-5 text-green-600" />
+              
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{calculateAttendanceRate()}%</div>
@@ -507,7 +479,7 @@ export default function StudentProfile() {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Total Paid
               </CardTitle>
-              <DollarSign className="h-5 w-5 text-green-600" />
+              
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">GH₵ {calculateTotalPaid().toFixed(2)}</div>
@@ -522,7 +494,7 @@ export default function StudentProfile() {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Outstanding
               </CardTitle>
-              <Clock className="h-5 w-5 text-orange-600" />
+              
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">GH₵ {calculateOutstanding().toFixed(2)}</div>
@@ -546,15 +518,12 @@ export default function StudentProfile() {
             <Card className="shadow-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5" />
+                  
                   Scheduled Lessons
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {lessons.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">No lessons scheduled</p>
-                ) : (
-                  <Table>
+                {lessons.length === 0 ? <p className="text-center text-muted-foreground py-8">No lessons scheduled</p> : <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Day</TableHead>
@@ -565,8 +534,7 @@ export default function StudentProfile() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {lessons.map((lesson) => (
-                        <TableRow key={lesson.id}>
+                      {lessons.map(lesson => <TableRow key={lesson.id}>
                           <TableCell>
                             {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][lesson.day_of_week]}
                           </TableCell>
@@ -578,11 +546,9 @@ export default function StudentProfile() {
                               {lesson.status}
                             </Badge>
                           </TableCell>
-                        </TableRow>
-                      ))}
+                        </TableRow>)}
                     </TableBody>
-                  </Table>
-                )}
+                  </Table>}
               </CardContent>
             </Card>
           </TabsContent>
@@ -597,10 +563,7 @@ export default function StudentProfile() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {attendanceRecords.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">No attendance records</p>
-                ) : (
-                  <Table>
+                {attendanceRecords.length === 0 ? <p className="text-center text-muted-foreground py-8">No attendance records</p> : <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Date</TableHead>
@@ -611,8 +574,7 @@ export default function StudentProfile() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {attendanceRecords.map((record) => (
-                        <TableRow key={record.id}>
+                      {attendanceRecords.map(record => <TableRow key={record.id}>
                           <TableCell>
                             {format(new Date(record.lesson_date), 'MMM dd, yyyy')}
                           </TableCell>
@@ -620,22 +582,16 @@ export default function StudentProfile() {
                           <TableCell>{record.subject}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className={getStatusColor(record.status)}>
-                              {record.status === 'present' ? (
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                              ) : (
-                                <XCircle className="h-3 w-3 mr-1" />
-                              )}
+                              {record.status === 'present' ? <CheckCircle className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
                               {record.status}
                             </Badge>
                           </TableCell>
                           <TableCell className="max-w-xs truncate">
                             {record.feedback || "No feedback"}
                           </TableCell>
-                        </TableRow>
-                      ))}
+                        </TableRow>)}
                     </TableBody>
-                  </Table>
-                )}
+                  </Table>}
               </CardContent>
             </Card>
           </TabsContent>
@@ -650,10 +606,7 @@ export default function StudentProfile() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {paymentRecords.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">No payment records</p>
-                ) : (
-                  <Table>
+                {paymentRecords.length === 0 ? <p className="text-center text-muted-foreground py-8">No payment records</p> : <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Date</TableHead>
@@ -664,8 +617,7 @@ export default function StudentProfile() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paymentRecords.map((payment) => (
-                        <TableRow key={payment.id}>
+                      {paymentRecords.map(payment => <TableRow key={payment.id}>
                           <TableCell>
                             {format(new Date(payment.created_at), 'MMM dd, yyyy')}
                           </TableCell>
@@ -681,11 +633,9 @@ export default function StudentProfile() {
                               {payment.status}
                             </Badge>
                           </TableCell>
-                        </TableRow>
-                      ))}
+                        </TableRow>)}
                     </TableBody>
-                  </Table>
-                )}
+                  </Table>}
               </CardContent>
             </Card>
           </TabsContent>
@@ -701,41 +651,37 @@ export default function StudentProfile() {
           <div className="space-y-4 py-4 overflow-y-auto max-h-[calc(90vh-120px)] pr-2">
             <div className="space-y-2">
               <Label htmlFor="edit-name">Full Name</Label>
-              <Input
-                id="edit-name"
-                placeholder="Enter student's full name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
+              <Input id="edit-name" placeholder="Enter student's full name" value={formData.name} onChange={e => setFormData({
+              ...formData,
+              name: e.target.value
+            })} />
               {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="edit-email">Email</Label>
-              <Input
-                id="edit-email"
-                type="email"
-                placeholder="student@email.com"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
+              <Input id="edit-email" type="email" placeholder="student@email.com" value={formData.email} onChange={e => setFormData({
+              ...formData,
+              email: e.target.value
+            })} />
               {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="edit-phone">Phone</Label>
-              <Input
-                id="edit-phone"
-                placeholder="+233 24 123 4567"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              />
+              <Input id="edit-phone" placeholder="+233 24 123 4567" value={formData.phone} onChange={e => setFormData({
+              ...formData,
+              phone: e.target.value
+            })} />
               {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="edit-grade">Grade</Label>
-              <Select value={formData.grade} onValueChange={(value) => setFormData({ ...formData, grade: value })}>
+              <Select value={formData.grade} onValueChange={value => setFormData({
+              ...formData,
+              grade: value
+            })}>
                 <SelectTrigger id="edit-grade">
                   <SelectValue placeholder="Select grade" />
                 </SelectTrigger>
@@ -750,7 +696,10 @@ export default function StudentProfile() {
 
             <div className="space-y-2">
               <Label htmlFor="edit-status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+              <Select value={formData.status} onValueChange={value => setFormData({
+              ...formData,
+              status: value
+            })}>
                 <SelectTrigger id="edit-status">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -764,23 +713,19 @@ export default function StudentProfile() {
 
             <div className="space-y-2">
               <Label htmlFor="edit-dob">Date of Birth</Label>
-              <Input
-                id="edit-dob"
-                type="date"
-                value={formData.date_of_birth}
-                onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-              />
+              <Input id="edit-dob" type="date" value={formData.date_of_birth} onChange={e => setFormData({
+              ...formData,
+              date_of_birth: e.target.value
+            })} />
               {errors.date_of_birth && <p className="text-sm text-destructive">{errors.date_of_birth}</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="edit-address">Address</Label>
-              <Input
-                id="edit-address"
-                placeholder="123 Music Street, Accra"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              />
+              <Input id="edit-address" placeholder="123 Music Street, Accra" value={formData.address} onChange={e => setFormData({
+              ...formData,
+              address: e.target.value
+            })} />
               {errors.address && <p className="text-sm text-destructive">{errors.address}</p>}
             </div>
 
@@ -789,10 +734,10 @@ export default function StudentProfile() {
               
               <div className="space-y-2">
                 <Label htmlFor="edit-package">Package Type</Label>
-                <Select 
-                  value={formData.package_type || "none"} 
-                  onValueChange={(value) => setFormData({ ...formData, package_type: value === "none" ? "" : value })}
-                >
+                <Select value={formData.package_type || "none"} onValueChange={value => setFormData({
+                ...formData,
+                package_type: value === "none" ? "" : value
+              })}>
                   <SelectTrigger id="edit-package">
                     <SelectValue placeholder="Select package" />
                   </SelectTrigger>
@@ -806,71 +751,46 @@ export default function StudentProfile() {
                 {errors.package_type && <p className="text-sm text-destructive">{errors.package_type}</p>}
               </div>
 
-              {formData.package_type && (
-                <div className="space-y-4 animate-fade-in">
+              {formData.package_type && <div className="space-y-4 animate-fade-in">
                   <div className="space-y-2">
                     <Label htmlFor="edit-discount">Discount Percentage (%)</Label>
-                    <Input
-                      id="edit-discount"
-                      type="number"
-                      min="0"
-                      max="100"
-                      placeholder="0"
-                      value={formData.discount_percentage}
-                      onChange={(e) => setFormData({ ...formData, discount_percentage: parseFloat(e.target.value) || 0 })}
-                    />
+                    <Input id="edit-discount" type="number" min="0" max="100" placeholder="0" value={formData.discount_percentage} onChange={e => setFormData({
+                  ...formData,
+                  discount_percentage: parseFloat(e.target.value) || 0
+                })} />
                     {errors.discount_percentage && <p className="text-sm text-destructive">{errors.discount_percentage}</p>}
                   </div>
 
-                  {formData.discount_percentage > 0 && (
-                    <div className="space-y-2">
+                  {formData.discount_percentage > 0 && <div className="space-y-2">
                       <Label htmlFor="edit-discount-end">Discount End Date</Label>
-                      <Input
-                        id="edit-discount-end"
-                        type="date"
-                        value={formData.discount_end_date}
-                        onChange={(e) => setFormData({ ...formData, discount_end_date: e.target.value })}
-                      />
+                      <Input id="edit-discount-end" type="date" value={formData.discount_end_date} onChange={e => setFormData({
+                  ...formData,
+                  discount_end_date: e.target.value
+                })} />
                       {errors.discount_end_date && <p className="text-sm text-destructive">{errors.discount_end_date}</p>}
-                    </div>
-                  )}
+                    </div>}
 
                   <div className="p-3 bg-muted rounded-lg">
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-muted-foreground">Base Monthly Fee:</span>
                       <span className="font-medium">
-                        GH₵ {formData.package_type === "1x Weekly" ? 300 : 
-                              formData.package_type === "2x Weekly" ? 500 :
-                              formData.package_type === "3x Weekly" ? 800 : 0}
+                        GH₵ {formData.package_type === "1x Weekly" ? 300 : formData.package_type === "2x Weekly" ? 500 : formData.package_type === "3x Weekly" ? 800 : 0}
                       </span>
                     </div>
-                    {formData.discount_percentage > 0 && (
-                      <div className="flex justify-between items-center text-sm mt-2">
+                    {formData.discount_percentage > 0 && <div className="flex justify-between items-center text-sm mt-2">
                         <span className="text-muted-foreground">Discount ({formData.discount_percentage}%):</span>
                         <span className="font-medium text-green-600">
-                          - GH₵ {(
-                            (formData.package_type === "1x Weekly" ? 300 : 
-                             formData.package_type === "2x Weekly" ? 500 :
-                             formData.package_type === "3x Weekly" ? 800 : 0) * 
-                            formData.discount_percentage / 100
-                          ).toFixed(2)}
+                          - GH₵ {((formData.package_type === "1x Weekly" ? 300 : formData.package_type === "2x Weekly" ? 500 : formData.package_type === "3x Weekly" ? 800 : 0) * formData.discount_percentage / 100).toFixed(2)}
                         </span>
-                      </div>
-                    )}
+                      </div>}
                     <div className="flex justify-between items-center text-base font-bold mt-2 pt-2 border-t">
                       <span>Final Monthly Fee:</span>
                       <span className="text-primary">
-                        GH₵ {(
-                          (formData.package_type === "1x Weekly" ? 300 : 
-                           formData.package_type === "2x Weekly" ? 500 :
-                           formData.package_type === "3x Weekly" ? 800 : 0) * 
-                          (100 - formData.discount_percentage) / 100
-                        ).toFixed(2)}
+                        GH₵ {((formData.package_type === "1x Weekly" ? 300 : formData.package_type === "2x Weekly" ? 500 : formData.package_type === "3x Weekly" ? 800 : 0) * (100 - formData.discount_percentage) / 100).toFixed(2)}
                       </span>
                     </div>
                   </div>
-                </div>
-              )}
+                </div>}
             </div>
 
             <div className="border-t pt-4 space-y-4">
@@ -879,60 +799,44 @@ export default function StudentProfile() {
                   <h3 className="text-sm font-semibold">Parent/Guardian Information</h3>
                   <p className="text-xs text-muted-foreground">Add parent or guardian contact details</p>
                 </div>
-                <Switch
-                  checked={hasParent}
-                  onCheckedChange={setHasParent}
-                />
+                <Switch checked={hasParent} onCheckedChange={setHasParent} />
               </div>
               
-              {hasParent && (
-                <div className="space-y-4 animate-fade-in">
+              {hasParent && <div className="space-y-4 animate-fade-in">
                   <div className="space-y-2">
                     <Label htmlFor="edit-parent-name">Parent/Guardian Name</Label>
-                    <Input
-                      id="edit-parent-name"
-                      placeholder="Jennifer Johnson"
-                      value={formData.parent_name}
-                      onChange={(e) => setFormData({ ...formData, parent_name: e.target.value })}
-                    />
+                    <Input id="edit-parent-name" placeholder="Jennifer Johnson" value={formData.parent_name} onChange={e => setFormData({
+                  ...formData,
+                  parent_name: e.target.value
+                })} />
                     {errors.parent_name && <p className="text-sm text-destructive">{errors.parent_name}</p>}
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="edit-parent-email">Parent/Guardian Email</Label>
-                    <Input
-                      id="edit-parent-email"
-                      type="email"
-                      placeholder="parent@email.com"
-                      value={formData.parent_email}
-                      onChange={(e) => setFormData({ ...formData, parent_email: e.target.value })}
-                    />
+                    <Input id="edit-parent-email" type="email" placeholder="parent@email.com" value={formData.parent_email} onChange={e => setFormData({
+                  ...formData,
+                  parent_email: e.target.value
+                })} />
                     {errors.parent_email && <p className="text-sm text-destructive">{errors.parent_email}</p>}
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="edit-parent-phone">Parent/Guardian Phone</Label>
-                    <Input
-                      id="edit-parent-phone"
-                      placeholder="+233 24 123 4560"
-                      value={formData.parent_phone}
-                      onChange={(e) => setFormData({ ...formData, parent_phone: e.target.value })}
-                    />
+                    <Input id="edit-parent-phone" placeholder="+233 24 123 4560" value={formData.parent_phone} onChange={e => setFormData({
+                  ...formData,
+                  parent_phone: e.target.value
+                })} />
                     {errors.parent_phone && <p className="text-sm text-destructive">{errors.parent_phone}</p>}
                   </div>
-                </div>
-              )}
+                </div>}
             </div>
 
             <div className="flex gap-3 pt-4">
               <Button variant="outline" className="flex-1" onClick={() => setDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button
-                className="flex-1 gradient-primary text-primary-foreground"
-                onClick={handleUpdateStudent}
-                disabled={updateStudentMutation.isPending}
-              >
+              <Button className="flex-1 gradient-primary text-primary-foreground" onClick={handleUpdateStudent} disabled={updateStudentMutation.isPending}>
                 {updateStudentMutation.isPending ? "Updating..." : "Update Student"}
               </Button>
             </div>
@@ -951,15 +855,11 @@ export default function StudentProfile() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  );
+    </div>;
 }
