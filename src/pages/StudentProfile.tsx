@@ -790,14 +790,14 @@ export default function StudentProfile() {
               <div className="space-y-2">
                 <Label htmlFor="edit-package">Package Type</Label>
                 <Select 
-                  value={formData.package_type} 
-                  onValueChange={(value) => setFormData({ ...formData, package_type: value })}
+                  value={formData.package_type || "none"} 
+                  onValueChange={(value) => setFormData({ ...formData, package_type: value === "none" ? "" : value })}
                 >
                   <SelectTrigger id="edit-package">
                     <SelectValue placeholder="Select package" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No Package</SelectItem>
+                    <SelectItem value="none">No Package</SelectItem>
                     <SelectItem value="1x Weekly">1x Weekly - GH₵ 300/month</SelectItem>
                     <SelectItem value="2x Weekly">2x Weekly - GH₵ 500/month</SelectItem>
                     <SelectItem value="3x Weekly">3x Weekly - GH₵ 800/month</SelectItem>
