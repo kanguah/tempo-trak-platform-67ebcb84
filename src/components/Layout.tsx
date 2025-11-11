@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { useLocation } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +12,7 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const { signOut, user } = useAuth();
+  const location = useLocation();
 
   return (
     <SidebarProvider>
@@ -24,7 +26,11 @@ export function Layout({ children }: LayoutProps) {
               Sign Out
             </Button>
           </header>
-          <main className="flex-1 overflow-auto p-6">{children}</main>
+          <main className="flex-1 overflow-auto p-6">
+            <div key={location.pathname} className="animate-fade-in">
+              {children}
+            </div>
+          </main>
         </div>
       </div>
     </SidebarProvider>
