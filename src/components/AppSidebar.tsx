@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { LayoutDashboard, Users, UserCheck, Calendar, ClipboardCheck, CreditCard, Megaphone, MessageSquare, TrendingUp, FileText, Bell, Settings, Music, Archive } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter } from "@/components/ui/sidebar";
@@ -56,27 +57,36 @@ const settingsItems = [{
   icon: Settings
 }];
 export function AppSidebar() {
-  return <Sidebar className="border-r border-sidebar-border">
-      <SidebarHeader className="border-b border-sidebar-border p-6">
+  const [isHovered, setIsHovered] = useState(false);
+  
+  return <div 
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="relative"
+    >
+      <Sidebar className={`border-r border-sidebar-border transition-all duration-300 ${isHovered ? 'w-64' : 'w-16'}`}>
+      <SidebarHeader className={`border-b border-sidebar-border transition-all duration-300 ${isHovered ? 'p-6' : 'p-3'}`}>
         <div className="flex items-center gap-3">
-          
-          <div>
-            <h2 className="text-lg font-bold text-sidebar-foreground">49ice Academy</h2>
-            <p className="text-xs text-sidebar-foreground/70">Music Management</p>
+          <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-accent ${isHovered ? '' : 'mx-auto'}`}>
+            <Music className="h-4 w-4 text-accent-foreground" />
           </div>
+          {isHovered && <div>
+            <h2 className="text-lg font-bold text-sidebar-foreground whitespace-nowrap">49ice Academy</h2>
+            <p className="text-xs text-sidebar-foreground/70 whitespace-nowrap">Music Management</p>
+          </div>}
         </div>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/60">Main Menu</SidebarGroupLabel>
+          {isHovered && <SidebarGroupLabel className="text-sidebar-foreground/60">Main Menu</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
               {directorItems.map(item => <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink to={item.url} end={item.url === "/"} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" activeClassName="bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-sm">
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
+                    <NavLink to={item.url} end={item.url === "/"} className={`flex items-center rounded-lg transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${isHovered ? 'gap-3 px-3 py-2' : 'justify-center p-3'}`} activeClassName="bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-sm">
+                      <item.icon className="h-5 w-5 flex-shrink-0" />
+                      {isHovered && <span className="whitespace-nowrap">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>)}
@@ -85,14 +95,14 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/60">System</SidebarGroupLabel>
+          {isHovered && <SidebarGroupLabel className="text-sidebar-foreground/60">System</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
               {settingsItems.map(item => <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink to={item.url} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" activeClassName="bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-sm">
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
+                    <NavLink to={item.url} className={`flex items-center rounded-lg transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${isHovered ? 'gap-3 px-3 py-2' : 'justify-center p-3'}`} activeClassName="bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-sm">
+                      <item.icon className="h-5 w-5 flex-shrink-0" />
+                      {isHovered && <span className="whitespace-nowrap">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>)}
@@ -101,16 +111,17 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-4">
+      <SidebarFooter className={`border-t border-sidebar-border transition-all duration-300 ${isHovered ? 'p-4' : 'p-2'}`}>
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent">
+          <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-accent flex-shrink-0 ${isHovered ? '' : 'mx-auto'}`}>
             <span className="text-xs font-bold text-accent-foreground">DA</span>
           </div>
-          <div className="flex-1 overflow-hidden">
+          {isHovered && <div className="flex-1 overflow-hidden">
             <p className="truncate text-sm font-medium text-sidebar-foreground">Director Admin</p>
             <p className="truncate text-xs text-sidebar-foreground/60">director@49ice.com</p>
-          </div>
+          </div>}
         </div>
       </SidebarFooter>
-    </Sidebar>;
+    </Sidebar>
+    </div>;
 }
