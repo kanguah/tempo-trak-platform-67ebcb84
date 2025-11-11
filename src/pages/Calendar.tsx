@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { format, addDays, startOfWeek, isSameDay, parseISO } from "date-fns";
@@ -245,7 +246,12 @@ export default function Calendar() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Schedule</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-foreground">Schedule</h1>
+              <Badge variant="default" className="text-sm px-3 py-1">
+                {lessonsByDate[selectedDateKey]?.length || 0} lessons on {format(selectedDate, "MMM d")}
+              </Badge>
+            </div>
             <p className="text-sm text-muted-foreground mt-1">Manage your lessons and appointments</p>
           </div>
           <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
