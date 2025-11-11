@@ -31,7 +31,10 @@ const editStudentSchema = z.object({
   parent_name: z.string().trim().max(100, "Parent name must be less than 100 characters").optional().or(z.literal("")),
   parent_email: z.string().trim().email("Invalid parent email").max(255, "Parent email must be less than 255 characters").optional().or(z.literal("")),
   parent_phone: z.string().trim().max(20, "Parent phone must be less than 20 characters").optional().or(z.literal("")),
-  address: z.string().trim().max(200, "Address must be less than 200 characters").optional().or(z.literal(""))
+  address: z.string().trim().max(200, "Address must be less than 200 characters").optional().or(z.literal("")),
+  package_type: z.string().optional(),
+  discount_percentage: z.number().min(0).max(100).optional(),
+  discount_end_date: z.string().optional()
 });
 
 const instruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Cello", "Trumpet", "Bass"];
@@ -125,7 +128,10 @@ export default function StudentProfile() {
     parent_name: "",
     parent_email: "",
     parent_phone: "",
-    address: ""
+    address: "",
+    package_type: "",
+    discount_percentage: 0,
+    discount_end_date: ""
   });
 
   useEffect(() => {
@@ -142,16 +148,43 @@ export default function StudentProfile() {
         parent_name: student.parent_name || "",
         parent_email: student.parent_email || "",
         parent_phone: student.parent_phone || "",
-        address: student.address || ""
+        address: student.address || "",
+        package_type: student.package_type || "",
+        discount_percentage: student.discount_percentage || 0,
+        discount_end_date: student.discount_end_date || ""
       });
     }
   }, [student]);
 
   const updateStudentMutation = useMutation({
     mutationFn: async (updatedData: any) => {
+      const { package_type, discount_percentage, discount_end_date, date_of_birth, ...restData } = updatedData;
+      
+      // Convert empty string dates to null
+      const processedDateOfBirth = date_of_birth?.trim() === "" ? null : date_of_birth;
+      const processedDiscountEndDate = discount_end_date?.trim() === "" ? null : discount_end_date;
+      
+      // Calculate monthly fee and final fee based on package
+      let monthly_fee = 0;
+      if (package_type === "1x Weekly") monthly_fee = 300;
+      else if (package_type === "2x Weekly") monthly_fee = 500;
+      else if (package_type === "3x Weekly") monthly_fee = 800;
+      
+      const discount_amount = discount_percentage ? (monthly_fee * discount_percentage / 100) : 0;
+      const final_monthly_fee = monthly_fee - discount_amount;
+      
       const { data, error } = await supabase
         .from('students')
-        .update(updatedData)
+        .update({
+          ...restData,
+          date_of_birth: processedDateOfBirth,
+          package_type: package_type || null,
+          monthly_fee: monthly_fee || null,
+          discount_percentage: discount_percentage || 0,
+          discount_end_date: processedDiscountEndDate,
+          final_monthly_fee: final_monthly_fee || null,
+          payment_status: package_type ? 'pending' : null
+        })
         .eq('id', id)
         .eq('user_id', user?.id)
         .select()
@@ -378,6 +411,26 @@ export default function StudentProfile() {
                       </p>
                     </div>
                   </div>
+
+                  {student.package_type && (
+                    <div className="flex items-center gap-3">
+                      <DollarSign className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Package</p>
+                        <p className="text-sm font-medium">{student.package_type}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {student.final_monthly_fee && (
+                    <div className="flex items-center gap-3">
+                      <DollarSign className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Monthly Fee</p>
+                        <p className="text-sm font-medium">GH₵ {Number(student.final_monthly_fee).toFixed(2)}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -729,6 +782,95 @@ export default function StudentProfile() {
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               />
               {errors.address && <p className="text-sm text-destructive">{errors.address}</p>}
+            </div>
+
+            <div className="border-t pt-4 space-y-4">
+              <h3 className="text-sm font-semibold">Package & Payment Information</h3>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-package">Package Type</Label>
+                <Select 
+                  value={formData.package_type} 
+                  onValueChange={(value) => setFormData({ ...formData, package_type: value })}
+                >
+                  <SelectTrigger id="edit-package">
+                    <SelectValue placeholder="Select package" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No Package</SelectItem>
+                    <SelectItem value="1x Weekly">1x Weekly - GH₵ 300/month</SelectItem>
+                    <SelectItem value="2x Weekly">2x Weekly - GH₵ 500/month</SelectItem>
+                    <SelectItem value="3x Weekly">3x Weekly - GH₵ 800/month</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.package_type && <p className="text-sm text-destructive">{errors.package_type}</p>}
+              </div>
+
+              {formData.package_type && (
+                <div className="space-y-4 animate-fade-in">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-discount">Discount Percentage (%)</Label>
+                    <Input
+                      id="edit-discount"
+                      type="number"
+                      min="0"
+                      max="100"
+                      placeholder="0"
+                      value={formData.discount_percentage}
+                      onChange={(e) => setFormData({ ...formData, discount_percentage: parseFloat(e.target.value) || 0 })}
+                    />
+                    {errors.discount_percentage && <p className="text-sm text-destructive">{errors.discount_percentage}</p>}
+                  </div>
+
+                  {formData.discount_percentage > 0 && (
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-discount-end">Discount End Date</Label>
+                      <Input
+                        id="edit-discount-end"
+                        type="date"
+                        value={formData.discount_end_date}
+                        onChange={(e) => setFormData({ ...formData, discount_end_date: e.target.value })}
+                      />
+                      {errors.discount_end_date && <p className="text-sm text-destructive">{errors.discount_end_date}</p>}
+                    </div>
+                  )}
+
+                  <div className="p-3 bg-muted rounded-lg">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">Base Monthly Fee:</span>
+                      <span className="font-medium">
+                        GH₵ {formData.package_type === "1x Weekly" ? 300 : 
+                              formData.package_type === "2x Weekly" ? 500 :
+                              formData.package_type === "3x Weekly" ? 800 : 0}
+                      </span>
+                    </div>
+                    {formData.discount_percentage > 0 && (
+                      <div className="flex justify-between items-center text-sm mt-2">
+                        <span className="text-muted-foreground">Discount ({formData.discount_percentage}%):</span>
+                        <span className="font-medium text-green-600">
+                          - GH₵ {(
+                            (formData.package_type === "1x Weekly" ? 300 : 
+                             formData.package_type === "2x Weekly" ? 500 :
+                             formData.package_type === "3x Weekly" ? 800 : 0) * 
+                            formData.discount_percentage / 100
+                          ).toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center text-base font-bold mt-2 pt-2 border-t">
+                      <span>Final Monthly Fee:</span>
+                      <span className="text-primary">
+                        GH₵ {(
+                          (formData.package_type === "1x Weekly" ? 300 : 
+                           formData.package_type === "2x Weekly" ? 500 :
+                           formData.package_type === "3x Weekly" ? 800 : 0) * 
+                          (100 - formData.discount_percentage) / 100
+                        ).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="border-t pt-4 space-y-4">
