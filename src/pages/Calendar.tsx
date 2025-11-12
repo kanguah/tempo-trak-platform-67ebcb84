@@ -118,8 +118,12 @@ export default function Calendar() {
     data: lessonsData = [],
     isLoading
   } = useQuery({
-    queryKey: ["lessons", user?.id],
+    queryKey: ["lessons", user?.id, selectedDate.getMonth(), selectedDate.getFullYear()],
     queryFn: async () => {
+      // Get first and last day of the current month
+      const firstDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+      const lastDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
+      
       const {
         data,
         error
@@ -127,7 +131,10 @@ export default function Calendar() {
           *,
           students (name, subjects),
           tutors (name)
-        `).eq("user_id", user?.id).eq("status", "scheduled");
+        `).eq("user_id", user?.id)
+        .eq("status", "scheduled")
+        .gte("lesson_date", firstDay.toISOString().split('T')[0])
+        .lte("lesson_date", lastDay.toISOString().split('T')[0]);
       if (error) throw error;
       return data || [];
     },

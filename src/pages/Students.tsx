@@ -57,6 +57,7 @@ const studentSchema = z.object({
     .or(z.literal("")),
   parent_phone: z.string().trim().max(20, "Parent phone must be less than 20 characters").optional().or(z.literal("")),
   address: z.string().trim().max(200, "Address must be less than 200 characters").optional().or(z.literal("")),
+  schedule: z.array(z.object({ day: z.number(), time: z.string() })).optional(),
 });
 const instruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Cello", "Trumpet", "Bass"];
 type SortField = "name" | "grade" | "created_at";
@@ -79,6 +80,7 @@ export default function Students() {
     parent_email: "",
     parent_phone: "",
     address: "",
+    schedule: [] as { day: number; time: string }[],
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [currentPage, setCurrentPage] = useState(1);
@@ -105,7 +107,7 @@ export default function Students() {
   });
   const addStudentMutation = useMutation({
     mutationFn: async (newStudent: any) => {
-      const { instrument, package_type, discount_percentage, discount_end_date, date_of_birth, ...studentData } = newStudent;
+      const { instrument, package_type, discount_percentage, discount_end_date, date_of_birth, schedule, ...studentData } = newStudent;
       
       // Convert empty string dates to null
       const processedDateOfBirth = date_of_birth?.trim() === "" ? null : date_of_birth;
@@ -134,6 +136,7 @@ export default function Students() {
             discount_end_date: processedDiscountEndDate,
             final_monthly_fee: final_monthly_fee || null,
             payment_status: package_type ? 'pending' : null,
+            schedule: schedule || [],
           },
         ])
         .select()
@@ -162,6 +165,42 @@ export default function Students() {
         
         if (paymentError) console.error('Error creating payment:', paymentError);
       }
+
+      // Create lesson records if schedule is provided
+      if (schedule && schedule.length > 0) {
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+        const currentMonth = currentDate.getMonth();
+        
+        const lessonsToCreate = [];
+        
+        // Create lessons for the current month
+        for (const scheduleItem of schedule) {
+          const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+          const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+          
+          // Find all occurrences of this day in the current month
+          for (let date = new Date(firstDayOfMonth); date <= lastDayOfMonth; date.setDate(date.getDate() + 1)) {
+            if (date.getDay() === scheduleItem.day) {
+              lessonsToCreate.push({
+                user_id: data.user_id,
+                student_id: data.id,
+                subject: instrument,
+                day_of_week: scheduleItem.day,
+                start_time: scheduleItem.time,
+                lesson_date: date.toISOString().split('T')[0],
+                status: 'scheduled',
+                duration: 60,
+              });
+            }
+          }
+        }
+        
+        if (lessonsToCreate.length > 0) {
+          const { error: lessonsError } = await supabase.from('lessons').insert(lessonsToCreate);
+          if (lessonsError) console.error('Error creating lessons:', lessonsError);
+        }
+      }
       
       return data;
     },
@@ -182,6 +221,7 @@ export default function Students() {
         parent_email: "",
         parent_phone: "",
         address: "",
+        schedule: [],
       });
       setErrors({});
       toast.success("Student added successfully!");
@@ -515,6 +555,52 @@ export default function Students() {
                               ).toFixed(0)}
                             </span>
                           </div>
+                        </div>
+
+                        {/* Schedule Selection */}
+                        <div className="space-y-3">
+                          <Label>Weekly Schedule</Label>
+                          <p className="text-xs text-muted-foreground">
+                            Select {formData.package_type === "1x Weekly" ? "1 day" : formData.package_type === "2x Weekly" ? "2 days" : "3 days"} and time(s) for lessons
+                          </p>
+                          {Array.from({ length: formData.package_type === "1x Weekly" ? 1 : formData.package_type === "2x Weekly" ? 2 : 3 }).map((_, index) => (
+                            <div key={index} className="flex gap-2">
+                              <Select
+                                value={formData.schedule[index]?.day?.toString() || ""}
+                                onValueChange={(value) => {
+                                  const newSchedule = [...formData.schedule];
+                                  if (!newSchedule[index]) newSchedule[index] = { day: 0, time: "" };
+                                  newSchedule[index].day = parseInt(value);
+                                  setFormData({ ...formData, schedule: newSchedule });
+                                }}
+                              >
+                                <SelectTrigger className="flex-1">
+                                  <SelectValue placeholder="Select day" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="1">Monday</SelectItem>
+                                  <SelectItem value="2">Tuesday</SelectItem>
+                                  <SelectItem value="3">Wednesday</SelectItem>
+                                  <SelectItem value="4">Thursday</SelectItem>
+                                  <SelectItem value="5">Friday</SelectItem>
+                                  <SelectItem value="6">Saturday</SelectItem>
+                                  <SelectItem value="0">Sunday</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Input
+                                type="time"
+                                className="flex-1"
+                                value={formData.schedule[index]?.time || ""}
+                                onChange={(e) => {
+                                  const newSchedule = [...formData.schedule];
+                                  if (!newSchedule[index]) newSchedule[index] = { day: 0, time: "" };
+                                  newSchedule[index].time = e.target.value;
+                                  setFormData({ ...formData, schedule: newSchedule });
+                                }}
+                                placeholder="HH:MM"
+                              />
+                            </div>
+                          ))}
                         </div>
                       </>
                     )}

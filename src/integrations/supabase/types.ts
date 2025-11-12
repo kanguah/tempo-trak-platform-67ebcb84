@@ -401,6 +401,7 @@ export type Database = {
           parent_phone: string | null
           payment_status: string | null
           phone: string | null
+          schedule: Json | null
           status: string
           subjects: string[] | null
           updated_at: string
@@ -426,6 +427,7 @@ export type Database = {
           parent_phone?: string | null
           payment_status?: string | null
           phone?: string | null
+          schedule?: Json | null
           status?: string
           subjects?: string[] | null
           updated_at?: string
@@ -451,6 +453,7 @@ export type Database = {
           parent_phone?: string | null
           payment_status?: string | null
           phone?: string | null
+          schedule?: Json | null
           status?: string
           subjects?: string[] | null
           updated_at?: string
