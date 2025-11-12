@@ -2,6 +2,8 @@ import { useState } from "react";
 import { LayoutDashboard, Users, UserCheck, Calendar, ClipboardCheck, CreditCard, DollarSign, Megaphone, MessageSquare, TrendingUp, FileText, Bell, Settings, Music, Archive, TrendingDown } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
+import { useAdmin } from "@/hooks/useAdmin";
+import { useAuth } from "@/contexts/AuthContext";
 const directorItems = [{
   title: "Dashboard",
   url: "/",
@@ -67,10 +69,20 @@ const settingsItems = [{
 export function AppSidebar() {
   const { open } = useSidebar();
   const [isHovered, setIsHovered] = useState(false);
+  const { isAdmin, isLoading } = useAdmin();
+  const { user } = useAuth();
   
   // When sidebar is open (fully expanded), no hover needed
   // When sidebar is closed (mini mode), enable hover to expand
   const showExpanded = open || isHovered;
+  
+  // Filter director items based on admin status
+  const filteredDirectorItems = directorItems.filter(item => {
+    if (item.title === "Payroll") {
+      return user && !isLoading && isAdmin;
+    }
+    return true;
+  });
   
   return (
     <div 
@@ -91,7 +103,7 @@ export function AppSidebar() {
             {showExpanded && <SidebarGroupLabel className="text-sidebar-foreground/60">Main Menu</SidebarGroupLabel>}
             <SidebarGroupContent>
               <SidebarMenu>
-                {directorItems.map(item => (
+                {filteredDirectorItems.map(item => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
                       <NavLink 
