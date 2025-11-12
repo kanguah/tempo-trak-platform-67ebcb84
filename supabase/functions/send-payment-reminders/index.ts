@@ -88,24 +88,24 @@ serve(async (req) => {
         reminderType = "manual";
         emailSubject = "Payment Reminder";
         emailBody = `Dear ${payment.students?.parent_name || payment.students?.name},\n\nThis is a reminder about your payment for 49ice Music Academy.\n\nPayment Details:\n- Student: ${payment.students?.name}\n- Package: ${payment.package_type}\n- Amount Due: GH₵${payment.amount}\n- Due Date: 15th ${new Date(payment.due_date).toLocaleString("default", { month: "long", year: "numeric" })}\n\n${PAYMENT_INSTRUCTIONS}\n\nThank you for your continued support!\n\nBest regards,\n49ice Music Academy`;
-        smsMessage = `Reminder: Your payment of GH₵${payment.amount} is due on 15th ${new Date(payment.due_date).toLocaleString("default", { month: "short" })}. Thank you!`;
+        smsMessage = `Reminder: Your payment of GHS${payment.amount} is due on 15th ${new Date(payment.due_date).toLocaleString("default", { month: "short" })}. Thank you!`;
       }
       // Determine which reminder to send based on date
       else if (daysDiff === 3 && !reminderSent.three_days_before) {
         reminderType = "three_days_before";
         emailSubject = "Payment Reminder - Due in 3 Days";
         emailBody = `Dear ${payment.students?.parent_name || payment.students?.name},\n\nThis is a friendly reminder that your monthly payment for 49ice Music Academy is due in 3 days (on the 15th of this month).\n\nPayment Details:\n- Student: ${payment.students?.name}\n- Package: ${payment.package_type}\n- Amount Due: GH₵${payment.amount}\n- Due Date: 15th ${dueDate.toLocaleString("default", { month: "long", year: "numeric" })}\n\n${PAYMENT_INSTRUCTIONS}\n\nThank you for your continued support!\n\nBest regards,\n49ice Music Academy`;
-        smsMessage = `Reminder: Your payment of GH₵${payment.amount} is due on 15th ${dueDate.toLocaleString("default", { month: "short" })}. Thank you!`;
+        smsMessage = `Reminder: Your payment of GHS${payment.amount} is due on 15th ${dueDate.toLocaleString("default", { month: "short" })}. Thank you!`;
       } else if (daysDiff === 0 && !reminderSent.due_date) {
         reminderType = "due_date";
         emailSubject = "Payment Due Today";
         emailBody = `Dear ${payment.students?.parent_name || payment.students?.name},\n\nYour monthly payment for 49ice Music Academy is due today.\n\nAmount: GH₵${payment.amount}\nPackage: ${payment.package_type}\n\nPlease make your payment today to avoid overdue status.\n\n${PAYMENT_INSTRUCTIONS}\n\nThank you!\n49ice Music Academy`;
-        smsMessage = `Payment Due: GH₵${payment.amount} for 49ice Academy is due today. Please pay to avoid overdue status.`;
+        smsMessage = `Payment Due: GHS${payment.amount} for 49ice Academy is due today. Please pay to avoid overdue status.`;
       } else if (daysDiff === -3 && !reminderSent.three_days_after) {
         reminderType = "three_days_after";
         emailSubject = "Overdue Payment Notice";
         emailBody = `Dear ${payment.students?.parent_name || payment.students?.name},\n\nWe notice that your payment of GH₵${payment.amount} was due on 15th but has not been received.\n\nPlease make your payment as soon as possible to keep your account in good standing.\n\n${PAYMENT_INSTRUCTIONS}\n\nIf you have already paid, please disregard this notice and contact us with payment confirmation.\n\nThank you for your prompt attention.\n49ice Music Academy`;
-        smsMessage = `OVERDUE: Your payment of GH₵${payment.amount} was due on 15th. Please pay as soon as possible.`;
+        smsMessage = `OVERDUE: Your payment of GHS${payment.amount} was due on 15th. Please pay as soon as possible.`;
 
         // Update status to failed if 3 days overdue
         await supabase.from("payments").update({ status: "failed" }).eq("id", payment.id);
@@ -113,7 +113,7 @@ serve(async (req) => {
         reminderType = "seven_days_after";
         emailSubject = "Urgent: Payment 7 Days Overdue";
         emailBody = `Dear ${payment.students?.parent_name || payment.students?.name},\n\nYour payment of GH₵${payment.amount} is now 7 days overdue. Please contact us immediately to discuss payment or any difficulties you may be experiencing.\n\nOutstanding Amount: GH₵${payment.amount}\nDue Date: 15th ${dueDate.toLocaleString("default", { month: "long", year: "numeric" })}\nDays Overdue: 7\n\nWe value your enrollment and want to work with you. Please reach out to us.\n\nContact: 0598614685\n\n49ice Music Academy`;
-        smsMessage = `URGENT: Your GH₵${payment.amount} payment is 7 days overdue. Please contact us or pay immediately.`;
+        smsMessage = `URGENT: Your GHS${payment.amount} payment is 7 days overdue. Please contact us or pay immediately.`;
       }
 
       if (!reminderType) continue;
