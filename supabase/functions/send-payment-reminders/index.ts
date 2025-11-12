@@ -39,7 +39,11 @@ serve(async (req) => {
     // Get optional paymentId and force flag from request body
     const { paymentId, force } = req.method === "POST" ? await req.json().catch(() => ({})) : {};
 
-    console.log("Starting payment reminders...", paymentId ? `for payment ${paymentId}` : "for all pending payments", force ? "(forced)" : "");
+    console.log(
+      "Starting payment reminders...",
+      paymentId ? `for payment ${paymentId}` : "for all pending payments",
+      force ? "(forced)" : "",
+    );
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -110,11 +114,6 @@ serve(async (req) => {
         emailSubject = "Urgent: Payment 7 Days Overdue";
         emailBody = `Dear ${payment.students?.parent_name || payment.students?.name},\n\nYour payment of GH₵${payment.amount} is now 7 days overdue. Please contact us immediately to discuss payment or any difficulties you may be experiencing.\n\nOutstanding Amount: GH₵${payment.amount}\nDue Date: 15th ${dueDate.toLocaleString("default", { month: "long", year: "numeric" })}\nDays Overdue: 7\n\nWe value your enrollment and want to work with you. Please reach out to us.\n\nContact: 0598614685\n\n49ice Music Academy`;
         smsMessage = `URGENT: Your GH₵${payment.amount} payment is 7 days overdue. Please contact us or pay immediately.`;
-      } else {
-        reminderType = "manual";
-        emailSubject = "Important: Payment Reminder";
-        emailBody = `Dear ${payment.students?.parent_name || payment.students?.name},\n\nYou are being reminded of your payment of GH₵${payment.amount}. Please contact us immediately to discuss payment or any difficulties you may be experiencing.\n\nOutstanding Amount: GH₵${payment.amount}\nDue Date: 15th ${dueDate.toLocaleString("default", { month: "long", year: "numeric" })}\nDays Overdue: 7\n\nWe value your enrollment and want to work with you. Please reach out to us.\n\nContact: 0598614685\n\n49ice Music Academy`;
-        smsMessage = `URGENT: You are being reminded of your GH₵${payment.amount} payment. Please contact us or pay immediately.`;
       }
 
       if (!reminderType) continue;
