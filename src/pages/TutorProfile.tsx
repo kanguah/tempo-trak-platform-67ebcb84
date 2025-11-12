@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Music, Mail, Phone, Download, Upload, FileText, Calendar, TrendingUp, Star, Clock, DollarSign, Award, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,133 +13,14 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { format } from "date-fns";
 
-const tutorData = {
-  id: 1,
-  name: "Mr. Kofi Mensah",
-  instruments: ["Piano", "Music Theory"],
-  email: "kofi.mensah@49ice.com",
-  phone: "+233 24 111 2222",
-  status: "Active",
-  avatar: "KM",
-  students: 18,
-  hoursPerWeek: 24,
-  monthlyPay: "GH₵ 4,200",
-  joinDate: "January 2022",
-  bio: "Professional pianist with 12+ years of teaching experience. Specializes in classical and contemporary piano styles. Certified music theory instructor.",
-  qualifications: [
-    "Bachelor of Music - University of Ghana",
-    "ABRSM Grade 8 Piano (Distinction)",
-    "Certified Music Theory Instructor",
-    "Trinity College London Diploma",
-  ],
-};
-
-const performanceMetrics = [
-  { label: "Student Retention", value: 94, color: "text-green-600" },
-  { label: "Lesson Attendance", value: 88, color: "text-blue-600" },
-  { label: "Student Satisfaction", value: 96, color: "text-purple-600" },
-  { label: "Punctuality", value: 92, color: "text-orange-600" },
-];
-
-const studentFeedback = [
-  {
-    id: 1,
-    student: "Sarah Osei",
-    rating: 5,
-    date: "2024-01-15",
-    comment: "Excellent teacher! Very patient and explains concepts clearly. My son has improved tremendously.",
-  },
-  {
-    id: 2,
-    student: "John Asante",
-    rating: 5,
-    date: "2024-01-10",
-    comment: "Mr. Mensah is fantastic. His teaching style is engaging and my daughter looks forward to every lesson.",
-  },
-  {
-    id: 3,
-    student: "Grace Owusu",
-    rating: 4,
-    date: "2024-01-05",
-    comment: "Very knowledgeable and professional. Would recommend to anyone looking for a piano teacher.",
-  },
-  {
-    id: 4,
-    student: "Michael Boateng",
-    rating: 5,
-    date: "2023-12-20",
-    comment: "Best music teacher we've ever had. Patient, skilled, and truly cares about student progress.",
-  },
-];
-
-const payrollHistory = [
-  {
-    id: 1,
-    month: "January 2024",
-    hours: 96,
-    rate: "GH₵ 45/hr",
-    bonuses: "GH₵ 200",
-    total: "GH₵ 4,520",
-    status: "Paid",
-    date: "2024-01-31",
-  },
-  {
-    id: 2,
-    month: "December 2023",
-    hours: 88,
-    rate: "GH₵ 45/hr",
-    bonuses: "GH₵ 0",
-    total: "GH₵ 3,960",
-    status: "Paid",
-    date: "2023-12-31",
-  },
-  {
-    id: 3,
-    month: "November 2023",
-    hours: 92,
-    rate: "GH₵ 45/hr",
-    bonuses: "GH₵ 150",
-    total: "GH₵ 4,290",
-    status: "Paid",
-    date: "2023-11-30",
-  },
-];
-
-const weekSchedule = [
-  { day: "Monday", lessons: [
-    { time: "9:00 AM", student: "Sarah Osei", instrument: "Piano", duration: "1h" },
-    { time: "10:30 AM", student: "John Asante", instrument: "Piano", duration: "1h" },
-    { time: "2:00 PM", student: "Grace Owusu", instrument: "Music Theory", duration: "1h" },
-  ]},
-  { day: "Tuesday", lessons: [
-    { time: "9:00 AM", student: "Michael Boateng", instrument: "Piano", duration: "1h" },
-    { time: "11:00 AM", student: "Emma Mensah", instrument: "Piano", duration: "1h" },
-  ]},
-  { day: "Wednesday", lessons: [
-    { time: "9:00 AM", student: "David Osei", instrument: "Music Theory", duration: "1h" },
-    { time: "10:30 AM", student: "Linda Asante", instrument: "Piano", duration: "1h" },
-    { time: "2:00 PM", student: "Peter Owusu", instrument: "Piano", duration: "1h" },
-  ]},
-  { day: "Thursday", lessons: [
-    { time: "9:00 AM", student: "Mary Boateng", instrument: "Piano", duration: "1h" },
-    { time: "11:00 AM", student: "James Mensah", instrument: "Music Theory", duration: "1h" },
-  ]},
-  { day: "Friday", lessons: [
-    { time: "9:00 AM", student: "Rachel Osei", instrument: "Piano", duration: "1h" },
-    { time: "10:30 AM", student: "Daniel Asante", instrument: "Piano", duration: "1h" },
-    { time: "2:00 PM", student: "Elizabeth Owusu", instrument: "Music Theory", duration: "1h" },
-  ]},
-];
-
-const documents = [
-  { id: 1, name: "CV - Kofi Mensah.pdf", type: "PDF", size: "245 KB", date: "2022-01-15" },
-  { id: 2, name: "Teaching Certificate.pdf", type: "PDF", size: "180 KB", date: "2022-01-15" },
-  { id: 3, name: "Contract Agreement.pdf", type: "PDF", size: "320 KB", date: "2022-01-20" },
-  { id: 4, name: "ABRSM Grade 8 Certificate.pdf", type: "PDF", size: "210 KB", date: "2022-01-15" },
-];
+const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 const availableInstruments = [
   "Piano",
@@ -159,39 +41,166 @@ const availableInstruments = [
 const editTutorSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
-  phone: z.string().trim().min(1, "Phone is required").max(20, "Phone must be less than 20 characters"),
-  instruments: z.array(z.string()).min(1, "Select at least one instrument"),
+  phone: z.string().trim().optional(),
+  subjects: z.array(z.string()).min(1, "Select at least one subject"),
   status: z.string().min(1, "Status is required"),
-  bio: z.string().trim().max(500, "Bio must be less than 500 characters").optional(),
+  hourly_rate: z.number().min(0, "Rate must be positive").optional(),
+  availability: z.string().optional(),
 });
 
 export default function TutorProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("overview");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    name: tutorData.name,
-    email: tutorData.email,
-    phone: tutorData.phone,
-    instruments: tutorData.instruments,
-    status: tutorData.status,
-    bio: tutorData.bio,
-  });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const averageRating = (
-    studentFeedback.reduce((acc, f) => acc + f.rating, 0) / studentFeedback.length
-  ).toFixed(1);
-
-  const handleEditTutor = () => {
-    try {
-      const validated = editTutorSchema.parse(formData);
+  // Fetch tutor data
+  const { data: tutor, isLoading: tutorLoading } = useQuery({
+    queryKey: ["tutor", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tutors")
+        .select("*")
+        .eq("id", id)
+        .eq("user_id", user?.id)
+        .single();
       
-      // In a real app, this would update the backend
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id && !!user?.id,
+  });
+
+  // Fetch lessons for schedule
+  const { data: lessons = [] } = useQuery({
+    queryKey: ["tutor-lessons", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("lessons")
+        .select(`
+          *,
+          students (name)
+        `)
+        .eq("tutor_id", id)
+        .eq("user_id", user?.id);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id && !!user?.id,
+  });
+
+  // Fetch attendance for metrics and feedback
+  const { data: attendance = [] } = useQuery({
+    queryKey: ["tutor-attendance", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("attendance")
+        .select(`
+          *,
+          students (name)
+        `)
+        .eq("tutor_id", id)
+        .eq("user_id", user?.id)
+        .order("lesson_date", { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id && !!user?.id,
+  });
+
+  // Fetch payroll history
+  const { data: payroll = [] } = useQuery({
+    queryKey: ["tutor-payroll", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tutor_payroll")
+        .select("*")
+        .eq("tutor_id", id)
+        .eq("user_id", user?.id)
+        .order("created_at", { ascending: false});
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id && !!user?.id,
+  });
+
+  // Fetch documents
+  const { data: documents = [] } = useQuery({
+    queryKey: ["tutor-documents", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tutor_documents")
+        .select("*")
+        .eq("tutor_id", id)
+        .eq("user_id", user?.id)
+        .order("created_at", { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id && !!user?.id,
+  });
+
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    subjects: [] as string[],
+    status: "",
+    hourly_rate: 0,
+    availability: "",
+  });
+
+  // Initialize form when tutor data loads
+  useEffect(() => {
+    if (tutor) {
+      setFormData({
+        name: tutor.name || "",
+        email: tutor.email || "",
+        phone: tutor.phone || "",
+        subjects: tutor.subjects || [],
+        status: tutor.status || "",
+        hourly_rate: tutor.hourly_rate || 0,
+        availability: tutor.availability || "",
+      });
+    }
+  }, [tutor]);
+
+  // Update tutor mutation
+  const updateTutorMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      const { error } = await supabase
+        .from("tutors")
+        .update(data)
+        .eq("id", id)
+        .eq("user_id", user?.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tutor", id] });
       toast.success("Tutor profile updated successfully!");
       setEditDialogOpen(false);
       setErrors({});
+    },
+    onError: () => {
+      toast.error("Failed to update tutor profile");
+    },
+  });
+
+  const handleEditTutor = () => {
+    try {
+      const validated = editTutorSchema.parse({
+        ...formData,
+        hourly_rate: Number(formData.hourly_rate),
+      });
+      updateTutorMutation.mutate(validated as any);
     } catch (error) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
@@ -205,14 +214,68 @@ export default function TutorProfile() {
     }
   };
 
-  const toggleInstrument = (instrument: string) => {
+  const toggleSubject = (subject: string) => {
     setFormData((prev) => ({
       ...prev,
-      instruments: prev.instruments.includes(instrument)
-        ? prev.instruments.filter((i) => i !== instrument)
-        : [...prev.instruments, instrument],
+      subjects: prev.subjects.includes(subject)
+        ? prev.subjects.filter((s) => s !== subject)
+        : [...prev.subjects, subject],
     }));
   };
+
+  // Calculate metrics
+  const completedLessons = attendance.filter(a => a.status === "completed").length;
+  const totalScheduled = attendance.length;
+  const attendanceRate = totalScheduled > 0 ? Math.round((completedLessons / totalScheduled) * 100) : 0;
+  
+  const feedbackWithRatings = attendance.filter(a => a.rating && a.feedback);
+  const averageRating = feedbackWithRatings.length > 0
+    ? (feedbackWithRatings.reduce((acc, a) => acc + (a.rating || 0), 0) / feedbackWithRatings.length).toFixed(1)
+    : "N/A";
+
+  const uniqueStudents = new Set(lessons.map(l => l.student_id)).size;
+  
+  const thisMonth = new Date().getMonth();
+  const thisYear = new Date().getFullYear();
+  const thisMonthAttendance = attendance.filter(a => {
+    const lessonDate = new Date(a.lesson_date);
+    return lessonDate.getMonth() === thisMonth && lessonDate.getFullYear() === thisYear && a.status === "completed";
+  });
+  const hoursThisMonth = thisMonthAttendance.length * 1; // Assuming 1 hour per lesson
+
+  // Group lessons by day for schedule
+  const scheduleByDay = daysOfWeek.map(day => ({
+    day,
+    lessons: lessons.filter(l => l.day_of_week === daysOfWeek.indexOf(day)),
+  }));
+
+  if (tutorLoading) {
+    return (
+      <div className="min-h-screen bg-background p-8">
+        <Skeleton className="h-12 w-48 mb-8" />
+        <Skeleton className="h-64 w-full mb-6" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+    );
+  }
+
+  if (!tutor) {
+    return (
+      <div className="min-h-screen bg-background p-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Tutor not found</h1>
+          <Button onClick={() => navigate("/tutors")}>Back to Tutors</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const avatar = tutor.name
+    .split(" ")
+    .map(n => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <div className="min-h-screen bg-background">
@@ -280,14 +343,14 @@ export default function TutorProfile() {
               </div>
 
               <div className="space-y-2">
-                <Label>Instruments</Label>
+                <Label>Subjects</Label>
                 <div className="grid grid-cols-2 gap-3 p-4 border rounded-lg bg-muted/50">
                   {availableInstruments.map((instrument) => (
                     <div key={instrument} className="flex items-center space-x-2">
                       <Checkbox
                         id={`edit-${instrument}`}
-                        checked={formData.instruments.includes(instrument)}
-                        onCheckedChange={() => toggleInstrument(instrument)}
+                        checked={formData.subjects.includes(instrument)}
+                        onCheckedChange={() => toggleSubject(instrument)}
                       />
                       <Label htmlFor={`edit-${instrument}`} className="text-sm font-normal cursor-pointer">
                         {instrument}
@@ -295,7 +358,7 @@ export default function TutorProfile() {
                     </div>
                   ))}
                 </div>
-                {errors.instruments && <p className="text-sm text-destructive">{errors.instruments}</p>}
+                {errors.subjects && <p className="text-sm text-destructive">{errors.subjects}</p>}
               </div>
 
               <div className="space-y-2">
@@ -305,24 +368,37 @@ export default function TutorProfile() {
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="On Leave">On Leave</SelectItem>
-                    <SelectItem value="Inactive">Inactive</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="on_leave">On Leave</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.status && <p className="text-sm text-destructive">{errors.status}</p>}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="edit-bio">Bio</Label>
+                <Label htmlFor="edit-availability">Availability</Label>
                 <Textarea
-                  id="edit-bio"
-                  placeholder="Enter tutor's bio..."
-                  value={formData.bio}
-                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                  rows={4}
+                  id="edit-availability"
+                  placeholder="Enter tutor's availability..."
+                  value={formData.availability}
+                  onChange={(e) => setFormData({ ...formData, availability: e.target.value })}
+                  rows={3}
                 />
-                {errors.bio && <p className="text-sm text-destructive">{errors.bio}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-hourly-rate">Hourly Rate (GH₵)</Label>
+                <Input
+                  id="edit-hourly-rate"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={formData.hourly_rate}
+                  onChange={(e) => setFormData({ ...formData, hourly_rate: parseFloat(e.target.value) || 0 })}
+                />
+                {errors.hourly_rate && <p className="text-sm text-destructive">{errors.hourly_rate}</p>}
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -331,14 +407,17 @@ export default function TutorProfile() {
                   className="flex-1"
                   onClick={() => {
                     setEditDialogOpen(false);
-                    setFormData({
-                      name: tutorData.name,
-                      email: tutorData.email,
-                      phone: tutorData.phone,
-                      instruments: tutorData.instruments,
-                      status: tutorData.status,
-                      bio: tutorData.bio,
-                    });
+                    if (tutor) {
+                      setFormData({
+                        name: tutor.name || "",
+                        email: tutor.email || "",
+                        phone: tutor.phone || "",
+                        subjects: tutor.subjects || [],
+                        status: tutor.status || "",
+                        hourly_rate: tutor.hourly_rate || 0,
+                        availability: tutor.availability || "",
+                      });
+                    }
                     setErrors({});
                   }}
                 >
@@ -357,36 +436,36 @@ export default function TutorProfile() {
           <CardContent className="p-6">
             <div className="flex items-start gap-6">
               <div className="flex h-24 w-24 items-center justify-center rounded-xl gradient-primary text-white font-bold text-3xl shadow-md">
-                {tutorData.avatar}
+                {avatar}
               </div>
               <div className="flex-1">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h2 className="text-3xl font-bold text-foreground mb-2">{tutorData.name}</h2>
+                    <h2 className="text-3xl font-bold text-foreground mb-2">{tutor.name}</h2>
                     <div className="flex items-center gap-3 text-muted-foreground">
                       <div className="flex items-center gap-2">
                         <Music className="h-4 w-4" />
-                        <span>{tutorData.instruments.join(", ")}</span>
+                        <span>{tutor.subjects?.join(", ") || "No subjects"}</span>
                       </div>
                       <span>•</span>
-                      <span>Member since {tutorData.joinDate}</span>
+                      <span>Member since {tutor.created_at ? format(new Date(tutor.created_at), "MMMM yyyy") : "Unknown"}</span>
                     </div>
                   </div>
                   <Badge className="bg-green-500/10 text-green-600 border-green-500/20" variant="outline">
-                    {tutorData.status}
+                    {tutor.status}
                   </Badge>
                 </div>
 
-                <p className="text-muted-foreground mb-4">{tutorData.bio}</p>
+                <p className="text-muted-foreground mb-4">{tutor.availability || "No availability information"}</p>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm text-foreground">{tutorData.email}</span>
+                    <span className="text-sm text-foreground">{tutor.email}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm text-foreground">{tutorData.phone}</span>
+                    <span className="text-sm text-foreground">{tutor.phone || "N/A"}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
@@ -394,7 +473,7 @@ export default function TutorProfile() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Award className="h-4 w-4 text-primary" />
-                    <span className="text-sm text-foreground">{tutorData.students} Students</span>
+                    <span className="text-sm text-foreground">{uniqueStudents} Students</span>
                   </div>
                 </div>
               </div>
@@ -424,15 +503,20 @@ export default function TutorProfile() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {performanceMetrics.map((metric) => (
-                    <div key={metric.label} className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">{metric.label}</span>
-                        <span className={`text-sm font-semibold ${metric.color}`}>{metric.value}%</span>
-                      </div>
-                      <Progress value={metric.value} className="h-2" />
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Lesson Attendance</span>
+                      <span className="text-sm font-semibold text-blue-600">{attendanceRate}%</span>
                     </div>
-                  ))}
+                    <Progress value={attendanceRate} className="h-2" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Student Satisfaction</span>
+                      <span className="text-sm font-semibold text-purple-600">{typeof averageRating === 'string' ? 'N/A' : `${Math.round(parseFloat(averageRating) * 20)}%`}</span>
+                    </div>
+                    <Progress value={typeof averageRating === 'string' ? 0 : parseFloat(averageRating) * 20} className="h-2" />
+                  </div>
                 </CardContent>
               </Card>
 
@@ -441,55 +525,41 @@ export default function TutorProfile() {
                 <CardHeader>
                   <CardTitle>Quick Statistics</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-accent/50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-primary" />
-                      <span className="text-sm text-muted-foreground">Hours/Week</span>
+                <CardContent className="grid gap-6 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Award className="h-4 w-4" />
+                      <span className="text-sm">Active Students</span>
                     </div>
-                    <span className="font-semibold text-foreground">{tutorData.hoursPerWeek}h</span>
+                    <p className="text-3xl font-bold text-foreground">{uniqueStudents}</p>
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-accent/50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-accent" />
-                      <span className="text-sm text-muted-foreground">Monthly Pay</span>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      <span className="text-sm">Hours This Month</span>
                     </div>
-                    <span className="font-semibold text-accent">{tutorData.monthlyPay}</span>
+                    <p className="text-3xl font-bold text-foreground">{hoursThisMonth}h</p>
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-accent/50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Award className="h-4 w-4 text-primary" />
-                      <span className="text-sm text-muted-foreground">Active Students</span>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <DollarSign className="h-4 w-4" />
+                      <span className="text-sm">Hourly Rate</span>
                     </div>
-                    <span className="font-semibold text-foreground">{tutorData.students}</span>
+                    <p className="text-3xl font-bold text-foreground">GH₵ {tutor.hourly_rate || 0}</p>
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-accent/50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                      <span className="text-sm text-muted-foreground">Average Rating</span>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <TrendingUp className="h-4 w-4" />
+                      <span className="text-sm">Est. Monthly Pay</span>
                     </div>
-                    <span className="font-semibold text-foreground">{averageRating}/5.0</span>
+                    <p className="text-3xl font-bold text-foreground">GH₵ {Math.round((tutor.hourly_rate || 0) * hoursThisMonth)}</p>
                   </div>
                 </CardContent>
               </Card>
             </div>
-
-            {/* Qualifications */}
-            <Card className="shadow-card">
-              <CardHeader>
-                <CardTitle>Qualifications & Certifications</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-3 md:grid-cols-2">
-                  {tutorData.qualifications.map((qual, index) => (
-                    <div key={index} className="flex items-center gap-3 p-3 border border-border rounded-lg">
-                      <Award className="h-5 w-5 text-primary" />
-                      <span className="text-sm text-foreground">{qual}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* Schedule Tab */}
@@ -501,33 +571,34 @@ export default function TutorProfile() {
                   Weekly Schedule
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {weekSchedule.map((day) => (
-                    <div key={day.day}>
-                      <h3 className="font-semibold text-lg text-foreground mb-3">{day.day}</h3>
+              <CardContent className="space-y-4">
+                {scheduleByDay.map((daySchedule) => (
+                  <div key={daySchedule.day} className="border-b pb-4 last:border-0 last:pb-0">
+                    <h4 className="font-semibold text-foreground mb-3">{daySchedule.day}</h4>
+                    {daySchedule.lessons.length > 0 ? (
                       <div className="space-y-2">
-                        {day.lessons.map((lesson, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors"
-                          >
-                            <div className="flex items-center gap-4">
-                              <div className="flex items-center justify-center w-20 px-2 py-1 bg-primary/10 rounded text-sm font-medium text-primary">
-                                {lesson.time}
-                              </div>
+                        {daySchedule.lessons.map((lesson: any) => (
+                          <div key={lesson.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/50">
+                            <div className="flex items-center gap-3">
+                              <Clock className="h-4 w-4 text-muted-foreground" />
                               <div>
-                                <p className="font-semibold text-foreground">{lesson.student}</p>
-                                <p className="text-sm text-muted-foreground">{lesson.instrument}</p>
+                                <p className="font-medium text-sm text-foreground">
+                                  {lesson.start_time} - {lesson.students?.name || "Unknown Student"}
+                                </p>
+                                <p className="text-xs text-muted-foreground">{lesson.subject}</p>
                               </div>
                             </div>
-                            <Badge variant="outline">{lesson.duration}</Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {lesson.duration || 60}min
+                            </Badge>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No lessons scheduled</p>
+                    )}
+                  </div>
+                ))}
               </CardContent>
             </Card>
           </TabsContent>
@@ -536,50 +607,47 @@ export default function TutorProfile() {
           <TabsContent value="feedback" className="space-y-6">
             <Card className="shadow-card">
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-                    Student Feedback ({studentFeedback.length} reviews)
-                  </CardTitle>
+                <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-3xl font-bold text-foreground">{averageRating}</span>
-                    <div className="flex">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-5 w-5 ${
-                            i < Math.round(parseFloat(averageRating))
-                              ? "text-yellow-500 fill-yellow-500"
-                              : "text-muted"
-                          }`}
-                        />
-                      ))}
-                    </div>
+                    <Star className="h-5 w-5 text-primary" />
+                    Student Feedback
                   </div>
-                </div>
+                  <div className="flex items-center gap-2">
+                    <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                    <span className="text-lg font-semibold">{averageRating}/5.0</span>
+                  </div>
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {studentFeedback.map((feedback) => (
-                  <div key={feedback.id} className="p-4 border border-border rounded-lg space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold text-foreground">{feedback.student}</p>
-                        <p className="text-xs text-muted-foreground">{feedback.date}</p>
+                {feedbackWithRatings.length > 0 ? (
+                  feedbackWithRatings.map((feedback: any) => (
+                    <div key={feedback.id} className="border-b pb-4 last:border-0 last:pb-0">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="font-semibold text-foreground">{feedback.students?.name || "Unknown Student"}</p>
+                          <div className="flex items-center gap-1 mt-1">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`h-4 w-4 ${
+                                  i < (feedback.rating || 0)
+                                    ? "text-yellow-500 fill-yellow-500"
+                                    : "text-gray-300"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <span className="text-sm text-muted-foreground">
+                          {format(new Date(feedback.lesson_date), "MMM d, yyyy")}
+                        </span>
                       </div>
-                      <div className="flex">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < feedback.rating ? "text-yellow-500 fill-yellow-500" : "text-muted"
-                            }`}
-                          />
-                        ))}
-                      </div>
+                      <p className="text-sm text-muted-foreground">{feedback.feedback}</p>
                     </div>
-                    <p className="text-sm text-muted-foreground">{feedback.comment}</p>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-muted-foreground text-center py-8">No feedback yet</p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -589,38 +657,42 @@ export default function TutorProfile() {
             <Card className="shadow-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-accent" />
+                  <DollarSign className="h-5 w-5 text-primary" />
                   Payroll History
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {payrollHistory.map((payroll) => (
-                    <div
-                      key={payroll.id}
-                      className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors"
-                    >
-                      <div>
-                        <p className="font-semibold text-foreground">{payroll.month}</p>
-                        <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                          <span>{payroll.hours} hours @ {payroll.rate}</span>
-                          {payroll.bonuses !== "GH₵ 0" && (
-                            <>
-                              <span>•</span>
-                              <span>Bonus: {payroll.bonuses}</span>
-                            </>
+                  {payroll.length > 0 ? (
+                    payroll.map((record: any) => (
+                      <div key={record.id} className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                        <div className="flex-1">
+                          <p className="font-semibold text-foreground mb-1">{record.month}</p>
+                          <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-muted-foreground">
+                            <span>{record.hours_worked} hours @ GH₵ {record.hourly_rate}/hr</span>
+                            {record.bonuses > 0 && <span>Bonuses: GH₵ {record.bonuses}</span>}
+                            {record.deductions > 0 && <span>Deductions: GH₵ {record.deductions}</span>}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-foreground mb-1">GH₵ {record.total_amount}</p>
+                          <Badge
+                            className={record.status === "paid" ? "bg-green-500/10 text-green-600" : "bg-yellow-500/10 text-yellow-600"}
+                            variant="outline"
+                          >
+                            {record.status}
+                          </Badge>
+                          {record.payment_date && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {format(new Date(record.payment_date), "MMM d, yyyy")}
+                            </p>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">Paid on {payroll.date}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-accent">{payroll.total}</p>
-                        <Badge className="bg-green-500/10 text-green-600 border-green-500/20 mt-2">
-                          {payroll.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground text-center py-8">No payroll records yet</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -633,9 +705,9 @@ export default function TutorProfile() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="h-5 w-5 text-primary" />
-                    Documents & Files
+                    Documents
                   </CardTitle>
-                  <Button className="gradient-primary text-primary-foreground shadow-primary">
+                  <Button className="gradient-primary text-primary-foreground">
                     <Upload className="mr-2 h-4 w-4" />
                     Upload Document
                   </Button>
@@ -643,27 +715,30 @@ export default function TutorProfile() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {documents.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                  {documents.length > 0 ? (
+                    documents.map((doc: any) => (
+                      <div key={doc.id} className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                        <div className="flex items-center gap-3">
                           <FileText className="h-5 w-5 text-primary" />
+                          <div>
+                            <p className="font-medium text-foreground">{doc.name}</p>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <span>{doc.file_type}</span>
+                              <span>•</span>
+                              <span>{doc.file_size}</span>
+                              <span>•</span>
+                              <span>{format(new Date(doc.created_at), "MMM d, yyyy")}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-semibold text-foreground">{doc.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {doc.size} • Uploaded {doc.date}
-                          </p>
-                        </div>
+                        <Button variant="outline" size="sm">
+                          <Download className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button variant="outline" size="icon">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground text-center py-8">No documents yet</p>
+                  )}
                 </div>
               </CardContent>
             </Card>

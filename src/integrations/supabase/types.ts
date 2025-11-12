@@ -21,6 +21,7 @@ export type Database = {
           id: string
           lesson_date: string
           lesson_id: string | null
+          rating: number | null
           start_time: string
           status: string
           student_id: string | null
@@ -35,6 +36,7 @@ export type Database = {
           id?: string
           lesson_date: string
           lesson_id?: string | null
+          rating?: number | null
           start_time: string
           status?: string
           student_id?: string | null
@@ -49,6 +51,7 @@ export type Database = {
           id?: string
           lesson_date?: string
           lesson_id?: string | null
+          rating?: number | null
           start_time?: string
           status?: string
           student_id?: string | null
@@ -460,6 +463,109 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      tutor_documents: {
+        Row: {
+          category: string
+          created_at: string
+          file_size: string
+          file_type: string
+          file_url: string
+          id: string
+          name: string
+          tutor_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          file_size: string
+          file_type: string
+          file_url: string
+          id?: string
+          name: string
+          tutor_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          file_size?: string
+          file_type?: string
+          file_url?: string
+          id?: string
+          name?: string
+          tutor_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tutor_documents_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tutor_payroll: {
+        Row: {
+          bonuses: number
+          created_at: string
+          deductions: number
+          hourly_rate: number
+          hours_worked: number
+          id: string
+          month: string
+          payment_date: string | null
+          status: string
+          total_amount: number
+          tutor_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bonuses?: number
+          created_at?: string
+          deductions?: number
+          hourly_rate?: number
+          hours_worked?: number
+          id?: string
+          month: string
+          payment_date?: string | null
+          status?: string
+          total_amount?: number
+          tutor_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bonuses?: number
+          created_at?: string
+          deductions?: number
+          hourly_rate?: number
+          hours_worked?: number
+          id?: string
+          month?: string
+          payment_date?: string | null
+          status?: string
+          total_amount?: number
+          tutor_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tutor_payroll_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tutors: {
         Row: {
