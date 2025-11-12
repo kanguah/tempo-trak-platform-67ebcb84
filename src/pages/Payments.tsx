@@ -436,8 +436,12 @@ export default function Payments() {
                                 <p>{payment.due_date ? new Date(payment.due_date).toLocaleDateString() : "-"}</p>
                               </div>
                               <div>
-                                <p className="font-medium">Payment Method</p>
-                                <p className="truncate">{payment.description || "-"}</p>
+                                <p className="font-medium">Last Reminder Sent</p>
+                                <p className="truncate">
+                                  {payment.reminder_sent && Object.keys(payment.reminder_sent).length > 0
+                                    ? new Date(Object.values(payment.reminder_sent).sort().reverse()[0] as string).toLocaleString()
+                                    : "Never"}
+                                </p>
                               </div>
                             </div>
                           </div>
