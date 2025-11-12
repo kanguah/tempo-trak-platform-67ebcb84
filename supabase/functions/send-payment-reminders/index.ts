@@ -131,7 +131,7 @@ serve(async (req) => {
           const smsUrl = new URL("https://api.smsonlinegh.com/v5/sms/send");
           smsUrl.searchParams.append("key", smsApiKey);
           smsUrl.searchParams.append("to", recipientPhone);
-          smsUrl.searchParams.append("type", 0);
+          smsUrl.searchParams.append("type", "0");
           smsUrl.searchParams.append("text", smsMessage);
           smsUrl.searchParams.append("sender", senderId);
 
