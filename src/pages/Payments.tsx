@@ -95,7 +95,8 @@ export default function Payments() {
         error
       } = await supabase.functions.invoke('send-payment-reminders', {
         body: {
-          paymentId
+          paymentId,
+          force: true
         }
       });
       if (error) throw error;
