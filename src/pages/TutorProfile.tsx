@@ -44,7 +44,7 @@ const editTutorSchema = z.object({
   phone: z.string().trim().optional(),
   subjects: z.array(z.string()).min(1, "Select at least one subject"),
   status: z.string().min(1, "Status is required"),
-  hourly_rate: z.number().min(0, "Rate must be positive").optional(),
+  monthly_salary: z.number().min(0, "Salary must be positive").optional(),
   availability: z.string().optional(),
 });
 
@@ -153,7 +153,7 @@ export default function TutorProfile() {
     phone: "",
     subjects: [] as string[],
     status: "",
-    hourly_rate: 0,
+    monthly_salary: 0,
     availability: "",
   });
 
@@ -166,7 +166,7 @@ export default function TutorProfile() {
         phone: tutor.phone || "",
         subjects: tutor.subjects || [],
         status: tutor.status || "",
-        hourly_rate: tutor.hourly_rate || 0,
+        monthly_salary: tutor.monthly_salary || 0,
         availability: tutor.availability || "",
       });
     }
@@ -198,7 +198,7 @@ export default function TutorProfile() {
     try {
       const validated = editTutorSchema.parse({
         ...formData,
-        hourly_rate: Number(formData.hourly_rate),
+        monthly_salary: Number(formData.monthly_salary),
       });
       updateTutorMutation.mutate(validated as any);
     } catch (error) {
@@ -388,17 +388,17 @@ export default function TutorProfile() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="edit-hourly-rate">Hourly Rate (GH₵)</Label>
+                <Label htmlFor="edit-monthly-salary">Base Monthly Salary (GH₵)</Label>
                 <Input
-                  id="edit-hourly-rate"
+                  id="edit-monthly-salary"
                   type="number"
                   min="0"
                   step="0.01"
                   placeholder="0.00"
-                  value={formData.hourly_rate}
-                  onChange={(e) => setFormData({ ...formData, hourly_rate: parseFloat(e.target.value) || 0 })}
+                  value={formData.monthly_salary}
+                  onChange={(e) => setFormData({ ...formData, monthly_salary: parseFloat(e.target.value) || 0 })}
                 />
-                {errors.hourly_rate && <p className="text-sm text-destructive">{errors.hourly_rate}</p>}
+                {errors.monthly_salary && <p className="text-sm text-destructive">{errors.monthly_salary}</p>}
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -414,7 +414,7 @@ export default function TutorProfile() {
                         phone: tutor.phone || "",
                         subjects: tutor.subjects || [],
                         status: tutor.status || "",
-                        hourly_rate: tutor.hourly_rate || 0,
+                        monthly_salary: tutor.monthly_salary || 0,
                         availability: tutor.availability || "",
                       });
                     }
@@ -545,17 +545,17 @@ export default function TutorProfile() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <DollarSign className="h-4 w-4" />
-                      <span className="text-sm">Hourly Rate</span>
+                      <span className="text-sm">Base Monthly Salary</span>
                     </div>
-                    <p className="text-3xl font-bold text-foreground">GH₵ {tutor.hourly_rate || 0}</p>
+                    <p className="text-3xl font-bold text-foreground">GH₵ {tutor.monthly_salary || 0}</p>
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <TrendingUp className="h-4 w-4" />
-                      <span className="text-sm">Est. Monthly Pay</span>
+                      <span className="text-sm">This Month's Lessons</span>
                     </div>
-                    <p className="text-3xl font-bold text-foreground">GH₵ {Math.round((tutor.hourly_rate || 0) * hoursThisMonth)}</p>
+                    <p className="text-3xl font-bold text-foreground">{thisMonthAttendance.length}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -669,8 +669,12 @@ export default function TutorProfile() {
                         <div className="flex-1">
                           <p className="font-semibold text-foreground mb-1">{record.month}</p>
                           <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-muted-foreground">
-                            <span>{record.hours_worked} hours @ GH₵ {record.hourly_rate}/hr</span>
-                            {record.bonuses > 0 && <span>Bonuses: GH₵ {record.bonuses}</span>}
+                            <span>Base: GH₵ {record.base_salary}</span>
+                            <span>Lessons: {record.lessons_taught}</span>
+                            <span>Students: {record.active_students}</span>
+                            {(record.lesson_bonus > 0 || record.student_bonus > 0) && (
+                              <span>Bonuses: GH₵ {(record.lesson_bonus || 0) + (record.student_bonus || 0)}</span>
+                            )}
                             {record.deductions > 0 && <span>Deductions: GH₵ {record.deductions}</span>}
                           </div>
                         </div>

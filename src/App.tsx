@@ -23,6 +23,7 @@ import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import Expenses from "./pages/Expenses";
 import NotFound from "./pages/NotFound";
+import Payroll from "./pages/Payroll";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +68,7 @@ const App = () => (
             <Route path="/archived-leads" element={<ProtectedRoute><Layout><ArchivedLeads /></Layout></ProtectedRoute>} />
             <Route path="/messaging" element={<ProtectedRoute><Layout><Messaging /></Layout></ProtectedRoute>} />
             <Route path="/expenses" element={<ProtectedRoute><Layout><Expenses /></Layout></ProtectedRoute>} />
+            <Route path="/payroll" element={<ProtectedRoute><Layout><Payroll /></Layout></ProtectedRoute>} />
             <Route path="/analytics" element={<ProtectedRoute><Layout><Analytics /></Layout></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><Layout><Notifications /></Layout></ProtectedRoute>} />

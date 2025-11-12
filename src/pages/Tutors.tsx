@@ -396,8 +396,8 @@ export default function Tutors() {
                           {tutor.phone || "No phone"}
                         </div>
                         <div className="flex items-center justify-between pt-2 border-t">
-                          <span className="text-muted-foreground">Hourly Rate:</span>
-                          <span className="font-semibold">GH₵ {tutor.hourly_rate || 0}</span>
+                          <span className="text-muted-foreground">Monthly Salary:</span>
+                          <span className="font-semibold">GH₵ {tutor.monthly_salary || 0}</span>
                         </div>
                       </div>
                       <Button variant="outline" size="sm" className="w-full" onClick={e => {
@@ -465,7 +465,7 @@ export default function Tutors() {
                         <span className="text-sm">{tutor.phone || "N/A"}</span>
                       </TableCell>
                       <TableCell>
-                        <span className="font-semibold">GH₵ {tutor.hourly_rate || 0}</span>
+                        <span className="font-semibold">GH₵ {tutor.monthly_salary || 0}</span>
                       </TableCell>
                     </TableRow>)}
                 </TableBody>

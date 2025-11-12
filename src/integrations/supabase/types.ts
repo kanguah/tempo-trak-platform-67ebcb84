@@ -383,6 +383,104 @@ export type Database = {
         }
         Relationships: []
       }
+      staff: {
+        Row: {
+          created_at: string | null
+          email: string
+          hire_date: string | null
+          id: string
+          monthly_salary: number
+          name: string
+          phone: string | null
+          position: string
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          hire_date?: string | null
+          id?: string
+          monthly_salary?: number
+          name: string
+          phone?: string | null
+          position: string
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          hire_date?: string | null
+          id?: string
+          monthly_salary?: number
+          name?: string
+          phone?: string | null
+          position?: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      staff_payroll: {
+        Row: {
+          base_salary: number
+          bonuses: number | null
+          created_at: string | null
+          deductions: number | null
+          id: string
+          month: string
+          notes: string | null
+          payment_date: string | null
+          staff_id: string | null
+          status: string
+          total_amount: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          base_salary?: number
+          bonuses?: number | null
+          created_at?: string | null
+          deductions?: number | null
+          id?: string
+          month: string
+          notes?: string | null
+          payment_date?: string | null
+          staff_id?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          base_salary?: number
+          bonuses?: number | null
+          created_at?: string | null
+          deductions?: number | null
+          id?: string
+          month?: string
+          notes?: string | null
+          payment_date?: string | null
+          staff_id?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_payroll_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       students: {
         Row: {
           address: string | null
@@ -513,45 +611,54 @@ export type Database = {
       }
       tutor_payroll: {
         Row: {
+          active_students: number
+          base_salary: number
           bonuses: number
           created_at: string
           deductions: number
-          hourly_rate: number
-          hours_worked: number
           id: string
+          lesson_bonus: number | null
+          lessons_taught: number
           month: string
           payment_date: string | null
           status: string
+          student_bonus: number | null
           total_amount: number
           tutor_id: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          active_students?: number
+          base_salary?: number
           bonuses?: number
           created_at?: string
           deductions?: number
-          hourly_rate?: number
-          hours_worked?: number
           id?: string
+          lesson_bonus?: number | null
+          lessons_taught?: number
           month: string
           payment_date?: string | null
           status?: string
+          student_bonus?: number | null
           total_amount?: number
           tutor_id?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          active_students?: number
+          base_salary?: number
           bonuses?: number
           created_at?: string
           deductions?: number
-          hourly_rate?: number
-          hours_worked?: number
           id?: string
+          lesson_bonus?: number | null
+          lessons_taught?: number
           month?: string
           payment_date?: string | null
           status?: string
+          student_bonus?: number | null
           total_amount?: number
           tutor_id?: string | null
           updated_at?: string
@@ -572,8 +679,8 @@ export type Database = {
           availability: string | null
           created_at: string
           email: string
-          hourly_rate: number | null
           id: string
+          monthly_salary: number | null
           name: string
           phone: string | null
           status: string
@@ -585,8 +692,8 @@ export type Database = {
           availability?: string | null
           created_at?: string
           email: string
-          hourly_rate?: number | null
           id?: string
+          monthly_salary?: number | null
           name: string
           phone?: string | null
           status?: string
@@ -598,8 +705,8 @@ export type Database = {
           availability?: string | null
           created_at?: string
           email?: string
-          hourly_rate?: number | null
           id?: string
+          monthly_salary?: number | null
           name?: string
           phone?: string | null
           status?: string
