@@ -135,6 +135,8 @@ serve(async (req) => {
           smsUrl.searchParams.append("text", smsMessage);
           smsUrl.searchParams.append("sender", senderId);
 
+          console.log(smsUrl);
+
           const smsResponse = await fetch(smsUrl.toString());
 
           if (smsResponse.ok) {
