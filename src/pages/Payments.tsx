@@ -420,7 +420,7 @@ export default function Payments() {
                                 {payment.students?.name || "Unknown Student"}
                               </h3>
                               {getStatusBadge(payment.status)}
-                              {payment.package_type && <Badge variant="outline">{payment.package_type}</Badge>}
+                              {payment.package_type}
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
                               <div>
