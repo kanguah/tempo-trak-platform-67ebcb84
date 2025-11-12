@@ -174,6 +174,7 @@ export type Database = {
           day_of_week: number
           duration: number
           id: string
+          lesson_date: string | null
           notes: string | null
           room: string | null
           start_time: string
@@ -189,6 +190,7 @@ export type Database = {
           day_of_week: number
           duration?: number
           id?: string
+          lesson_date?: string | null
           notes?: string | null
           room?: string | null
           start_time: string
@@ -204,6 +206,7 @@ export type Database = {
           day_of_week?: number
           duration?: number
           id?: string
+          lesson_date?: string | null
           notes?: string | null
           room?: string | null
           start_time?: string

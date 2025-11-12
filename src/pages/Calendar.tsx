@@ -137,7 +137,11 @@ export default function Calendar() {
   // Transform database lessons to UI format with actual dates
   const currentWeekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const lessonsWithDates: LessonWithDate[] = lessonsData.map((lesson: any) => {
-    const lessonDate = addDays(currentWeekStart, lesson.day_of_week);
+    // Use lesson_date if available, otherwise calculate from day_of_week (for backward compatibility)
+    const lessonDate = lesson.lesson_date 
+      ? parseISO(lesson.lesson_date)
+      : addDays(currentWeekStart, lesson.day_of_week);
+    
     return {
       id: lesson.id,
       date: lessonDate,
@@ -170,7 +174,7 @@ export default function Calendar() {
   const addLessonMutation = useMutation({
     mutationFn: async (lesson: typeof newLesson) => {
       if (!lesson.isRecurring) {
-        // Single lesson
+        // Single lesson - no specific date, uses day_of_week as template
         const {
           data,
           error
@@ -188,18 +192,28 @@ export default function Calendar() {
         if (error) throw error;
         return data;
       } else {
-        // Multiple recurring lessons (4 weeks = 1 month)
+        // Multiple recurring lessons with specific dates
         const lessonsToInsert = [];
         const baseDay = parseInt(lesson.day);
         const occurrences = 4; // Fixed to 4 weeks for a month
         const weekIncrement = lesson.repeatPattern === "weekly" ? 1 : lesson.repeatPattern === "biweekly" ? 2 : 4;
+        
+        // Calculate the first lesson date based on current week
+        const currentDate = new Date();
+        const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+        const firstLessonDate = addDays(weekStart, baseDay);
+        
         for (let i = 0; i < occurrences; i++) {
+          // Calculate the specific date for this occurrence
+          const specificLessonDate = addDays(firstLessonDate, i * weekIncrement * 7);
+          
           lessonsToInsert.push({
             user_id: user?.id,
             student_id: lesson.studentId,
             tutor_id: lesson.tutorId,
             subject: lesson.subject,
             day_of_week: baseDay,
+            lesson_date: format(specificLessonDate, 'yyyy-MM-dd'),
             start_time: lesson.time + ":00",
             duration: parseInt(lesson.duration),
             room: lesson.room || null,
