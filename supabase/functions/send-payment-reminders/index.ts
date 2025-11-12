@@ -36,10 +36,10 @@ serve(async (req) => {
     const smsApiKey = Deno.env.get("SMSONLINEGH_API_KEY");
     const senderId = "49ice Music";
 
-    // Get optional paymentId from request body
-    const { paymentId } = req.method === "POST" ? await req.json().catch(() => ({})) : {};
+    // Get optional paymentId and force flag from request body
+    const { paymentId, force } = req.method === "POST" ? await req.json().catch(() => ({})) : {};
 
-    console.log("Starting payment reminders...", paymentId ? `for payment ${paymentId}` : "for all pending payments");
+    console.log("Starting payment reminders...", paymentId ? `for payment ${paymentId}` : "for all pending payments", force ? "(forced)" : "");
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -79,8 +79,15 @@ serve(async (req) => {
       let emailBody = "";
       let smsMessage = "";
 
-      // Determine which reminder to send
-      if (daysDiff === 3 && !reminderSent.three_days_before) {
+      // If force flag is set, always send a manual reminder
+      if (force) {
+        reminderType = "manual";
+        emailSubject = "Payment Reminder";
+        emailBody = `Dear ${payment.students?.parent_name || payment.students?.name},\n\nThis is a reminder about your payment for 49ice Music Academy.\n\nPayment Details:\n- Student: ${payment.students?.name}\n- Package: ${payment.package_type}\n- Amount Due: GH₵${payment.amount}\n- Due Date: 15th ${new Date(payment.due_date).toLocaleString("default", { month: "long", year: "numeric" })}\n\n${PAYMENT_INSTRUCTIONS}\n\nThank you for your continued support!\n\nBest regards,\n49ice Music Academy`;
+        smsMessage = `Reminder: Your payment of GH₵${payment.amount} is due on 15th ${new Date(payment.due_date).toLocaleString("default", { month: "short" })}. Thank you!`;
+      }
+      // Determine which reminder to send based on date
+      else if (daysDiff === 3 && !reminderSent.three_days_before) {
         reminderType = "three_days_before";
         emailSubject = "Payment Reminder - Due in 3 Days";
         emailBody = `Dear ${payment.students?.parent_name || payment.students?.name},\n\nThis is a friendly reminder that your monthly payment for 49ice Music Academy is due in 3 days (on the 15th of this month).\n\nPayment Details:\n- Student: ${payment.students?.name}\n- Package: ${payment.package_type}\n- Amount Due: GH₵${payment.amount}\n- Due Date: 15th ${dueDate.toLocaleString("default", { month: "long", year: "numeric" })}\n\n${PAYMENT_INSTRUCTIONS}\n\nThank you for your continued support!\n\nBest regards,\n49ice Music Academy`;
