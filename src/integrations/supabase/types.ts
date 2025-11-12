@@ -84,6 +84,59 @@ export type Database = {
           },
         ]
       }
+      automated_reminders: {
+        Row: {
+          channel: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          template_id: string | null
+          times_sent: number
+          trigger_type: string
+          trigger_value: number
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          template_id?: string | null
+          times_sent?: number
+          trigger_type: string
+          trigger_value: number
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          template_id?: string | null
+          times_sent?: number
+          trigger_type?: string
+          trigger_value?: number
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automated_reminders_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "message_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_leads: {
         Row: {
           created_at: string
@@ -233,6 +286,190 @@ export type Database = {
             columns: ["tutor_id"]
             isOneToOne: false
             referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_logs: {
+        Row: {
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          message_id: string
+          recipient_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          message_id: string
+          recipient_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          message_id?: string
+          recipient_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_logs_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_logs_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "message_recipients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_recipients: {
+        Row: {
+          created_at: string
+          delivered_at: string | null
+          delivery_error: string | null
+          delivery_status: string
+          id: string
+          message_id: string
+          recipient_contact: string
+          recipient_id: string | null
+          recipient_name: string
+          recipient_type: string
+          sent_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          delivered_at?: string | null
+          delivery_error?: string | null
+          delivery_status?: string
+          id?: string
+          message_id: string
+          recipient_contact: string
+          recipient_id?: string | null
+          recipient_name: string
+          recipient_type: string
+          sent_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          delivered_at?: string | null
+          delivery_error?: string | null
+          delivery_status?: string
+          id?: string
+          message_id?: string
+          recipient_contact?: string
+          recipient_id?: string | null
+          recipient_name?: string
+          recipient_type?: string
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_recipients_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_templates: {
+        Row: {
+          category: string
+          channel: string
+          created_at: string
+          id: string
+          message: string
+          name: string
+          subject: string | null
+          updated_at: string
+          user_id: string
+          variables: Json | null
+        }
+        Insert: {
+          category: string
+          channel: string
+          created_at?: string
+          id?: string
+          message: string
+          name: string
+          subject?: string | null
+          updated_at?: string
+          user_id: string
+          variables?: Json | null
+        }
+        Update: {
+          category?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          message?: string
+          name?: string
+          subject?: string | null
+          updated_at?: string
+          user_id?: string
+          variables?: Json | null
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          channel: string
+          created_at: string
+          id: string
+          message_body: string
+          recipient_type: string
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string
+          subject: string | null
+          template_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          id?: string
+          message_body: string
+          recipient_type: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          id?: string
+          message_body?: string
+          recipient_type?: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "message_templates"
             referencedColumns: ["id"]
           },
         ]

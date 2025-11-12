@@ -1,5 +1,13 @@
-import { useState } from "react";
-import { Send, MessageSquare, Mail, Clock, CheckCircle2, XCircle, Plus, Edit, Trash2, Filter } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Send, Mail, Clock, CheckCircle2, XCircle, Plus, Edit, Trash2, Filter } from "lucide-react";
+import {
+  useMessageTemplates,
+  useMessages,
+  useAutomatedReminders,
+  useGetRecipientContacts,
+  useSendMessage,
+  useToggleReminder,
+} from "@/hooks/useMessaging";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,130 +18,77 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
-const templates = [
-  {
-    id: 1,
-    name: "Payment Reminder",
-    channel: "WhatsApp",
-    subject: "",
-    message: "Hello {name}, this is a reminder that your payment of {amount} is due on {date}. Please make payment to avoid interruption of lessons.",
-    category: "Payment",
-  },
-  {
-    id: 2,
-    name: "Lesson Reminder",
-    channel: "SMS",
-    subject: "",
-    message: "Hi {name}, reminder: Your {instrument} lesson is tomorrow at {time} with {tutor}. See you there!",
-    category: "Lesson",
-  },
-  {
-    id: 3,
-    name: "Welcome Email",
-    channel: "Email",
-    subject: "Welcome to 49ice Academy!",
-    message: "Dear {name},\n\nWelcome to 49ice Academy of Music! We're excited to have you join our musical family.\n\nYour lessons will begin on {start_date}.\n\nBest regards,\nThe 49ice Team",
-    category: "General",
-  },
-  {
-    id: 4,
-    name: "Tutor Assignment",
-    channel: "Email",
-    subject: "Your Tutor Assignment",
-    message: "Hello {name},\n\nYour tutor for {instrument} is {tutor}. Lessons will be held {schedule}.\n\nLooking forward to your musical journey!",
-    category: "General",
-  },
-];
-
-const messageHistory = [
-  {
-    id: 1,
-    recipient: "John Mensah",
-    channel: "WhatsApp",
-    message: "Payment reminder for June fees",
-    status: "Delivered",
-    timestamp: "2024-01-15 10:30 AM",
-    template: "Payment Reminder",
-  },
-  {
-    id: 2,
-    recipient: "Bulk: 45 students",
-    channel: "Email",
-    message: "Monthly newsletter and updates",
-    status: "Sent",
-    timestamp: "2024-01-14 09:00 AM",
-    template: "Custom",
-  },
-  {
-    id: 3,
-    recipient: "Sarah Osei",
-    channel: "SMS",
-    message: "Lesson reminder for tomorrow",
-    status: "Delivered",
-    timestamp: "2024-01-14 05:00 PM",
-    template: "Lesson Reminder",
-  },
-  {
-    id: 4,
-    recipient: "Michael Asante",
-    channel: "WhatsApp",
-    message: "Welcome message",
-    status: "Failed",
-    timestamp: "2024-01-13 02:15 PM",
-    template: "Welcome Email",
-  },
-];
-
-const automatedReminders = [
-  {
-    id: 1,
-    name: "Lesson Reminder - 24h",
-    type: "Lesson",
-    channel: "WhatsApp",
-    trigger: "24 hours before lesson",
-    active: true,
-    sent: 156,
-  },
-  {
-    id: 2,
-    name: "Payment Due - 3 days",
-    type: "Payment",
-    channel: "Email",
-    trigger: "3 days before due date",
-    active: true,
-    sent: 89,
-  },
-  {
-    id: 3,
-    name: "Payment Overdue",
-    type: "Payment",
-    channel: "WhatsApp",
-    trigger: "1 day after due date",
-    active: true,
-    sent: 12,
-  },
-  {
-    id: 4,
-    name: "Lesson Reminder - 2h",
-    type: "Lesson",
-    channel: "SMS",
-    trigger: "2 hours before lesson",
-    active: false,
-    sent: 0,
-  },
-];
-
 export default function Messaging() {
-  const [selectedChannel, setSelectedChannel] = useState("WhatsApp");
+  const [selectedChannel, setSelectedChannel] = useState<'email' | 'sms'>("email");
   const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [selectedRecipientType, setSelectedRecipientType] = useState("");
+  const [subject, setSubject] = useState("");
+  const [messageBody, setMessageBody] = useState("");
+  const [recipients, setRecipients] = useState<any[]>([]);
+
+  const { data: templates = [], isLoading: templatesLoading } = useMessageTemplates();
+  const { data: messages = [], isLoading: messagesLoading } = useMessages();
+  const { data: automatedReminders = [], isLoading: remindersLoading } = useAutomatedReminders();
+  const getRecipients = useGetRecipientContacts();
+  const sendMessage = useSendMessage();
+  const toggleReminder = useToggleReminder();
+
+  // Fetch recipients when recipient type or channel changes
+  useEffect(() => {
+    if (selectedRecipientType && selectedChannel) {
+      getRecipients.mutate(
+        { recipientType: selectedRecipientType, channel: selectedChannel },
+        {
+          onSuccess: (data) => {
+            setRecipients(data);
+          },
+        }
+      );
+    }
+  }, [selectedRecipientType, selectedChannel]);
+
+  // Load template when selected
+  useEffect(() => {
+    if (selectedTemplate) {
+      const template = templates.find((t) => t.id === selectedTemplate);
+      if (template) {
+        setMessageBody(template.message);
+        if (template.subject) setSubject(template.subject);
+      }
+    }
+  }, [selectedTemplate, templates]);
+
+  const handleSendMessage = () => {
+    if (!messageBody || recipients.length === 0) {
+      return;
+    }
+
+    sendMessage.mutate({
+      channel: selectedChannel,
+      subject: selectedChannel === 'email' ? subject : undefined,
+      messageBody,
+      recipients,
+      templateId: selectedTemplate || undefined,
+      recipientType: selectedRecipientType,
+    }, {
+      onSuccess: () => {
+        setMessageBody("");
+        setSubject("");
+        setSelectedTemplate("");
+        setSelectedRecipientType("");
+        setRecipients([]);
+      },
+    });
+  };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Delivered":
+    switch (status.toLowerCase()) {
+      case "delivered":
+      case "sent":
         return "bg-green-500/10 text-green-600 border-green-500/20";
-      case "Sent":
+      case "sending":
         return "bg-blue-500/10 text-blue-600 border-blue-500/20";
-      case "Failed":
+      case "failed":
         return "bg-red-500/10 text-red-600 border-red-500/20";
       default:
         return "bg-muted text-muted-foreground";
@@ -141,15 +96,13 @@ export default function Messaging() {
   };
 
   const getChannelIcon = (channel: string) => {
-    switch (channel) {
-      case "WhatsApp":
-        return <MessageSquare className="h-4 w-4" />;
-      case "Email":
+    switch (channel.toLowerCase()) {
+      case "email":
         return <Mail className="h-4 w-4" />;
-      case "SMS":
+      case "sms":
         return <Send className="h-4 w-4" />;
       default:
-        return <MessageSquare className="h-4 w-4" />;
+        return <Mail className="h-4 w-4" />;
     }
   };
 
@@ -186,14 +139,13 @@ export default function Messaging() {
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label>Channel</Label>
-                      <Select value={selectedChannel} onValueChange={setSelectedChannel}>
+                      <Select value={selectedChannel} onValueChange={(value) => setSelectedChannel(value as 'email' | 'sms')}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="WhatsApp">WhatsApp</SelectItem>
-                          <SelectItem value="Email">Email</SelectItem>
-                          <SelectItem value="SMS">SMS</SelectItem>
+                          <SelectItem value="email">Email</SelectItem>
+                          <SelectItem value="sms">SMS</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -207,7 +159,7 @@ export default function Messaging() {
                           {templates
                             .filter((t) => t.channel === selectedChannel)
                             .map((template) => (
-                              <SelectItem key={template.id} value={template.id.toString()}>
+                              <SelectItem key={template.id} value={template.id}>
                                 {template.name}
                               </SelectItem>
                             ))}
@@ -218,7 +170,7 @@ export default function Messaging() {
 
                   <div className="space-y-2">
                     <Label>Recipients</Label>
-                    <Select>
+                    <Select value={selectedRecipientType} onValueChange={setSelectedRecipientType}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select recipients" />
                       </SelectTrigger>
@@ -226,16 +178,25 @@ export default function Messaging() {
                         <SelectItem value="all-students">All Students</SelectItem>
                         <SelectItem value="all-parents">All Parents</SelectItem>
                         <SelectItem value="all-tutors">All Tutors</SelectItem>
+                        <SelectItem value="all-staff">All Staff</SelectItem>
                         <SelectItem value="pending-payments">Pending Payments</SelectItem>
-                        <SelectItem value="custom">Custom Selection</SelectItem>
                       </SelectContent>
                     </Select>
+                    {recipients.length > 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        {recipients.length} recipient(s) selected
+                      </p>
+                    )}
                   </div>
 
-                  {selectedChannel === "Email" && (
+                  {selectedChannel === "email" && (
                     <div className="space-y-2">
                       <Label>Subject</Label>
-                      <Input placeholder="Email subject" />
+                      <Input 
+                        placeholder="Email subject" 
+                        value={subject}
+                        onChange={(e) => setSubject(e.target.value)}
+                      />
                     </div>
                   )}
 
@@ -244,23 +205,28 @@ export default function Messaging() {
                     <Textarea
                       placeholder="Type your message here..."
                       className="min-h-[200px]"
+                      value={messageBody}
+                      onChange={(e) => setMessageBody(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">
                       Use variables: {"{name}"}, {"{amount}"}, {"{date}"}, {"{instrument}"}, {"{tutor}"}
                     </p>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Switch id="schedule" />
-                    <Label htmlFor="schedule">Schedule for later</Label>
+                    {selectedChannel === 'sms' && (
+                      <p className="text-xs text-muted-foreground">
+                        Character count: {messageBody.length}/160
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex gap-3">
-                    <Button className="gradient-primary flex-1">
+                    <Button 
+                      className="gradient-primary flex-1" 
+                      onClick={handleSendMessage}
+                      disabled={sendMessage.isPending || !messageBody || recipients.length === 0}
+                    >
                       <Send className="mr-2 h-4 w-4" />
-                      Send Now
+                      {sendMessage.isPending ? "Sending..." : "Send Now"}
                     </Button>
-                    <Button variant="outline">Save as Draft</Button>
                   </div>
                 </CardContent>
               </Card>
@@ -273,20 +239,26 @@ export default function Messaging() {
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Sent Today</span>
-                        <span className="font-semibold text-foreground">127</span>
+                        <span className="text-muted-foreground">Total Messages</span>
+                        <span className="font-semibold text-foreground">{messages.length}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Delivered</span>
-                        <span className="font-semibold text-green-600">122</span>
+                        <span className="text-muted-foreground">Sent</span>
+                        <span className="font-semibold text-green-600">
+                          {messages.filter(m => m.status === 'sent').length}
+                        </span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Failed</span>
-                        <span className="font-semibold text-red-600">5</span>
+                        <span className="font-semibold text-red-600">
+                          {messages.filter(m => m.status === 'failed').length}
+                        </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Pending</span>
-                        <span className="font-semibold text-orange-600">3</span>
+                        <span className="text-muted-foreground">Sending</span>
+                        <span className="font-semibold text-orange-600">
+                          {messages.filter(m => m.status === 'sending').length}
+                        </span>
                       </div>
                     </div>
                   </CardContent>
@@ -297,15 +269,6 @@ export default function Messaging() {
                     <CardTitle className="text-lg">Channel Status</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="h-4 w-4 text-green-600" />
-                        <span className="text-sm">WhatsApp</span>
-                      </div>
-                      <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
-                        Active
-                      </Badge>
-                    </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Mail className="h-4 w-4 text-blue-600" />
@@ -320,8 +283,8 @@ export default function Messaging() {
                         <Send className="h-4 w-4 text-purple-600" />
                         <span className="text-sm">SMS</span>
                       </div>
-                      <Badge className="bg-orange-500/10 text-orange-600 border-orange-500/20">
-                        Limited
+                      <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
+                        Active
                       </Badge>
                     </div>
                   </CardContent>
@@ -332,47 +295,56 @@ export default function Messaging() {
 
           {/* Templates Tab */}
           <TabsContent value="templates" className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              {templates.map((template) => (
-                <Card key={template.id} className="shadow-card hover:shadow-primary transition-all">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-3 rounded-lg ${
-                          template.channel === "WhatsApp" ? "bg-green-500/10" :
-                          template.channel === "Email" ? "bg-blue-500/10" : "bg-purple-500/10"
-                        }`}>
-                          {getChannelIcon(template.channel)}
+            {templatesLoading ? (
+              <p>Loading templates...</p>
+            ) : templates.length === 0 ? (
+              <Card className="shadow-card">
+                <CardContent className="p-12 text-center">
+                  <p className="text-muted-foreground">No templates yet. Create your first template!</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2">
+                {templates.map((template) => (
+                  <Card key={template.id} className="shadow-card hover:shadow-primary transition-all">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-3 rounded-lg ${
+                            template.channel === "email" ? "bg-blue-500/10" : "bg-purple-500/10"
+                          }`}>
+                            {getChannelIcon(template.channel)}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-foreground">{template.name}</h3>
+                            <p className="text-sm text-muted-foreground capitalize">{template.channel}</p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-foreground">{template.name}</h3>
-                          <p className="text-sm text-muted-foreground">{template.channel}</p>
+                        <div className="flex gap-2">
+                          <Button size="icon" variant="ghost">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Button size="icon" variant="ghost">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    {template.subject && (
-                      <p className="text-sm font-medium text-foreground mb-2">
-                        Subject: {template.subject}
+                      {template.subject && (
+                        <p className="text-sm font-medium text-foreground mb-2">
+                          Subject: {template.subject}
+                        </p>
+                      )}
+                      <p className="text-sm text-muted-foreground line-clamp-3">
+                        {template.message}
                       </p>
-                    )}
-                    <p className="text-sm text-muted-foreground line-clamp-3">
-                      {template.message}
-                    </p>
-                    <Badge className="mt-4" variant="outline">
-                      {template.category}
-                    </Badge>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      <Badge className="mt-4" variant="outline">
+                        {template.category}
+                      </Badge>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           {/* Delivery Tracking Tab */}
@@ -388,38 +360,50 @@ export default function Messaging() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {messageHistory.map((message) => (
-                    <div
-                      key={message.id}
-                      className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className={`p-2 rounded-lg ${
-                          message.channel === "WhatsApp" ? "bg-green-500/10" :
-                          message.channel === "Email" ? "bg-blue-500/10" : "bg-purple-500/10"
-                        }`}>
-                          {getChannelIcon(message.channel)}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-foreground">{message.recipient}</p>
-                          <p className="text-sm text-muted-foreground">{message.message}</p>
-                          <div className="flex items-center gap-3 mt-1">
-                            <span className="text-xs text-muted-foreground">{message.timestamp}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {message.template}
-                            </Badge>
+                {messagesLoading ? (
+                  <p>Loading messages...</p>
+                ) : messages.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">No messages sent yet</p>
+                ) : (
+                  <div className="space-y-4">
+                    {messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className={`p-2 rounded-lg ${
+                            message.channel === "email" ? "bg-blue-500/10" : "bg-purple-500/10"
+                          }`}>
+                            {getChannelIcon(message.channel)}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-foreground">
+                              {message.message_recipients?.length || 0} recipient(s)
+                            </p>
+                            <p className="text-sm text-muted-foreground line-clamp-1">
+                              {message.message_body.substring(0, 50)}...
+                            </p>
+                            <div className="flex items-center gap-3 mt-1">
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(message.created_at).toLocaleString()}
+                              </span>
+                              <Badge variant="outline" className="text-xs capitalize">
+                                {message.channel}
+                              </Badge>
+                            </div>
                           </div>
                         </div>
+                        <Badge className={getStatusColor(message.status)} variant="outline">
+                          {message.status === "sent" && <CheckCircle2 className="mr-1 h-3 w-3" />}
+                          {message.status === "failed" && <XCircle className="mr-1 h-3 w-3" />}
+                          {message.status === "sending" && <Clock className="mr-1 h-3 w-3" />}
+                          {message.status}
+                        </Badge>
                       </div>
-                      <Badge className={getStatusColor(message.status)} variant="outline">
-                        {message.status === "Delivered" && <CheckCircle2 className="mr-1 h-3 w-3" />}
-                        {message.status === "Failed" && <XCircle className="mr-1 h-3 w-3" />}
-                        {message.status}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -439,26 +423,32 @@ export default function Messaging() {
                     >
                       <div className="flex items-center gap-4">
                         <div className={`p-2 rounded-lg ${
-                          reminder.channel === "WhatsApp" ? "bg-green-500/10" :
-                          reminder.channel === "Email" ? "bg-blue-500/10" : "bg-purple-500/10"
+                          reminder.channel === "email" ? "bg-blue-500/10" : "bg-purple-500/10"
                         }`}>
-                          <Clock className="h-4 w-4" />
+                          {getChannelIcon(reminder.channel)}
                         </div>
                         <div>
                           <p className="font-semibold text-foreground">{reminder.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            {reminder.trigger} • {reminder.channel}
+                            {reminder.trigger_type}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Sent: {reminder.sent} times
-                          </p>
+                          <div className="flex items-center gap-3 mt-1">
+                            <Badge variant="outline" className="text-xs capitalize">
+                              {reminder.type}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              Sent {reminder.times_sent} times
+                            </span>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <Badge variant="outline">
-                          {reminder.type}
-                        </Badge>
-                        <Switch checked={reminder.active} />
+                      <div className="flex items-center gap-3">
+                        <Switch 
+                          checked={reminder.is_active} 
+                          onCheckedChange={(checked) => {
+                            toggleReminder.mutate({ id: reminder.id, isActive: checked });
+                          }}
+                        />
                       </div>
                     </div>
                   ))}
