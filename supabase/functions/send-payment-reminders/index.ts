@@ -133,18 +133,14 @@ serve(async (req) => {
       const recipientPhone = payment.students?.parent_phone || payment.students?.phone;
       if (recipientPhone && smsApiKey) {
         try {
-          const smsResponse = await fetch('https://api.smsonlinegh.com/v5/sms/send', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${smsApiKey}`,
-            },
-            body: JSON.stringify({
-              sender: senderId,
-              recipients: [recipientPhone],
-              message: smsMessage,
-            }),
-          });
+          // Build SMS URL with query parameters
+          const smsUrl = new URL('https://api.smsonlinegh.com/v5/sms/send');
+          smsUrl.searchParams.append('key', smsApiKey);
+          smsUrl.searchParams.append('to', recipientPhone);
+          smsUrl.searchParams.append('msg', smsMessage);
+          smsUrl.searchParams.append('sender_id', senderId);
+
+          const smsResponse = await fetch(smsUrl.toString());
 
           if (smsResponse.ok) {
             console.log(`SMS sent to ${recipientPhone} for payment ${payment.id}`);
