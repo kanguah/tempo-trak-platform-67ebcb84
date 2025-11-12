@@ -451,6 +451,12 @@ export default function Calendar() {
               selected={selectedDate}
               onSelect={(date) => date && setSelectedDate(date)}
               className="rounded-md"
+              modifiers={{
+                hasLesson: lessonsWithDates.map(lesson => lesson.date)
+              }}
+              modifiersClassNames={{
+                hasLesson: "relative after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-primary"
+              }}
             />
           </Card>
 
