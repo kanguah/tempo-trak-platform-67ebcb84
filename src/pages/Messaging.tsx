@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Send, Mail, Clock, CheckCircle2, XCircle, Plus, Edit, Trash2, Filter } from "lucide-react";
+import { Send, Mail, Clock, CheckCircle2, XCircle, Edit, Trash2, Filter } from "lucide-react";
 import {
   useMessageTemplates,
   useMessages,
@@ -9,6 +9,7 @@ import {
   useToggleReminder,
 } from "@/hooks/useMessaging";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import CreateTemplateDialog from "@/components/messaging/CreateTemplateDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -114,10 +115,7 @@ export default function Messaging() {
             <h1 className="text-4xl font-bold text-foreground mb-2">Messaging Center</h1>
             <p className="text-muted-foreground">Send messages, manage templates, and track delivery</p>
           </div>
-          <Button className="gradient-primary text-primary-foreground shadow-primary">
-            <Plus className="mr-2 h-5 w-5" />
-            New Template
-          </Button>
+          <CreateTemplateDialog />
         </div>
 
         <Tabs defaultValue="send" className="space-y-6">
