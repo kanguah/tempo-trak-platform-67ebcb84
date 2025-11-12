@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, UserCheck, Calendar, ClipboardCheck, CreditCard, DollarSign, Megaphone, MessageSquare, TrendingUp, FileText, Bell, Settings, Music, Archive, TrendingDown } from "lucide-react";
+import { LayoutDashboard, Users, UserCheck, Briefcase, Calendar, ClipboardCheck, CreditCard, DollarSign, Megaphone, MessageSquare, TrendingUp, FileText, Bell, Settings, Music, Archive, TrendingDown } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -16,6 +16,10 @@ const directorItems = [{
   title: "Tutors",
   url: "/tutors",
   icon: UserCheck
+}, {
+  title: "Staff",
+  url: "/staff",
+  icon: Briefcase
 }, {
   title: "Calendar",
   url: "/calendar",
@@ -78,7 +82,7 @@ export function AppSidebar() {
   
   // Filter director items based on admin status
   const filteredDirectorItems = directorItems.filter(item => {
-    if (item.title === "Payroll") {
+    if (item.title === "Payroll" || item.title === "Staff") {
       return user && !isLoading && isAdmin;
     }
     return true;

@@ -11,6 +11,8 @@ import Students from "./pages/Students";
 import StudentProfile from "./pages/StudentProfile";
 import Tutors from "./pages/Tutors";
 import TutorProfile from "./pages/TutorProfile";
+import Staff from "./pages/Staff";
+import StaffProfile from "./pages/StaffProfile";
 import Calendar from "./pages/Calendar";
 import Attendance from "./pages/Attendance";
 import Payments from "./pages/Payments";
@@ -61,6 +63,8 @@ const App = () => (
             <Route path="/students/:id" element={<ProtectedRoute><Layout><StudentProfile /></Layout></ProtectedRoute>} />
             <Route path="/tutors" element={<ProtectedRoute><Layout><Tutors /></Layout></ProtectedRoute>} />
             <Route path="/tutors/:id" element={<ProtectedRoute><Layout><TutorProfile /></Layout></ProtectedRoute>} />
+            <Route path="/staff" element={<ProtectedRoute><Layout><Staff /></Layout></ProtectedRoute>} />
+            <Route path="/staff/:id" element={<ProtectedRoute><Layout><StaffProfile /></Layout></ProtectedRoute>} />
             <Route path="/calendar" element={<ProtectedRoute><Layout><Calendar /></Layout></ProtectedRoute>} />
             <Route path="/attendance" element={<ProtectedRoute><Layout><Attendance /></Layout></ProtectedRoute>} />
             <Route path="/payments" element={<ProtectedRoute><Layout><Payments /></Layout></ProtectedRoute>} />
