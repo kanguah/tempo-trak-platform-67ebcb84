@@ -111,6 +111,31 @@ export default function Payments() {
       toast.error("Failed to send reminder");
     }
   });
+
+  const forceSendReminderMutation = useMutation({
+    mutationFn: async (paymentId: string) => {
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('send-payment-reminders', {
+        body: {
+          paymentId,
+          force: true
+        }
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: data => {
+      queryClient.invalidateQueries({
+        queryKey: ['payments']
+      });
+      toast.success(`Force sent ${data.remindersSent} reminder(s)!`);
+    },
+    onError: () => {
+      toast.error("Failed to force send reminder");
+    }
+  });
   const verifyPaymentMutation = useMutation({
     mutationFn: async ({
       paymentId,
@@ -448,10 +473,16 @@ export default function Payments() {
                                     <CreditCard className="h-4 w-4 mr-1" />
                                     Verify Payment
                                   </Button>}
-                                <Button size="sm" variant="outline" onClick={() => sendSingleReminderMutation.mutate(payment.id)} disabled={sendSingleReminderMutation.isPending}>
-                                  <Send className="h-4 w-4 mr-1" />
-                                  Send Reminder
-                                </Button>
+                                <div className="flex gap-2">
+                                  <Button size="sm" variant="outline" onClick={() => sendSingleReminderMutation.mutate(payment.id)} disabled={sendSingleReminderMutation.isPending}>
+                                    <Send className="h-4 w-4 mr-1" />
+                                    Send Reminder
+                                  </Button>
+                                  <Button size="sm" variant="secondary" onClick={() => forceSendReminderMutation.mutate(payment.id)} disabled={forceSendReminderMutation.isPending} title="Force send reminder (bypasses timing checks)">
+                                    <Send className="h-4 w-4 mr-1" />
+                                    Force Send
+                                  </Button>
+                                </div>
                               </div>}
                           </div>
                         </div>
