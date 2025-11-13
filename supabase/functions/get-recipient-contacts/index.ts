@@ -54,7 +54,7 @@ serve(async (req) => {
           .select("id, name, email, phone, parent_email, parent_phone")
           .eq("user_id", user.id)
           .eq("status", "active");
-
+        console.log(students);
         if (error) throw error;
 
         contacts = students.map((student) => ({
