@@ -28,7 +28,17 @@ serve(async (req) => {
     // Extract JWT token from "Bearer <token>"
     const jwt = authHeader.replace("Bearer ", "");
 
-    const supabaseClient = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_ANON_KEY") ?? "");
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${jwt}`
+          }
+        }
+      }
+    );
 
     // Pass JWT directly to getUser
     const {
@@ -44,18 +54,23 @@ serve(async (req) => {
     const { recipientType, channel } = await req.json();
 
     console.log(`Fetching contacts for: ${recipientType}, channel: ${channel}`);
+    console.log('Authenticated user ID:', user.id);
     let contacts: RecipientContact[] = [];
 
     switch (recipientType) {
       case "all-students": {
-        console.log("i am in");
+        console.log('Querying students with user_id:', user.id);
         const { data: students, error } = await supabaseClient
           .from("students")
           .select("id, name, email, phone, parent_email, parent_phone")
           .eq("user_id", user.id)
           .eq("status", "active");
-        console.log(students);
-        if (error) throw error;
+        
+        console.log('Students query result:', { count: students?.length, error });
+        if (error) {
+          console.error('Students query error:', error);
+          throw error;
+        }
 
         contacts = students.map((student) => ({
           id: student.id,
@@ -171,6 +186,8 @@ serve(async (req) => {
         throw new Error(`Unknown recipient type: ${recipientType}`);
     }
 
+    console.log('Total contacts before filtering:', contacts.length);
+    
     // Filter by channel - only return contacts that have the appropriate contact info
     const filteredContacts = contacts.filter((contact) => {
       if (channel === "email") {
@@ -181,7 +198,7 @@ serve(async (req) => {
       return true;
     });
 
-    console.log(`Found ${filteredContacts.length} contacts for ${recipientType}`);
+    console.log(`Found ${filteredContacts.length} contacts for ${recipientType} (channel: ${channel})`);
 
     return new Response(
       JSON.stringify({
