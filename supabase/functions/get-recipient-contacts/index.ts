@@ -43,7 +43,7 @@ serve(async (req) => {
 
     const { recipientType, channel } = await req.json();
 
-    console.log(`Fetching contacts for: ${recipientType}, channel: ${channel}`);
+    console.log(`Fetching contacts for: ${recipientType}, channel: ${channel} set by honourable.`);
 
     let contacts: RecipientContact[] = [];
 
