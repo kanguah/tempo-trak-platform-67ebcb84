@@ -44,7 +44,8 @@ serve(async (req) => {
     const { recipientType, channel } = await req.json();
 
     console.log(`Fetching contacts for: ${recipientType}, channel: ${channel} set by honourable.`);
-
+    console.log(students);
+    console.log(await supabaseClient.from("students"));
     let contacts: RecipientContact[] = [];
 
     switch (recipientType) {
@@ -55,9 +56,6 @@ serve(async (req) => {
           .select("id, name, email, phone, parent_email, parent_phone")
           .eq("user_id", user.id)
           .eq("status", "active");
-
-        console.log(students);
-        console.log(await supabaseClient.from("students"));
 
         if (error) throw error;
 
