@@ -41,7 +41,7 @@ export default function Messaging() {
         { recipientType: selectedRecipientType, channel: selectedChannel },
         {
           onSuccess: (data) => {
-            console.log("the is my debug data" + data);
+            console.log("the is my debug data" + data + selectedRecipientType + selectedChannel);
             setRecipients(data);
           },
         },
