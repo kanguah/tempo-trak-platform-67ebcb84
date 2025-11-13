@@ -52,11 +52,12 @@ serve(async (req) => {
         const { data: students, error } = await supabaseClient
           .from("students")
           .select("id, name, email, phone, parent_email, parent_phone")
-
+          .eq("user_id", user.id)
           .eq("status", "active");
 
         if (error) throw error;
-
+        console.log(students);
+        console.log(await supabaseClient.from("students"));
         contacts = students.map((student) => ({
           id: student.id,
           name: student.name,
