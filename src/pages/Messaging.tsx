@@ -37,6 +37,7 @@ export default function Messaging() {
   // Fetch recipients when recipient type or channel changes
   useEffect(() => {
     if (selectedRecipientType && selectedChannel) {
+      console.log("the is my debug data" + selectedRecipientType + selectedChannel);
       getRecipients.mutate(
         { recipientType: selectedRecipientType, channel: selectedChannel },
         {
