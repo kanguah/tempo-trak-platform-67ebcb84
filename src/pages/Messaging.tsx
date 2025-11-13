@@ -114,54 +114,54 @@ export default function Messaging() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="p-8 space-y-8 animate-fade-in">
-        <div className="flex items-center justify-between">
+      <div className="p-4 md:p-8 space-y-6 md:space-y-8 animate-fade-in">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-foreground mb-2">Messaging Center</h1>
-            <p className="text-muted-foreground">Send messages, manage templates, and track delivery</p>
+            <h1 className="text-2xl md:text-4xl font-bold text-foreground mb-2">Messaging Center</h1>
+            <p className="text-sm md:text-base text-muted-foreground">Send messages, manage templates, and track delivery</p>
           </div>
           <CreateTemplateDialog />
         </div>
 
-        <Tabs defaultValue="send" className="space-y-6">
-          <TabsList className="bg-card">
-            <TabsTrigger value="send">Send Messages</TabsTrigger>
-            <TabsTrigger value="templates">Templates</TabsTrigger>
-            <TabsTrigger value="history">Delivery Tracking</TabsTrigger>
-            <TabsTrigger value="automation">Automated Reminders</TabsTrigger>
+        <Tabs defaultValue="send" className="space-y-4 md:space-y-6">
+          <TabsList className="bg-card w-full sm:w-auto grid grid-cols-2 sm:grid-cols-4 h-auto">
+            <TabsTrigger value="send" className="text-xs sm:text-sm py-2">Send Messages</TabsTrigger>
+            <TabsTrigger value="templates" className="text-xs sm:text-sm py-2">Templates</TabsTrigger>
+            <TabsTrigger value="history" className="text-xs sm:text-sm py-2">Tracking</TabsTrigger>
+            <TabsTrigger value="automation" className="text-xs sm:text-sm py-2">Reminders</TabsTrigger>
           </TabsList>
 
           {/* Send Messages Tab */}
-          <TabsContent value="send" className="space-y-6">
-            <div className="grid gap-6 lg:grid-cols-3">
+          <TabsContent value="send" className="space-y-4 md:space-y-6">
+            <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
               <Card className="lg:col-span-2 shadow-card">
                 <CardHeader>
-                  <CardTitle>Compose Message</CardTitle>
+                  <CardTitle className="text-base md:text-lg">Compose Message</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label>Channel</Label>
+                      <Label className="text-sm">Channel</Label>
                       <Select
                         value={selectedChannel}
                         onValueChange={(value) => setSelectedChannel(value as "email" | "sms")}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="h-11 md:h-10">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-background z-50">
                           <SelectItem value="email">Email</SelectItem>
                           <SelectItem value="sms">SMS</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>Template (Optional)</Label>
+                      <Label className="text-sm">Template (Optional)</Label>
                       <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-11 md:h-10">
                           <SelectValue placeholder="Select template" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-background z-50">
                           {templates
                             .filter((t) => t.channel === selectedChannel)
                             .map((template) => (
@@ -175,12 +175,12 @@ export default function Messaging() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Recipients</Label>
+                    <Label className="text-sm">Recipients</Label>
                     <Select value={selectedRecipientType} onValueChange={setSelectedRecipientType}>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-11 md:h-10">
                         <SelectValue placeholder="Select recipients" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-background z-50">
                         <SelectItem value="all-students">All Students</SelectItem>
                         <SelectItem value="all-parents">All Parents</SelectItem>
                         <SelectItem value="all-tutors">All Tutors</SelectItem>
@@ -189,7 +189,7 @@ export default function Messaging() {
                       </SelectContent>
                     </Select>
                     {recipients.length > 0 && (
-                      <p className="text-sm text-muted-foreground">{recipients.length} recipient(s) selected</p>
+                      <p className="text-xs md:text-sm text-muted-foreground">{recipients.length} recipient(s) selected</p>
                     )}
                   </div>
 
