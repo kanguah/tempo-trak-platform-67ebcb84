@@ -377,7 +377,7 @@ export default function StudentProfile() {
                   <div className="flex items-center gap-3">
                     
                     <div>
-                      <p className="text-sm text-muted-foreground">Instruments</p>
+                      <p className="text-sm text-muted-foreground">Instrument</p>
                       <p className="text-sm font-medium">{student.subjects?.join(", ") || "None"}</p>
                     </div>
                   </div>
