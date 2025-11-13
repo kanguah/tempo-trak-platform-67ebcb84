@@ -117,22 +117,22 @@ function DraggableLeadCard({
     animationDelay: `${stageIndex * 0.1 + index * 0.05}s`
   };
   return <Card ref={setNodeRef} style={style} className={`border-2 hover:shadow-lg transition-all cursor-grab active:cursor-grabbing animate-scale-in ${isDragging ? 'shadow-2xl ring-2 ring-primary' : ''}`} onClick={() => !isDragging && onEdit(lead)}>
-      <CardContent className="p-4">
+      <CardContent className="p-3 md:p-4">
         <div className="flex items-start gap-2 mb-2">
           <div {...listeners} {...attributes} className="touch-none mt-1">
             <GripVertical className="h-4 w-4 text-muted-foreground" />
           </div>
-          <h3 className="font-bold text-foreground flex-1">{lead.name}</h3>
+          <h3 className="font-bold text-sm md:text-base text-foreground flex-1 truncate">{lead.name}</h3>
           <Button 
             size="icon" 
             variant="ghost" 
-            className="h-6 w-6 text-muted-foreground hover:text-foreground" 
+            className="h-7 w-7 md:h-8 md:w-8 text-muted-foreground hover:text-foreground" 
             onClick={e => {
               e.stopPropagation();
               onArchive(lead.id);
             }}
           >
-            <Archive className="h-4 w-4" />
+            <Archive className="h-3 w-3 md:h-4 md:w-4" />
           </Button>
         </div>
         
@@ -143,19 +143,19 @@ function DraggableLeadCard({
         
 
         <div className="flex gap-2 mb-2">
-          <Button size="sm" variant="outline" className="flex-1" onClick={e => {
+          <Button size="sm" variant="outline" className="flex-1 h-9 md:h-8 text-xs" onClick={e => {
           e.stopPropagation();
           toast.success(`Calling ${lead.name}...`);
         }}>
             <Phone className="h-3 w-3 mr-1" />
-            Call
+            <span className="hidden sm:inline">Call</span>
           </Button>
-          <Button size="sm" variant="outline" className="flex-1" onClick={e => {
+          <Button size="sm" variant="outline" className="flex-1 h-9 md:h-8 text-xs" onClick={e => {
           e.stopPropagation();
           window.location.href = `mailto:${lead.email}?subject=Follow up - ${lead.instrument} Lessons`;
         }}>
             <Mail className="h-3 w-3 mr-1" />
-            Email
+            <span className="hidden sm:inline">Email</span>
           </Button>
         </div>
 
@@ -191,18 +191,18 @@ function DroppableStage({
     animationDelay: `${stageIndex * 0.1}s`
   }}>
       <CardHeader className={`${stage.color} text-white rounded-t-lg`}>
-        <CardTitle className="text-lg flex items-center justify-between">
+        <CardTitle className="text-base md:text-lg flex items-center justify-between">
           <span>{stage.label}</span>
-          <Badge className="bg-white/20 text-white border-white/30">
+          <Badge className="bg-white/20 text-white border-white/30 text-xs md:text-sm">
             {leads.length}
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent ref={setNodeRef} className={`p-4 space-y-3 min-h-[400px] transition-colors ${isOver ? 'bg-accent/50' : ''}`}>
+      <CardContent ref={setNodeRef} className={`p-3 md:p-4 space-y-3 min-h-[300px] md:min-h-[400px] transition-colors ${isOver ? 'bg-accent/50' : ''}`}>
         {leads.map((lead, index) => <DraggableLeadCard key={lead.id} lead={lead} index={index} stageIndex={stageIndex} onArchive={onArchive} onEdit={onEdit} />)}
 
         {leads.length === 0 && <div className="text-center py-8 text-muted-foreground">
-            <p className="text-sm">No leads in this stage</p>
+            <p className="text-xs md:text-sm">No leads in this stage</p>
             {isOver && <p className="text-xs mt-2">Drop here</p>}
           </div>}
       </CardContent>
@@ -429,57 +429,57 @@ export default function CRM() {
     }
   };
   return <div className="min-h-screen bg-background">
-      <div className="p-8 space-y-8 animate-fade-in">
+      <div className="p-4 md:p-8 space-y-6 md:space-y-8 animate-fade-in">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-foreground mb-2">CRM & Leads</h1>
-            <p className="text-muted-foreground">Manage prospects and student recruitment</p>
+            <h1 className="text-2xl md:text-4xl font-bold text-foreground mb-2">CRM & Leads</h1>
+            <p className="text-sm md:text-base text-muted-foreground">Manage prospects and student recruitment</p>
           </div>
-          <Button className="gradient-primary text-primary-foreground shadow-primary" onClick={() => setAddDialogOpen(true)}>
-            <Plus className="mr-2 h-5 w-5" />
+          <Button className="gradient-primary text-primary-foreground shadow-primary w-full sm:w-auto" onClick={() => setAddDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4 md:h-5 md:w-5" />
             Add Lead
           </Button>
         </div>
 
         {/* Add Lead Dialog */}
         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md w-full mx-4">
             <DialogHeader>
-              <DialogTitle>Add New Lead</DialogTitle>
+              <DialogTitle className="text-base md:text-lg">Add New Lead</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Name *</Label>
-                <Input id="name" value={newLead.name} onChange={e => setNewLead({
+                <Label htmlFor="name" className="text-sm">Name *</Label>
+                <Input id="name" className="h-11 md:h-10" value={newLead.name} onChange={e => setNewLead({
                 ...newLead,
                 name: e.target.value
               })} placeholder="Enter full name" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
-                <Input id="email" type="email" value={newLead.email} onChange={e => setNewLead({
+                <Label htmlFor="email" className="text-sm">Email *</Label>
+                <Input id="email" type="email" className="h-11 md:h-10" value={newLead.email} onChange={e => setNewLead({
                 ...newLead,
                 email: e.target.value
               })} placeholder="email@example.com" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone *</Label>
-                <Input id="phone" value={newLead.phone} onChange={e => setNewLead({
+                <Label htmlFor="phone" className="text-sm">Phone *</Label>
+                <Input id="phone" className="h-11 md:h-10" value={newLead.phone} onChange={e => setNewLead({
                 ...newLead,
                 phone: e.target.value
               })} placeholder="+233 24 000 0000" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="instrument">Instrument *</Label>
+                <Label htmlFor="instrument" className="text-sm">Instrument *</Label>
                 <Select value={newLead.instrument} onValueChange={value => setNewLead({
                 ...newLead,
                 instrument: value
               })}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-11 md:h-10">
                     <SelectValue placeholder="Select instrument" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background z-50">
                     <SelectItem value="Piano">Piano</SelectItem>
                     <SelectItem value="Guitar">Guitar</SelectItem>
                     <SelectItem value="Voice">Voice</SelectItem>
@@ -648,21 +648,21 @@ export default function CRM() {
         </Dialog>
 
         {/* Summary Cards */}
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-3">
           {stages.map((stage, index) => {
           const count = getLeadsByStage(stage.id).length;
           return <Card key={stage.id} className={`shadow-card border-l-4 animate-scale-in`} style={{
             borderLeftColor: `${stage.color.replace("bg-", "var(--")}`,
             animationDelay: `${index * 0.1}s`
           }}>
-                <CardContent className="p-6">
+                <CardContent className="p-4 md:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">{stage.label}</p>
-                      <h3 className="text-3xl font-bold text-foreground">{count}</h3>
+                      <p className="text-xs md:text-sm text-muted-foreground mb-1">{stage.label}</p>
+                      <h3 className="text-2xl md:text-3xl font-bold text-foreground">{count}</h3>
                     </div>
-                    <div className={`h-12 w-12 rounded-full ${stage.color}/10 flex items-center justify-center`}>
-                      <UserPlus className={`h-6 w-6 ${stage.color.replace("bg-", "text-")}`} />
+                    <div className={`h-10 w-10 md:h-12 md:w-12 rounded-full ${stage.color}/10 flex items-center justify-center`}>
+                      <UserPlus className={`h-5 w-5 md:h-6 md:w-6 ${stage.color.replace("bg-", "text-")}`} />
                     </div>
                   </div>
                 </CardContent>
@@ -675,14 +675,14 @@ export default function CRM() {
           <CardContent className="p-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input placeholder="Search leads by name, email, or instrument..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
+              <Input placeholder="Search leads..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10 h-11 md:h-10" />
             </div>
           </CardContent>
         </Card>
 
         {/* Pipeline Board */}
         <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
             {stages.map((stage, stageIndex) => <DroppableStage key={stage.id} stage={stage} leads={getLeadsByStage(stage.id)} stageIndex={stageIndex} onArchive={handleArchiveLead} onEdit={handleOpenEditDialog} />)}
           </div>
           <DragOverlay>
@@ -691,8 +691,8 @@ export default function CRM() {
                   <div className="flex items-start gap-2">
                     <GripVertical className="h-4 w-4 text-muted-foreground mt-1" />
                     <div className="flex-1">
-                      <h3 className="font-bold text-foreground mb-2">{activeLead.name}</h3>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <h3 className="font-bold text-sm md:text-base text-foreground mb-2">{activeLead.name}</h3>
+                      <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
                         <Mail className="h-4 w-4" />
                         <span className="truncate">{activeLead.email}</span>
                       </div>

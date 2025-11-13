@@ -175,15 +175,15 @@ export default function Dashboard() {
     color: p.status === "completed" ? "text-green-600" : "text-orange-600"
   }))].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 8);
   return <div className="min-h-screen bg-background">
-      <div className="p-8 space-y-8 animate-fade-in">
+      <div className="p-4 md:p-8 space-y-6 md:space-y-8 animate-fade-in">
         {/* Header */}
         <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">Welcome back!</h1>
-          <p className="text-muted-foreground">Here's what's happening at your academy today</p>
+          <h1 className="text-2xl md:text-4xl font-bold text-foreground mb-2">Welcome back!</h1>
+          <p className="text-sm md:text-base text-muted-foreground">Here's what's happening at your academy today</p>
         </div>
 
         {/* Metrics Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard title="Active Students" value={activeStudents} icon={Users} trend={{
           value: `${students.length} total`,
           isPositive: true
@@ -203,21 +203,21 @@ export default function Dashboard() {
         </div>
 
         {/* Charts Row */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-2">
           {/* Revenue Chart */}
           <Card className="shadow-card animate-slide-up">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-primary" />
                 Revenue Trend (Last 6 Months)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {revenueData.some(d => d.revenue > 0) ? <ResponsiveContainer width="100%" height={300}>
+              {revenueData.some(d => d.revenue > 0) ? <ResponsiveContainer width="100%" height={250}>
                   <LineChart data={revenueData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
-                    <YAxis stroke="hsl(var(--muted-foreground))" />
+                    <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
                     <Tooltip contentStyle={{
                   backgroundColor: "hsl(var(--card))",
                   border: "1px solid hsl(var(--border))",
@@ -239,17 +239,17 @@ export default function Dashboard() {
           animationDelay: "0.1s"
         }}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-secondary" />
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                <Users className="h-4 w-4 md:h-5 md:w-5 text-secondary" />
                 Student Growth (Last 6 Months)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {studentGrowthData.some(d => d.students > 0) ? <ResponsiveContainer width="100%" height={300}>
+              {studentGrowthData.some(d => d.students > 0) ? <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={studentGrowthData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
-                    <YAxis stroke="hsl(var(--muted-foreground))" />
+                    <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
                     <Tooltip contentStyle={{
                   backgroundColor: "hsl(var(--card))",
                   border: "1px solid hsl(var(--border))",
@@ -257,7 +257,7 @@ export default function Dashboard() {
                 }} />
                     <Bar dataKey="students" fill="hsl(var(--secondary))" radius={[8, 8, 0, 0]} />
                   </BarChart>
-                </ResponsiveContainer> : <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                </ResponsiveContainer> : <div className="h-[250px] flex items-center justify-center text-muted-foreground">
                   No student data yet
                 </div>}
             </CardContent>
@@ -265,13 +265,13 @@ export default function Dashboard() {
         </div>
 
         {/* Bottom Row */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-2">
           {/* Instrument Distribution */}
           <Card className="shadow-card animate-slide-up" style={{
           animationDelay: "0.2s"
         }}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">Student Distribution</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg">Student Distribution</CardTitle>
             </CardHeader>
             <CardContent>
               {instrumentData.length > 0 ? <ResponsiveContainer width="100%" height={250}>
@@ -284,7 +284,7 @@ export default function Dashboard() {
                     </Pie>
                     <Tooltip />
                   </PieChart>
-                </ResponsiveContainer> : <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+                </ResponsiveContainer> : <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">
                   No subject data yet
                 </div>}
             </CardContent>
@@ -295,8 +295,8 @@ export default function Dashboard() {
           animationDelay: "0.3s"
         }}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-primary" />
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                <Clock className="h-4 w-4 md:h-5 md:w-5 text-primary" />
                 Recent Activity
               </CardTitle>
             </CardHeader>
@@ -304,17 +304,17 @@ export default function Dashboard() {
               {recentActivity.length > 0 ? <div className="space-y-3 h-[270px] overflow-y-auto pr-2">
                   {recentActivity.map((activity, index) => {
                 const Icon = activity.icon;
-                return <div key={index} className="flex items-start gap-4 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                        <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-muted ${activity.color}`}>
-                          <Icon className="h-5 w-5" />
+                return <div key={index} className="flex items-start gap-3 md:gap-4 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                        <div className={`flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-full bg-muted ${activity.color}`}>
+                          <Icon className="h-4 w-4 md:h-5 md:w-5" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-foreground truncate">{activity.title}</p>
-                              <p className="text-sm text-muted-foreground truncate">{activity.description}</p>
+                              <p className="font-semibold text-sm md:text-base text-foreground truncate">{activity.title}</p>
+                              <p className="text-xs md:text-sm text-muted-foreground truncate">{activity.description}</p>
                             </div>
-                            <Badge variant="outline" className="shrink-0">
+                            <Badge variant="outline" className="shrink-0 text-xs">
                               {activity.type}
                             </Badge>
                           </div>
@@ -322,7 +322,7 @@ export default function Dashboard() {
                         </div>
                       </div>;
               })}
-                </div> : <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+                </div> : <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">
                   No recent activity
                 </div>}
             </CardContent>

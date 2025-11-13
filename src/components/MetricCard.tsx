@@ -28,18 +28,20 @@ export function MetricCard({
     }
   };
   return <Card className={`${getVariantClasses()} border-0 overflow-hidden animate-scale-in`}>
-      <CardContent className="p-6">
+      <CardContent className="p-4 sm:p-6">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <p className={`text-sm font-medium mb-1 ${variant === "default" ? "text-muted-foreground" : "opacity-90"}`}>
+            <p className={`text-xs sm:text-sm font-medium mb-1 ${variant === "default" ? "text-muted-foreground" : "opacity-90"}`}>
               {title}
             </p>
-            <h3 className="text-3xl font-bold mb-2">{value}</h3>
+            <h3 className="text-2xl sm:text-3xl font-bold mb-2">{value}</h3>
             {trend && <p className={`text-xs font-medium ${variant === "default" ? trend.isPositive ? "text-green-600" : "text-red-600" : "opacity-75"}`}>
                 {trend.isPositive ? "↑" : "↓"} {trend.value}
               </p>}
           </div>
-          
+          <div className={`p-2 sm:p-3 rounded-lg ${variant === "default" ? "bg-primary/10" : "bg-white/20"}`}>
+            <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+          </div>
         </div>
       </CardContent>
     </Card>;
