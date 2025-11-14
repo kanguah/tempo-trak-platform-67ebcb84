@@ -635,11 +635,6 @@ export default function Students() {
                                       </SelectItem>
                                     ))
                                   }
-                                  {tutors.filter(tutor => tutor.subjects?.includes(formData.instrument)).length === 0 && (
-                                    <SelectItem value="" disabled>
-                                      No tutors available for {formData.instrument}
-                                    </SelectItem>
-                                  )}
                                 </SelectContent>
                               </Select>
                             </div>
