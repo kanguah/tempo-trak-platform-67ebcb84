@@ -71,15 +71,22 @@ const settingsItems = [{
   icon: Settings
 }];
 export function AppSidebar() {
-  const { open } = useSidebar();
+  const {
+    open
+  } = useSidebar();
   const [isHovered, setIsHovered] = useState(false);
-  const { isAdmin, isLoading } = useAdmin();
-  const { user } = useAuth();
-  
+  const {
+    isAdmin,
+    isLoading
+  } = useAdmin();
+  const {
+    user
+  } = useAuth();
+
   // When sidebar is open (fully expanded), no hover needed
   // When sidebar is closed (mini mode), enable hover to expand
   const showExpanded = open || isHovered;
-  
+
   // Filter director items based on admin status
   const filteredDirectorItems = directorItems.filter(item => {
     if (item.title === "Payroll" || item.title === "Staff") {
@@ -87,41 +94,23 @@ export function AppSidebar() {
     }
     return true;
   });
-  
-  return (
-    <div 
-      onMouseEnter={() => !open && setIsHovered(true)} 
-      onMouseLeave={() => setIsHovered(false)} 
-      className="relative"
-    >
-      <Sidebar 
-        collapsible="icon"
-        className={`border-r border-sidebar-border transition-all duration-300 ${showExpanded ? 'w-64' : 'w-16'}`}
-      >
-        <SidebarHeader className={`border-b border-sidebar-border transition-all duration-300 ${showExpanded ? 'p-6' : 'p-3'}`}>
-          
-        </SidebarHeader>
+  return <div onMouseEnter={() => !open && setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} className="relative">
+      <Sidebar collapsible="icon" className={`border-r border-sidebar-border transition-all duration-300 ${showExpanded ? 'w-64' : 'w-16'}`}>
+        
 
         <SidebarContent>
           <SidebarGroup>
             {showExpanded && <SidebarGroupLabel className="text-sidebar-foreground/60">Main Menu</SidebarGroupLabel>}
             <SidebarGroupContent>
               <SidebarMenu>
-                {filteredDirectorItems.map(item => (
-                  <SidebarMenuItem key={item.title}>
+                {filteredDirectorItems.map(item => <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
-                      <NavLink 
-                        to={item.url} 
-                        end={item.url === "/"} 
-                        className={`flex items-center rounded-lg transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${showExpanded ? 'gap-3 px-3 py-2' : 'justify-center p-3'}`} 
-                        activeClassName="bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-sm"
-                      >
+                      <NavLink to={item.url} end={item.url === "/"} className={`flex items-center rounded-lg transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${showExpanded ? 'gap-3 px-3 py-2' : 'justify-center p-3'}`} activeClassName="bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-sm">
                         <item.icon className="h-5 w-5 flex-shrink-0" />
                         {showExpanded && <span className="whitespace-nowrap">{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                  </SidebarMenuItem>)}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -130,20 +119,14 @@ export function AppSidebar() {
             {showExpanded && <SidebarGroupLabel className="text-sidebar-foreground/60">System</SidebarGroupLabel>}
             <SidebarGroupContent>
               <SidebarMenu>
-                {settingsItems.map(item => (
-                  <SidebarMenuItem key={item.title}>
+                {settingsItems.map(item => <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
-                      <NavLink 
-                        to={item.url} 
-                        className={`flex items-center rounded-lg transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${showExpanded ? 'gap-3 px-3 py-2' : 'justify-center p-3'}`} 
-                        activeClassName="bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-sm"
-                      >
+                      <NavLink to={item.url} className={`flex items-center rounded-lg transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${showExpanded ? 'gap-3 px-3 py-2' : 'justify-center p-3'}`} activeClassName="bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-sm">
                         <item.icon className="h-5 w-5 flex-shrink-0" />
                         {showExpanded && <span className="whitespace-nowrap">{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                  </SidebarMenuItem>)}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -154,15 +137,12 @@ export function AppSidebar() {
             <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-accent flex-shrink-0 ${showExpanded ? '' : 'mx-auto'}`}>
               <span className="text-xs font-bold text-accent-foreground">DA</span>
             </div>
-            {showExpanded && (
-              <div className="flex-1 overflow-hidden">
+            {showExpanded && <div className="flex-1 overflow-hidden">
                 <p className="truncate text-sm font-medium text-sidebar-foreground">Director Admin</p>
                 <p className="truncate text-xs text-sidebar-foreground/60">director@49ice.com</p>
-              </div>
-            )}
+              </div>}
           </div>
         </SidebarFooter>
       </Sidebar>
-    </div>
-  );
+    </div>;
 }
