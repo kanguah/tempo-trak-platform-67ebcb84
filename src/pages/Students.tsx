@@ -57,7 +57,7 @@ const studentSchema = z.object({
     .or(z.literal("")),
   parent_phone: z.string().trim().max(20, "Parent phone must be less than 20 characters").optional().or(z.literal("")),
   address: z.string().trim().max(200, "Address must be less than 200 characters").optional().or(z.literal("")),
-  schedule: z.array(z.object({ day: z.number(), time: z.string() })).optional(),
+  schedule: z.array(z.object({ day: z.number(), time: z.string(), tutorId: z.string().optional() })).optional(),
 });
 const instruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Cello", "Trumpet", "Bass"];
 type SortField = "name" | "grade" | "created_at";
@@ -80,7 +80,7 @@ export default function Students() {
     parent_email: "",
     parent_phone: "",
     address: "",
-    schedule: [] as { day: number; time: string }[],
+    schedule: [] as { day: number; time: string; tutorId?: string }[],
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [currentPage, setCurrentPage] = useState(1);
@@ -104,6 +104,20 @@ export default function Students() {
       return data;
     },
     enabled: !!user,
+  });
+
+  const { data: tutors = [] } = useQuery({
+    queryKey: ["tutors", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tutors")
+        .select("*")
+        .eq("user_id", user?.id)
+        .eq("status", "active");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
   });
   const addStudentMutation = useMutation({
     mutationFn: async (newStudent: any) => {
@@ -191,6 +205,7 @@ export default function Students() {
                 lesson_date: date.toISOString().split('T')[0],
                 status: 'scheduled',
                 duration: 60,
+                tutor_id: scheduleItem.tutorId || null,
               });
             }
           }
@@ -561,20 +576,20 @@ export default function Students() {
                         <div className="space-y-3">
                           <Label>Weekly Schedule</Label>
                           <p className="text-xs text-muted-foreground">
-                            Select {formData.package_type === "1x Weekly" ? "1 day" : formData.package_type === "2x Weekly" ? "2 days" : "3 days"} and time(s) for lessons
+                            Select {formData.package_type === "1x Weekly" ? "1 day" : formData.package_type === "2x Weekly" ? "2 days" : "3 days"}, time(s), and tutor(s) for lessons
                           </p>
                           {Array.from({ length: formData.package_type === "1x Weekly" ? 1 : formData.package_type === "2x Weekly" ? 2 : 3 }).map((_, index) => (
-                            <div key={index} className="flex gap-2">
+                            <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-2">
                               <Select
                                 value={formData.schedule[index]?.day?.toString() || ""}
                                 onValueChange={(value) => {
                                   const newSchedule = [...formData.schedule];
-                                  if (!newSchedule[index]) newSchedule[index] = { day: 0, time: "" };
+                                  if (!newSchedule[index]) newSchedule[index] = { day: 0, time: "", tutorId: "" };
                                   newSchedule[index].day = parseInt(value);
                                   setFormData({ ...formData, schedule: newSchedule });
                                 }}
                               >
-                                <SelectTrigger className="flex-1">
+                                <SelectTrigger className="flex-1 h-11 md:h-10">
                                   <SelectValue placeholder="Select day" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -589,16 +604,44 @@ export default function Students() {
                               </Select>
                               <Input
                                 type="time"
-                                className="flex-1"
+                                className="flex-1 h-11 md:h-10"
                                 value={formData.schedule[index]?.time || ""}
                                 onChange={(e) => {
                                   const newSchedule = [...formData.schedule];
-                                  if (!newSchedule[index]) newSchedule[index] = { day: 0, time: "" };
+                                  if (!newSchedule[index]) newSchedule[index] = { day: 0, time: "", tutorId: "" };
                                   newSchedule[index].time = e.target.value;
                                   setFormData({ ...formData, schedule: newSchedule });
                                 }}
                                 placeholder="HH:MM"
                               />
+                              <Select
+                                value={formData.schedule[index]?.tutorId || ""}
+                                onValueChange={(value) => {
+                                  const newSchedule = [...formData.schedule];
+                                  if (!newSchedule[index]) newSchedule[index] = { day: 0, time: "", tutorId: "" };
+                                  newSchedule[index].tutorId = value;
+                                  setFormData({ ...formData, schedule: newSchedule });
+                                }}
+                              >
+                                <SelectTrigger className="flex-1 h-11 md:h-10">
+                                  <SelectValue placeholder="Select tutor" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {tutors
+                                    .filter(tutor => tutor.subjects?.includes(formData.instrument))
+                                    .map(tutor => (
+                                      <SelectItem key={tutor.id} value={tutor.id}>
+                                        {tutor.name}
+                                      </SelectItem>
+                                    ))
+                                  }
+                                  {tutors.filter(tutor => tutor.subjects?.includes(formData.instrument)).length === 0 && (
+                                    <SelectItem value="" disabled>
+                                      No tutors available for {formData.instrument}
+                                    </SelectItem>
+                                  )}
+                                </SelectContent>
+                              </Select>
                             </div>
                           ))}
                         </div>
