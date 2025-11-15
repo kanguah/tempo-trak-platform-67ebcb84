@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Clock, Music, MapPin } from "lucide-react";
+import { Plus, Clock, Music, MapPin, MoreVertical, X, Calendar as CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { format, addDays, startOfWeek, isSameDay, parseISO } from "date-fns";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const timeSlots = Array.from({
   length: 22
@@ -68,6 +70,11 @@ export default function Calendar() {
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [makeupDialogOpen, setMakeupDialogOpen] = useState(false);
+  const [selectedLesson, setSelectedLesson] = useState<LessonWithDate | null>(null);
+  const [makeupDate, setMakeupDate] = useState<Date | undefined>(undefined);
+  const [makeupTime, setMakeupTime] = useState("");
   const [newLesson, setNewLesson] = useState({
     studentId: "",
     tutorId: "",
@@ -258,6 +265,82 @@ export default function Calendar() {
     onError: error => {
       toast.error("Failed to schedule lesson");
       console.error(error);
+    }
+  });
+
+  // Mutation to cancel lesson
+  const cancelLessonMutation = useMutation({
+    mutationFn: async (lessonId: string) => {
+      const { error } = await supabase
+        .from("lessons")
+        .update({ status: "cancelled" })
+        .eq("id", lessonId);
+      
+      if (error) throw error;
+
+      // Create notification
+      await supabase.from("notifications").insert({
+        user_id: user?.id,
+        type: "schedule_change",
+        title: "Lesson Cancelled",
+        message: `${selectedLesson?.instrument} lesson with ${selectedLesson?.student} on ${format(selectedLesson?.date || new Date(), "MMM d")} at ${selectedLesson?.time} has been cancelled.`,
+        is_read: false
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lessons"] });
+      toast.success("Lesson cancelled successfully");
+      setCancelDialogOpen(false);
+      setSelectedLesson(null);
+    },
+    onError: (error) => {
+      toast.error("Failed to cancel lesson");
+      console.error("Error cancelling lesson:", error);
+    }
+  });
+
+  // Mutation to schedule makeup lesson
+  const scheduleMakeupMutation = useMutation({
+    mutationFn: async () => {
+      if (!makeupDate || !makeupTime || !selectedLesson) return;
+
+      const dayOfWeek = makeupDate.getDay();
+      
+      const { error } = await supabase.from("lessons").insert({
+        user_id: user?.id,
+        student_id: selectedLesson.studentId,
+        tutor_id: selectedLesson.tutorId,
+        subject: selectedLesson.instrument,
+        day_of_week: dayOfWeek,
+        start_time: makeupTime + ":00",
+        lesson_date: format(makeupDate, "yyyy-MM-dd"),
+        duration: selectedLesson.duration * 60,
+        room: selectedLesson.room,
+        status: "scheduled"
+      });
+
+      if (error) throw error;
+
+      // Create notification
+      await supabase.from("notifications").insert({
+        user_id: user?.id,
+        type: "schedule_change",
+        title: "Makeup Lesson Scheduled",
+        message: `Makeup ${selectedLesson.instrument} lesson with ${selectedLesson.student} scheduled for ${format(makeupDate, "MMM d")} at ${makeupTime}.`,
+        is_read: false
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lessons"] });
+      toast.success("Makeup lesson scheduled successfully");
+      setMakeupDialogOpen(false);
+      setSelectedLesson(null);
+      setMakeupDate(undefined);
+      setMakeupTime("");
+    },
+    onError: (error) => {
+      toast.error("Failed to schedule makeup lesson");
+      console.error("Error scheduling makeup:", error);
     }
   });
 
@@ -588,6 +671,36 @@ export default function Calendar() {
                                 </div>
                               </div>
                             </div>
+
+                            {/* Actions dropdown */}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedLesson(lesson);
+                                    setCancelDialogOpen(true);
+                                  }}
+                                  className="text-destructive"
+                                >
+                                  <X className="h-4 w-4 mr-2" />
+                                  Cancel Lesson
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedLesson(lesson);
+                                    setMakeupDialogOpen(true);
+                                  }}
+                                >
+                                  <CalendarIcon className="h-4 w-4 mr-2" />
+                                  Schedule Makeup
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         );
                       })}
@@ -606,6 +719,87 @@ export default function Calendar() {
         </Card>
       </div>
     </div>
+
+    {/* Cancel Lesson Dialog */}
+    <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Cancel Lesson</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to cancel this lesson?
+            {selectedLesson && (
+              <div className="mt-4 p-3 bg-muted rounded-md text-sm">
+                <p className="font-medium text-foreground">{selectedLesson.student}</p>
+                <p className="text-muted-foreground">{selectedLesson.instrument}</p>
+                <p className="text-muted-foreground">{format(selectedLesson.date, "MMMM d, yyyy")} at {selectedLesson.time}</p>
+              </div>
+            )}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Keep Lesson</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => selectedLesson && cancelLessonMutation.mutate(selectedLesson.id)}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Cancel Lesson
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    {/* Schedule Makeup Dialog */}
+    <Dialog open={makeupDialogOpen} onOpenChange={setMakeupDialogOpen}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Schedule Makeup Lesson</DialogTitle>
+        </DialogHeader>
+        {selectedLesson && (
+          <div className="space-y-4">
+            <div className="p-3 bg-muted rounded-md text-sm">
+              <p className="font-medium text-foreground">{selectedLesson.student}</p>
+              <p className="text-muted-foreground">{selectedLesson.instrument}</p>
+              <p className="text-muted-foreground">Original: {format(selectedLesson.date, "MMM d")} at {selectedLesson.time}</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Select Date</Label>
+              <CalendarPicker
+                mode="single"
+                selected={makeupDate}
+                onSelect={setMakeupDate}
+                disabled={(date) => date < new Date()}
+                className="rounded-md border"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Select Time</Label>
+              <Select value={makeupTime} onValueChange={setMakeupTime}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select time" />
+                </SelectTrigger>
+                <SelectContent>
+                  {timeSlots.map((time) => (
+                    <SelectItem key={time} value={time}>
+                      {time}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button
+              className="w-full gradient-primary text-primary-foreground"
+              onClick={() => scheduleMakeupMutation.mutate()}
+              disabled={!makeupDate || !makeupTime}
+            >
+              Schedule Makeup
+            </Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   </div>
   );
 }
