@@ -602,8 +602,8 @@ export default function Calendar() {
         </div>
 
         {/* Right: Event List */}
-        <Card className="p-6">
-          <div className="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
+        <Card className="p-6 flex flex-col h-[calc(100vh-180px)]">
+          <div className="space-y-6 overflow-y-auto pr-2 flex-1">
             {sortedDates
               .filter((dateKey) => {
                 const date = parseISO(dateKey);
