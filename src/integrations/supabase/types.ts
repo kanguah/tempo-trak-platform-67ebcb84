@@ -857,6 +857,7 @@ export type Database = {
           lesson_bonus: number | null
           lessons_taught: number
           month: string
+          notes: string | null
           payment_date: string | null
           status: string
           student_bonus: number | null
@@ -875,6 +876,7 @@ export type Database = {
           lesson_bonus?: number | null
           lessons_taught?: number
           month: string
+          notes?: string | null
           payment_date?: string | null
           status?: string
           student_bonus?: number | null
@@ -893,6 +895,7 @@ export type Database = {
           lesson_bonus?: number | null
           lessons_taught?: number
           month?: string
+          notes?: string | null
           payment_date?: string | null
           status?: string
           student_bonus?: number | null
