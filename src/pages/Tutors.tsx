@@ -519,7 +519,7 @@ export default function Tutors() {
                     </TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
-                    <TableHead>Hourly Rate</TableHead>
+                    <TableHead>Monthly Salary</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
