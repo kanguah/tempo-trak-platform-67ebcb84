@@ -659,12 +659,10 @@ export default function Calendar() {
                                   <Music className="h-3 w-3" />
                                   <span>{lesson.tutor}</span>
                                 </div>
-                                {lesson.room && (
-                                  <div className="flex items-center gap-1">
-                                    <MapPin className="h-3 w-3" />
-                                    <span>{lesson.room}</span>
-                                  </div>
-                                )}
+                                <div className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  <span>{lesson.room || "No room"}</span>
+                                </div>
                                 <div className="flex items-center gap-1">
                                   <Clock className="h-3 w-3" />
                                   <span>{lesson.duration}h</span>
