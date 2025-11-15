@@ -603,7 +603,7 @@ export default function Calendar() {
 
         {/* Right: Event List */}
         <Card className="p-6">
-          <div className="space-y-6">
+          <div className="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
             {sortedDates
               .filter((dateKey) => {
                 const date = parseISO(dateKey);
