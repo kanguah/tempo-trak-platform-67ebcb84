@@ -526,7 +526,7 @@ export default function StudentProfile() {
                 {lessons.length === 0 ? <p className="text-center text-muted-foreground py-8">No lessons scheduled</p> : <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Day</TableHead>
+                        <TableHead>Date</TableHead>
                         <TableHead>Time</TableHead>
                         <TableHead>Subject</TableHead>
                         <TableHead>Duration</TableHead>
@@ -536,7 +536,10 @@ export default function StudentProfile() {
                     <TableBody>
                       {lessons.map(lesson => <TableRow key={lesson.id}>
                           <TableCell>
-                            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][lesson.day_of_week]}
+                            {lesson.lesson_date 
+                              ? format(new Date(lesson.lesson_date), 'MMM dd, yyyy')
+                              : ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][lesson.day_of_week]
+                            }
                           </TableCell>
                           <TableCell>{lesson.start_time}</TableCell>
                           <TableCell>{lesson.subject}</TableCell>
