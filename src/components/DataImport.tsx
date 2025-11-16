@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 interface DataImportProps {
-  type: "students" | "tutors";
+  type: "students" | "tutors" | "leads";
   onSuccess?: () => void;
 }
 interface ImportResult {
@@ -33,10 +33,14 @@ export default function DataImport({
   const downloadTemplate = () => {
     const headers = type === "students" 
       ? "name,email,phone,grade,instrument,date_of_birth,parent_name,parent_email,parent_phone,address\n" 
-      : "name,email,phone,instrument,status,hourly_rate\n";
+      : type === "tutors"
+      ? "name,email,phone,instrument,status,hourly_rate\n"
+      : "name,email,phone,source,notes,stage\n";
     const sampleData = type === "students" 
       ? "John Doe,john@email.com,+233 24 123 4567,Beginner,Piano,2010-05-15,Mary Doe,mary@email.com,+233 24 123 4560,123 Music St\nJane Smith,jane@email.com,+233 24 123 4568,Intermediate,Guitar,2012-08-22,,,,\n" 
-      : "Mr. Kofi,kofi@email.com,+233 24 123 4567,Piano,Active,50\nMs. Ama,ama@email.com,+233 24 123 4568,Guitar,Active,45\n";
+      : type === "tutors"
+      ? "Mr. Kofi,kofi@email.com,+233 24 123 4567,Piano,Active,50\nMs. Ama,ama@email.com,+233 24 123 4568,Guitar,Active,45\n"
+      : "Alice Thompson,alice.t@email.com,+233 24 777 8888,Website Form,Interested in beginner lessons,new\nRobert Kim,robert.kim@email.com,+233 24 888 9999,Facebook Ad,Adult learner wants weekend classes,contacted\n";
     const csv = headers + sampleData;
     const blob = new Blob([csv], {
       type: "text/csv"
@@ -55,10 +59,10 @@ export default function DataImport({
     valid: boolean;
     error?: string;
   } => {
-    if (!row.name || !row.email || !row.phone) {
+    if (!row.name || !row.email) {
       return {
         valid: false,
-        error: `Row ${index + 1}: Missing required fields (name, email, phone)`
+        error: `Row ${index + 1}: Missing required fields (name, email)`
       };
     }
     if (!row.email.includes("@")) {
@@ -67,6 +71,26 @@ export default function DataImport({
         error: `Row ${index + 1}: Invalid email format`
       };
     }
+
+    if (type === "leads") {
+      if (row.stage && !["new", "contacted", "qualified", "converted", "lost"].includes(row.stage)) {
+        return {
+          valid: false,
+          error: `Row ${index + 1}: Invalid stage. Must be new, contacted, qualified, converted, or lost`
+        };
+      }
+      return {
+        valid: true
+      };
+    }
+
+    if (!row.phone) {
+      return {
+        valid: false,
+        error: `Row ${index + 1}: Missing phone number`
+      };
+    }
+
     if (!row.instrument || !instruments.includes(row.instrument)) {
       return {
         valid: false,
@@ -132,6 +156,18 @@ export default function DataImport({
 
         // Prepare data for insertion
         const dataToInsert = validRows.map(row => {
+          if (type === "leads") {
+            return {
+              name: row.name.trim(),
+              email: row.email.trim().toLowerCase(),
+              phone: row.phone?.trim() || null,
+              source: row.source?.trim() || null,
+              notes: row.notes?.trim() || null,
+              stage: row.stage?.trim() || "new",
+              user_id: user?.id
+            };
+          }
+
           const baseData = {
             name: row.name.trim(),
             email: row.email.trim().toLowerCase(),
@@ -160,10 +196,11 @@ export default function DataImport({
         });
 
         // Bulk insert
+        const tableName = type === "leads" ? "crm_leads" : type;
         const {
           data,
           error
-        } = await supabase.from(type).insert(dataToInsert).select();
+        } = await supabase.from(tableName).insert(dataToInsert).select();
         if (error) {
           console.error("Import error:", error);
           errors.push(`Database error: ${error.message}`);
@@ -205,8 +242,9 @@ export default function DataImport({
     try {
       toast.loading("Exporting data...");
       
+      const tableName = type === "leads" ? "crm_leads" : type;
       const { data, error } = await supabase
-        .from(type)
+        .from(tableName)
         .select('*')
         .eq('user_id', user?.id);
 
@@ -230,11 +268,11 @@ export default function DataImport({
             parent_name: item.parent_name || '',
             parent_email: item.parent_email || '',
             parent_phone: item.parent_phone || '',
-            address: item.address || '',
-            status: item.status,
+            parent_address: item.address || '',
             enrollment_date: item.enrollment_date
           }))
-        : data.map((item: any) => ({
+        : type === "tutors"
+        ? data.map((item: any) => ({
             name: item.name,
             email: item.email,
             phone: item.phone || '',
@@ -242,6 +280,15 @@ export default function DataImport({
             status: item.status,
             hourly_rate: item.hourly_rate || '',
             availability: item.availability || ''
+          }))
+        : data.map((item: any) => ({
+            name: item.name,
+            email: item.email,
+            phone: item.phone || '',
+            source: item.source || '',
+            notes: item.notes || '',
+            stage: item.stage,
+            created_at: item.created_at
           }));
 
       const csv = Papa.unparse(formattedData);
@@ -277,7 +324,7 @@ export default function DataImport({
           </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Import {type === "students" ? "Students" : "Tutors"} from CSV</DialogTitle>
+          <DialogTitle>Import {type === "students" ? "Students" : type === "tutors" ? "Tutors" : "Leads"} from CSV</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6 py-4">
@@ -289,8 +336,11 @@ export default function DataImport({
               {type === "students" ? <>
                   <br />Required: name, email, phone, grade (Beginner/Intermediate/Advanced), instrument
                   <br />Optional: date_of_birth, parent_name, parent_email, parent_phone, address (leave empty if not available)
-                </> : <>
+                </> : type === "tutors" ? <>
                   <br />Required columns: name, email, phone, instrument, status (Active/On Leave), hourly_rate (optional)
+                </> : <>
+                  <br />Required: name, email
+                  <br />Optional: phone, source, notes, stage (new/contacted/qualified/converted/lost)
                 </>}
             </AlertDescription>
           </Alert>
