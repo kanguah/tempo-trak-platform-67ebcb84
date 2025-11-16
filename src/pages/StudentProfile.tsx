@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle, XCircle, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle, Edit, Trash2, Calendar as CalendarIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,12 +14,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { format, subDays, subMonths, startOfYear } from "date-fns";
+import { cn } from "@/lib/utils";
 const editStudentSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
@@ -49,6 +52,38 @@ export default function StudentProfile() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [hasParent, setHasParent] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<{
+    preset: string;
+    startDate: Date | null;
+    endDate: Date | null;
+  }>({
+    preset: 'all',
+    startDate: null,
+    endDate: null
+  });
+
+  // Helper function to get date range based on preset
+  const getDateRange = () => {
+    const now = new Date();
+    switch (dateFilter.preset) {
+      case '30days':
+        return { start: subDays(now, 30), end: now };
+      case '3months':
+        return { start: subMonths(now, 3), end: now };
+      case '6months':
+        return { start: subMonths(now, 6), end: now };
+      case 'year':
+        return { start: startOfYear(now), end: now };
+      case 'custom':
+        return { start: dateFilter.startDate, end: dateFilter.endDate };
+      default:
+        return { start: null, end: null };
+    }
+  };
+
+  const dateRange = getDateRange();
 
   // Fetch student data
   const {
@@ -71,14 +106,23 @@ export default function StudentProfile() {
   const {
     data: attendanceRecords = []
   } = useQuery({
-    queryKey: ['attendance', id],
+    queryKey: ['attendance', id, dateRange.start, dateRange.end],
     queryFn: async () => {
-      const {
-        data,
-        error
-      } = await supabase.from('attendance').select('*').eq('student_id', id).eq('user_id', user?.id).order('lesson_date', {
-        ascending: false
-      }).limit(20);
+      let query = supabase
+        .from('attendance')
+        .select('*')
+        .eq('student_id', id)
+        .eq('user_id', user?.id)
+        .order('lesson_date', { ascending: false });
+      
+      if (dateRange.start) {
+        query = query.gte('lesson_date', format(dateRange.start, 'yyyy-MM-dd'));
+      }
+      if (dateRange.end) {
+        query = query.lte('lesson_date', format(dateRange.end, 'yyyy-MM-dd'));
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -89,14 +133,23 @@ export default function StudentProfile() {
   const {
     data: paymentRecords = []
   } = useQuery({
-    queryKey: ['payments', id],
+    queryKey: ['payments', id, dateRange.start, dateRange.end],
     queryFn: async () => {
-      const {
-        data,
-        error
-      } = await supabase.from('payments').select('*').eq('student_id', id).eq('user_id', user?.id).order('created_at', {
-        ascending: false
-      });
+      let query = supabase
+        .from('payments')
+        .select('*')
+        .eq('student_id', id)
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
+      
+      if (dateRange.start) {
+        query = query.gte('created_at', format(dateRange.start, 'yyyy-MM-dd'));
+      }
+      if (dateRange.end) {
+        query = query.lte('created_at', format(dateRange.end, 'yyyy-MM-dd'));
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -107,14 +160,21 @@ export default function StudentProfile() {
   const {
     data: lessons = []
   } = useQuery({
-    queryKey: ['lessons', id],
+    queryKey: ['lessons', id, dateRange.start, dateRange.end],
     queryFn: async () => {
-      const {
-        data,
-        error
-      } = await supabase.from('lessons').select('*').eq('student_id', id).eq('user_id', user?.id).order('created_at', {
-        ascending: false
-      });
+      let query = supabase
+        .from('lessons')
+        .select('*')
+        .eq('student_id', id)
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
+      
+      if (dateRange.start && dateRange.end) {
+        query = query.gte('lesson_date', format(dateRange.start, 'yyyy-MM-dd'))
+                     .lte('lesson_date', format(dateRange.end, 'yyyy-MM-dd'));
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -453,6 +513,113 @@ export default function StudentProfile() {
                     </div>}
                 </div>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Date Filter */}
+        <Card className="shadow-card">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-sm font-medium">Filter by Date:</Label>
+              </div>
+              
+              <div className="flex flex-wrap items-center gap-2">
+                <Select
+                  value={dateFilter.preset}
+                  onValueChange={(value) => {
+                    setDateFilter({
+                      preset: value,
+                      startDate: null,
+                      endDate: null
+                    });
+                  }}
+                >
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Time</SelectItem>
+                    <SelectItem value="30days">Last 30 Days</SelectItem>
+                    <SelectItem value="3months">Last 3 Months</SelectItem>
+                    <SelectItem value="6months">Last 6 Months</SelectItem>
+                    <SelectItem value="year">This Year</SelectItem>
+                    <SelectItem value="custom">Custom Range</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {dateFilter.preset === 'custom' && (
+                  <div className="flex items-center gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-[140px] justify-start text-left font-normal",
+                            !dateFilter.startDate && "text-muted-foreground"
+                          )}
+                        >
+                          {dateFilter.startDate ? format(dateFilter.startDate, "MMM dd, yyyy") : "Start date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={dateFilter.startDate || undefined}
+                          onSelect={(date) => setDateFilter(prev => ({ ...prev, startDate: date || null }))}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+
+                    <span className="text-muted-foreground">to</span>
+
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-[140px] justify-start text-left font-normal",
+                            !dateFilter.endDate && "text-muted-foreground"
+                          )}
+                        >
+                          {dateFilter.endDate ? format(dateFilter.endDate, "MMM dd, yyyy") : "End date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={dateFilter.endDate || undefined}
+                          onSelect={(date) => setDateFilter(prev => ({ ...prev, endDate: date || null }))}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
+
+                {dateFilter.preset !== 'all' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDateFilter({ preset: 'all', startDate: null, endDate: null })}
+                    className="h-8"
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Clear
+                  </Button>
+                )}
+              </div>
+
+              {dateFilter.preset !== 'all' && (
+                <div className="text-xs text-muted-foreground">
+                  Showing: {dateRange.start && format(dateRange.start, 'MMM dd, yyyy')} - {dateRange.end && format(dateRange.end, 'MMM dd, yyyy')}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
