@@ -35,12 +35,12 @@ export default function DataImport({
       ? "name,email,phone,grade,instrument,date_of_birth,parent_name,parent_email,parent_phone,address\n" 
       : type === "tutors"
       ? "name,email,phone,instrument,status,hourly_rate\n"
-      : "name,email,phone,source,notes,stage\n";
+      : "name,email,phone,source,notes,stage,created_date\n";
     const sampleData = type === "students" 
       ? "John Doe,john@email.com,+233 24 123 4567,Beginner,Piano,2010-05-15,Mary Doe,mary@email.com,+233 24 123 4560,123 Music St\nJane Smith,jane@email.com,+233 24 123 4568,Intermediate,Guitar,2012-08-22,,,,\n" 
       : type === "tutors"
       ? "Mr. Kofi,kofi@email.com,+233 24 123 4567,Piano,Active,50\nMs. Ama,ama@email.com,+233 24 123 4568,Guitar,Active,45\n"
-      : "Alice Thompson,alice.t@email.com,+233 24 777 8888,Website Form,Interested in beginner lessons,new\nRobert Kim,robert.kim@email.com,+233 24 888 9999,Facebook Ad,Adult learner wants weekend classes,contacted\n";
+      : "Alice Thompson,alice.t@email.com,+233 24 777 8888,Website Form,Interested in beginner lessons,new,2025-01-15\nRobert Kim,robert.kim@email.com,+233 24 888 9999,Facebook Ad,Adult learner wants weekend classes,contacted,2025-01-10\n";
     const csv = headers + sampleData;
     const blob = new Blob([csv], {
       type: "text/csv"
@@ -157,7 +157,7 @@ export default function DataImport({
         // Prepare data for insertion
         const dataToInsert = validRows.map(row => {
           if (type === "leads") {
-            return {
+            const leadData: any = {
               name: row.name.trim(),
               email: row.email.trim().toLowerCase(),
               phone: row.phone?.trim() || null,
@@ -166,6 +166,13 @@ export default function DataImport({
               stage: row.stage?.trim() || "new",
               user_id: user?.id
             };
+            
+            // Handle created_date if provided
+            if (row.created_date?.trim()) {
+              leadData.created_at = row.created_date.trim();
+            }
+            
+            return leadData;
           }
 
           const baseData = {
@@ -288,7 +295,7 @@ export default function DataImport({
             source: item.source || '',
             notes: item.notes || '',
             stage: item.stage,
-            created_at: item.created_at
+            created_date: item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : ''
           }));
 
       const csv = Papa.unparse(formattedData);
@@ -340,7 +347,7 @@ export default function DataImport({
                   <br />Required columns: name, email, phone, instrument, status (Active/On Leave), hourly_rate (optional)
                 </> : <>
                   <br />Required: name, email
-                  <br />Optional: phone, source, notes, stage (new/contacted/qualified/converted/lost)
+                  <br />Optional: phone, source, notes, stage (new/contacted/qualified/converted/lost), created_date (YYYY-MM-DD format)
                 </>}
             </AlertDescription>
           </Alert>
