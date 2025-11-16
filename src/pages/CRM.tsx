@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { DndContext, DragEndEvent, DragOverlay, useDraggable, useDroppable, DragStartEvent } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
+import DataImport from "@/components/DataImport";
 const initialLeads = [{
   id: 1,
   name: "Alice Thompson",
@@ -476,10 +477,13 @@ export default function CRM() {
             <h1 className="text-2xl md:text-4xl font-bold text-foreground mb-2">CRM & Leads</h1>
             <p className="text-sm md:text-base text-muted-foreground">Manage prospects and student recruitment</p>
           </div>
-          <Button className="gradient-primary text-primary-foreground shadow-primary w-full sm:w-auto" onClick={() => setAddDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4 md:h-5 md:w-5" />
-            Add Lead
-          </Button>
+          <div className="flex gap-2">
+            <DataImport type="leads" onSuccess={() => queryClient.invalidateQueries({ queryKey: ['crm-leads'] })} />
+            <Button className="gradient-primary text-primary-foreground shadow-primary w-full sm:w-auto" onClick={() => setAddDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4 md:h-5 md:w-5" />
+              Add Lead
+            </Button>
+          </div>
         </div>
 
         {/* Add Lead Dialog */}
