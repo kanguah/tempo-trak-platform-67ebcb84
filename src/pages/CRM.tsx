@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Mail, Phone, MessageSquare, UserPlus, Search, Archive, GripVertical } from "lucide-react";
+import { Plus, Mail, Phone, MessageSquare, UserPlus, Search, Archive, GripVertical, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -90,6 +90,7 @@ interface DraggableLeadCardProps {
   index: number;
   stageIndex: number;
   onArchive: (leadId: string) => void;
+  onDelete: (leadId: string) => void;
   onEdit: (lead: Lead) => void;
 }
 function DraggableLeadCard({
@@ -97,6 +98,7 @@ function DraggableLeadCard({
   index,
   stageIndex,
   onArchive,
+  onDelete,
   onEdit
 }: DraggableLeadCardProps) {
   const {
@@ -123,17 +125,30 @@ function DraggableLeadCard({
             <GripVertical className="h-4 w-4 text-muted-foreground" />
           </div>
           <h3 className="font-bold text-sm md:text-base text-foreground flex-1 truncate">{lead.name}</h3>
-          <Button 
-            size="icon" 
-            variant="ghost" 
-            className="h-7 w-7 md:h-8 md:w-8 text-muted-foreground hover:text-foreground" 
-            onClick={e => {
-              e.stopPropagation();
-              onArchive(lead.id);
-            }}
-          >
-            <Archive className="h-3 w-3 md:h-4 md:w-4" />
-          </Button>
+          <div className="flex gap-1">
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              className="h-7 w-7 md:h-8 md:w-8 text-muted-foreground hover:text-foreground" 
+              onClick={e => {
+                e.stopPropagation();
+                onArchive(lead.id);
+              }}
+            >
+              <Archive className="h-3 w-3 md:h-4 md:w-4" />
+            </Button>
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              className="h-7 w-7 md:h-8 md:w-8 text-muted-foreground hover:text-destructive" 
+              onClick={e => {
+                e.stopPropagation();
+                onDelete(lead.id);
+              }}
+            >
+              <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
+            </Button>
+          </div>
         </div>
         
         
@@ -172,6 +187,7 @@ interface DroppableStageProps {
   leads: Lead[];
   stageIndex: number;
   onArchive: (leadId: string) => void;
+  onDelete: (leadId: string) => void;
   onEdit: (lead: Lead) => void;
 }
 function DroppableStage({
@@ -179,6 +195,7 @@ function DroppableStage({
   leads,
   stageIndex,
   onArchive,
+  onDelete,
   onEdit
 }: DroppableStageProps) {
   const {
@@ -199,7 +216,7 @@ function DroppableStage({
         </CardTitle>
       </CardHeader>
       <CardContent ref={setNodeRef} className={`p-3 md:p-4 space-y-3 min-h-[300px] md:min-h-[400px] transition-colors ${isOver ? 'bg-accent/50' : ''}`}>
-        {leads.map((lead, index) => <DraggableLeadCard key={lead.id} lead={lead} index={index} stageIndex={stageIndex} onArchive={onArchive} onEdit={onEdit} />)}
+        {leads.map((lead, index) => <DraggableLeadCard key={lead.id} lead={lead} index={index} stageIndex={stageIndex} onArchive={onArchive} onDelete={onDelete} onEdit={onEdit} />)}
 
         {leads.length === 0 && <div className="text-center py-8 text-muted-foreground">
             <p className="text-xs md:text-sm">No leads in this stage</p>
@@ -296,6 +313,29 @@ export default function CRM() {
   });
   const handleArchiveLead = (leadId: string) => {
     archiveLeadMutation.mutate(leadId);
+  };
+  const deleteLeadMutation = useMutation({
+    mutationFn: async (leadId: string) => {
+      const {
+        error
+      } = await supabase.from('crm_leads').delete().eq('id', leadId);
+      if (error) throw error;
+    },
+    onSuccess: (_, leadId) => {
+      queryClient.invalidateQueries({
+        queryKey: ['crm-leads']
+      });
+      const lead = leads.find(l => l.id === leadId);
+      toast.success(`${lead?.name} deleted successfully`);
+    },
+    onError: () => {
+      toast.error("Failed to delete lead");
+    },
+  });
+  const handleDeleteLead = (leadId: string) => {
+    if (window.confirm("Are you sure you want to permanently delete this lead?")) {
+      deleteLeadMutation.mutate(leadId);
+    }
   };
   const addLeadMutation = useMutation({
     mutationFn: async (newLead: any) => {
@@ -683,7 +723,7 @@ export default function CRM() {
         {/* Pipeline Board */}
         <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
-            {stages.map((stage, stageIndex) => <DroppableStage key={stage.id} stage={stage} leads={getLeadsByStage(stage.id)} stageIndex={stageIndex} onArchive={handleArchiveLead} onEdit={handleOpenEditDialog} />)}
+            {stages.map((stage, stageIndex) => <DroppableStage key={stage.id} stage={stage} leads={getLeadsByStage(stage.id)} stageIndex={stageIndex} onArchive={handleArchiveLead} onDelete={handleDeleteLead} onEdit={handleOpenEditDialog} />)}
           </div>
           <DragOverlay>
             {activeLead ? <Card className="border-2 shadow-2xl opacity-90 cursor-grabbing">

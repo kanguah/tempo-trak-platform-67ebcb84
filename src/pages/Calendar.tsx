@@ -532,9 +532,9 @@ export default function Calendar() {
           </div>
 
         {/* Main Content - Split Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 auto-rows-start">
         {/* Left: Calendar Picker */}
-        <div className="space-y-4">
+        <div className="space-y-4 h-[calc(100vh-180px)] overflow-y-auto pr-2">
           <Card className="p-4">
             <CalendarPicker
               mode="single"

@@ -384,9 +384,6 @@ export default function Tutors() {
                     Delete ({selectedTutors.size})
                   </Button>
                 )}
-                <Button variant="outline" size="icon">
-                  <Filter className="h-5 w-5" />
-                </Button>
               </div>
             </div>
           </CardContent>

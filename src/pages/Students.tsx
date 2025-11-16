@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Filter, Eye, Trash2, ArrowUpDown, UserPlus } from "lucide-react";
+import { Search, Plus, Eye, Trash2, ArrowUpDown, UserPlus } from "lucide-react";
 import DataImport from "@/components/DataImport";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -766,9 +766,6 @@ export default function Students() {
                     Delete ({selectedStudents.size})
                   </Button>
                 )}
-                <Button variant="outline" size="icon">
-                  <Filter className="h-5 w-5" />
-                </Button>
               </div>
             </div>
           </CardContent>

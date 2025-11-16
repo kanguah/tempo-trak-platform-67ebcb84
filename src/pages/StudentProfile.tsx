@@ -21,7 +21,7 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format, subDays, subMonths, startOfYear } from "date-fns";
+import { format, subDays, subMonths, startOfYear, parseISO, addDays, startOfWeek } from "date-fns";
 import { cn } from "@/lib/utils";
 const editStudentSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
@@ -162,17 +162,20 @@ export default function StudentProfile() {
   } = useQuery({
     queryKey: ['lessons', id, dateRange.start, dateRange.end],
     queryFn: async () => {
+      // Limit lessons to scheduled lessons for the current month (same behavior as Calendar page)
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
       let query = supabase
         .from('lessons')
         .select('*')
         .eq('student_id', id)
         .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
-      
-      if (dateRange.start && dateRange.end) {
-        query = query.gte('lesson_date', format(dateRange.start, 'yyyy-MM-dd'))
-                     .lte('lesson_date', format(dateRange.end, 'yyyy-MM-dd'));
-      }
+        .eq('status', 'scheduled')
+        .gte('lesson_date', firstDay.toISOString().split('T')[0])
+        .lte('lesson_date', lastDay.toISOString().split('T')[0])
+        .order('lesson_date', { ascending: true });
       
       const { data, error } = await query;
       if (error) throw error;
@@ -180,6 +183,44 @@ export default function StudentProfile() {
     },
     enabled: !!user && !!id
   });
+
+  // Compute a concrete date for each lesson and sort by the closest date (nearest first)
+  const sortedLessons = (() => {
+    try {
+      const now = new Date();
+      const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+      const withDates = (lessons || []).map((lesson: any) => {
+        let computedDate: Date | null = null;
+        if (lesson.lesson_date) {
+          // explicit date
+          computedDate = parseISO(lesson.lesson_date);
+        } else if (typeof lesson.day_of_week === 'number') {
+          // recurring lesson stored by day_of_week (0-6)
+          let candidate = addDays(weekStart, lesson.day_of_week);
+          // if the candidate is before now, assume next week's occurrence
+          if (candidate < now) candidate = addDays(candidate, 7);
+          computedDate = candidate;
+        }
+        return {
+          ...lesson,
+          __computedDate: computedDate
+        };
+      });
+
+      // Place lessons with no date at the end, otherwise sort by computedDate ascending
+      withDates.sort((a: any, b: any) => {
+        if (!a.__computedDate && !b.__computedDate) return 0;
+        if (!a.__computedDate) return 1;
+        if (!b.__computedDate) return -1;
+        return a.__computedDate.getTime() - b.__computedDate.getTime();
+      });
+
+      return withDates;
+    } catch (e) {
+      // fallback to original ordering on error
+      return lessons;
+    }
+  })();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -690,35 +731,44 @@ export default function StudentProfile() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {lessons.length === 0 ? <p className="text-center text-muted-foreground py-8">No lessons scheduled</p> : <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Time</TableHead>
-                        <TableHead>Subject</TableHead>
-                        <TableHead>Duration</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {lessons.map(lesson => <TableRow key={lesson.id}>
-                          <TableCell>
-                            {lesson.lesson_date 
-                              ? format(new Date(lesson.lesson_date), 'MMM dd, yyyy')
-                              : ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][lesson.day_of_week]
-                            }
-                          </TableCell>
-                          <TableCell>{lesson.start_time}</TableCell>
-                          <TableCell>{lesson.subject}</TableCell>
-                          <TableCell>{lesson.duration} min</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={getStatusColor(lesson.status)}>
-                              {lesson.status}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>)}
-                    </TableBody>
-                  </Table>}
+                {/* Constrain the lessons list height for better UX and allow internal scrolling */}
+                <div role="region" aria-label="Scheduled lessons" className="max-h-[420px] md:max-h-[520px] lg:max-h-[640px] overflow-auto rounded-md">
+                  {sortedLessons.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No lessons scheduled</p>
+                  ) : (
+                    <Table className="min-w-full">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Time</TableHead>
+                          <TableHead>Subject</TableHead>
+                          <TableHead>Duration</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sortedLessons.map(lesson => (
+                          <TableRow key={lesson.id}>
+                            <TableCell>
+                              {lesson.lesson_date 
+                                ? format(new Date(lesson.lesson_date), 'MMM dd, yyyy')
+                                : ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][lesson.day_of_week]
+                              }
+                            </TableCell>
+                            <TableCell>{lesson.start_time}</TableCell>
+                            <TableCell>{lesson.subject}</TableCell>
+                            <TableCell>{lesson.duration} min</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={getStatusColor(lesson.status)}>
+                                {lesson.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

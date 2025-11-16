@@ -96,7 +96,18 @@ export function AppSidebar() {
   });
   return <div onMouseEnter={() => !open && setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} className="relative">
       <Sidebar collapsible="icon" className={`border-r border-sidebar-border transition-all duration-300 ${showExpanded ? 'w-64' : 'w-16'}`}>
-        
+        {/* Header: School Management title */}
+        <SidebarHeader className={`px-4 py-4 transition-all ${showExpanded ? 'text-left' : 'text-center'}`}>
+          <div className="flex items-center gap-3">
+            <div className={`h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center text-primary font-bold ${showExpanded ? '' : 'mx-auto'}`}>
+              SM
+            </div>
+            {showExpanded && <div>
+              <div className="text-sm font-semibold text-sidebar-foreground">School Management</div>
+              <div className="text-xs text-sidebar-foreground/60">Admin Dashboard</div>
+            </div>}
+          </div>
+        </SidebarHeader>
 
         <SidebarContent>
           <SidebarGroup>

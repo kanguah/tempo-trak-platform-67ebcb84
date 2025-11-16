@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Filter, Mail, Phone, Eye, Trash2, Briefcase } from "lucide-react";
+import { Search, Plus, Mail, Phone, Eye, Trash2, Briefcase } from "lucide-react";
 import DataImport from "@/components/DataImport";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -415,9 +415,6 @@ export default function Staff() {
                     Delete ({selectedStaff.size})
                   </Button>
                 )}
-                <Button variant="outline" size="icon">
-                  <Filter className="h-5 w-5" />
-                </Button>
               </div>
             </div>
           </CardContent>
@@ -562,12 +559,14 @@ export default function Staff() {
                     <TableHead className="cursor-pointer" onClick={() => handleSort("status")}>
                       Status
                     </TableHead>
-                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedStaff.map((member) => (
-                    <TableRow key={member.id} className="cursor-pointer hover:bg-muted/50">
+                    <TableRow key={member.id} className="cursor-pointer hover:bg-muted/50" onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/staff/${member.id}`);
+                          }}>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedStaff.has(member.id)}
@@ -595,18 +594,6 @@ export default function Staff() {
                         <Badge className={getStatusColor(member.status)} variant="outline">
                           {member.status}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/staff/${member.id}`);
-                          }}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
