@@ -59,6 +59,30 @@ export default function DataImport({
     valid: boolean;
     error?: string;
   } => {
+    if (type === "leads") {
+      if (!row.name) {
+        return {
+          valid: false,
+          error: `Row ${index + 1}: Missing required field (name)`
+        };
+      }
+      if (row.email && !row.email.includes("@")) {
+        return {
+          valid: false,
+          error: `Row ${index + 1}: Invalid email format`
+        };
+      }
+      if (row.stage && !["new", "contacted", "qualified", "converted", "lost"].includes(row.stage)) {
+        return {
+          valid: false,
+          error: `Row ${index + 1}: Invalid stage. Must be new, contacted, qualified, converted, or lost`
+        };
+      }
+      return {
+        valid: true
+      };
+    }
+
     if (!row.name || !row.email) {
       return {
         valid: false,
@@ -69,18 +93,6 @@ export default function DataImport({
       return {
         valid: false,
         error: `Row ${index + 1}: Invalid email format`
-      };
-    }
-
-    if (type === "leads") {
-      if (row.stage && !["new", "contacted", "qualified", "converted", "lost"].includes(row.stage)) {
-        return {
-          valid: false,
-          error: `Row ${index + 1}: Invalid stage. Must be new, contacted, qualified, converted, or lost`
-        };
-      }
-      return {
-        valid: true
       };
     }
 
@@ -159,7 +171,7 @@ export default function DataImport({
           if (type === "leads") {
             const leadData: any = {
               name: row.name.trim(),
-              email: row.email.trim().toLowerCase(),
+              email: row.email?.trim().toLowerCase() || null,
               phone: row.phone?.trim() || null,
               source: row.source?.trim() || null,
               notes: row.notes?.trim() || null,
@@ -346,8 +358,8 @@ export default function DataImport({
                 </> : type === "tutors" ? <>
                   <br />Required columns: name, email, phone, instrument, status (Active/On Leave), hourly_rate (optional)
                 </> : <>
-                  <br />Required: name, email
-                  <br />Optional: phone, source, notes, stage (new/contacted/qualified/converted/lost), created_date (YYYY-MM-DD format)
+                  <br />Required: name
+                  <br />Optional: email, phone, source, notes, stage (new/contacted/qualified/converted/lost), created_date (YYYY-MM-DD format)
                 </>}
             </AlertDescription>
           </Alert>
