@@ -254,7 +254,7 @@ export default function CRM() {
       const {
         data,
         error
-      } = await supabase.from('crm_leads').select('*').eq('user_id', user?.id).in('stage', ['new', 'contacted', 'qualified']).order('created_at', {
+      } = await supabase.from('crm_leads').select('*').eq('user_id', user?.id).in('stage', ['new', 'contacted', 'qualified', 'converted']).order('created_at', {
         ascending: false
       });
       if (error) throw error;
@@ -263,7 +263,8 @@ export default function CRM() {
       const stageMap: Record<string, string> = {
         'new': 'new',
         'contacted': 'contacted',
-        'qualified': 'converted'
+        'qualified': 'converted',
+        'converted': 'converted'
       };
       return data.map(lead => ({
         id: lead.id,
@@ -388,7 +389,7 @@ export default function CRM() {
       const stageMap: Record<string, string> = {
         'new': 'new',
         'contacted': 'contacted',
-        'converted': 'qualified'
+        'converted': 'converted'
       };
       const {
         error
@@ -436,7 +437,7 @@ export default function CRM() {
       const stageMap: Record<string, string> = {
         'new': 'new',
         'contacted': 'contacted',
-        'converted': 'qualified'
+        'converted': 'converted'
       };
       const {
         error
