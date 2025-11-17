@@ -393,9 +393,6 @@ export default function Payments() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input placeholder="Search payments by student, invoice ID, or status..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
               </div>
-              <Button variant="outline" size="icon">
-                <Filter className="h-5 w-5" />
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -406,9 +403,9 @@ export default function Payments() {
             <CardTitle>Recent Payments</CardTitle>
           </CardHeader>
           <CardContent>
-            {payments.length === 0 ? <div className="text-center py-8 text-muted-foreground">
+            {payments.length === 0 ? <div className="text-center py-8 text-muted-foreground max-h-[200px]">
                 No payments yet. Generate monthly payments to get started.
-              </div> : <div className="space-y-3">
+              </div> : <div className="space-y-3 max-h-[1000px] overflow-y-auto">
                 {payments.filter(payment => !searchQuery || payment.students?.name.toLowerCase().includes(searchQuery.toLowerCase()) || payment.id.toLowerCase().includes(searchQuery.toLowerCase())).map((payment, index) => <Card key={payment.id} className="border-2 animate-scale-in" style={{
               animationDelay: `${index * 0.05}s`
             }}>
