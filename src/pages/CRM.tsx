@@ -53,7 +53,7 @@ const initialLeads = [{
   name: "John Appiah",
   email: "j.appiah@email.com",
   phone: "+233 24 000 1111",
-  stage: "enrolled",
+  stage: "converted",
   instrument: "Drums",
   source: "Walk-in",
   notes: "Enrolled in 8-lesson package",
@@ -69,8 +69,8 @@ const stages = [{
   label: "Contacted",
   color: "bg-orange-500"
 }, {
-  id: "enrolled",
-  label: "Enrolled",
+  id: "converted",
+  label: "Converted",
   color: "bg-green-500"
 }];
 interface Lead {
@@ -263,7 +263,7 @@ export default function CRM() {
       const stageMap: Record<string, string> = {
         'new': 'new',
         'contacted': 'contacted',
-        'qualified': 'enrolled'
+        'qualified': 'converted'
       };
       return data.map(lead => ({
         id: lead.id,
@@ -388,7 +388,7 @@ export default function CRM() {
       const stageMap: Record<string, string> = {
         'new': 'new',
         'contacted': 'contacted',
-        'enrolled': 'qualified'
+        'converted': 'qualified'
       };
       const {
         error
@@ -436,7 +436,7 @@ export default function CRM() {
       const stageMap: Record<string, string> = {
         'new': 'new',
         'contacted': 'contacted',
-        'enrolled': 'qualified'
+        'converted': 'qualified'
       };
       const {
         error
@@ -564,7 +564,7 @@ export default function CRM() {
                   <SelectContent>
                     <SelectItem value="new">New Lead</SelectItem>
                     <SelectItem value="contacted">Contacted</SelectItem>
-                    <SelectItem value="enrolled">Enrolled</SelectItem>
+                    <SelectItem value="converted">Converted</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -665,7 +665,7 @@ export default function CRM() {
                     <SelectContent>
                       <SelectItem value="new">New Lead</SelectItem>
                       <SelectItem value="contacted">Contacted</SelectItem>
-                      <SelectItem value="enrolled">Enrolled</SelectItem>
+                      <SelectItem value="converted">Converted</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
