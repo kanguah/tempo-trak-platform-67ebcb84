@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Mail, Phone, MessageSquare, UserPlus, Search, Archive, GripVertical, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { DndContext, DragEndEvent, DragOverlay, useDraggable, useDroppable, DragStartEvent } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
@@ -69,9 +70,17 @@ const stages = [{
   label: "Contacted",
   color: "bg-orange-500"
 }, {
+  id: "qualified",
+  label: "Qualified",
+  color: "bg-purple-500"
+}, {
   id: "converted",
   label: "Converted",
   color: "bg-green-500"
+}, {
+  id: "lost",
+  label: "Lost",
+  color: "bg-slate-500"
 }];
 interface Lead {
   id: string;
@@ -93,6 +102,10 @@ interface DraggableLeadCardProps {
   onArchive: (leadId: string) => void;
   onDelete: (leadId: string) => void;
   onEdit: (lead: Lead) => void;
+  onContact: (lead: Lead, method: 'call' | 'email') => void;
+  lastContactedAt?: string;
+  isSelected: boolean;
+  onToggleSelect: (leadId: string, isSelected: boolean) => void;
 }
 function DraggableLeadCard({
   lead,
@@ -100,7 +113,11 @@ function DraggableLeadCard({
   stageIndex,
   onArchive,
   onDelete,
-  onEdit
+  onEdit,
+  onContact,
+  lastContactedAt,
+  isSelected,
+  onToggleSelect
 }: DraggableLeadCardProps) {
   const {
     attributes,
@@ -119,9 +136,12 @@ function DraggableLeadCard({
     opacity: isDragging ? 0.5 : 1,
     animationDelay: `${stageIndex * 0.1 + index * 0.05}s`
   };
-  return <Card ref={setNodeRef} style={style} className={`border-2 hover:shadow-lg transition-all cursor-grab active:cursor-grabbing animate-scale-in ${isDragging ? 'shadow-2xl ring-2 ring-primary' : ''}`} onClick={() => !isDragging && onEdit(lead)}>
+  return <Card ref={setNodeRef} style={style} className={`border-2 hover:shadow-lg transition-all cursor-grab active:cursor-grabbing animate-scale-in ${isDragging ? 'shadow-2xl ring-2 ring-primary' : ''} ${isSelected ? 'border-primary ring-2 ring-primary/60' : ''}`} onClick={() => !isDragging && onEdit(lead)}>
       <CardContent className="p-3 md:p-4">
         <div className="flex items-start gap-2 mb-2">
+          <div onClick={e => e.stopPropagation()}>
+            <Checkbox checked={isSelected} onCheckedChange={checked => onToggleSelect(lead.id, checked === true)} className="mt-1" aria-label={`Select ${lead.name}`} />
+          </div>
           <div {...listeners} {...attributes} className="touch-none mt-1">
             <GripVertical className="h-4 w-4 text-muted-foreground" />
           </div>
@@ -162,6 +182,7 @@ function DraggableLeadCard({
           <Button size="sm" variant="outline" className="flex-1 h-9 md:h-8 text-xs" onClick={e => {
           e.stopPropagation();
           toast.success(`Calling ${lead.name}...`);
+          onContact(lead, 'call');
         }}>
             <Phone className="h-3 w-3 mr-1" />
             <span className="hidden sm:inline">Call</span>
@@ -169,13 +190,16 @@ function DraggableLeadCard({
           <Button size="sm" variant="outline" className="flex-1 h-9 md:h-8 text-xs" onClick={e => {
           e.stopPropagation();
           window.location.href = `mailto:${lead.email}?subject=Follow up - ${lead.instrument} Lessons`;
+          onContact(lead, 'email');
         }}>
             <Mail className="h-3 w-3 mr-1" />
             <span className="hidden sm:inline">Email</span>
           </Button>
         </div>
-
-        <p className="text-xs text-muted-foreground">Added {lead.createdAt}</p>
+          <div className=" flex justify-between">
+        <span className="text-xs text-muted-foreground">Added {lead.createdAt}</span>
+        <span className="text-xs text-muted-foreground mt-1">Last contacted: {lastContactedAt || lead.lastContact || 'Not yet'}</span>
+        </div>
       </CardContent>
     </Card>;
 }
@@ -190,6 +214,11 @@ interface DroppableStageProps {
   onArchive: (leadId: string) => void;
   onDelete: (leadId: string) => void;
   onEdit: (lead: Lead) => void;
+  onContact: (lead: Lead, method: 'call' | 'email') => void;
+  lastContactTimes: Record<string, string | undefined>;
+  selectedLeadIds: string[];
+  onToggleSelect: (leadId: string, isSelected: boolean) => void;
+  onToggleStageSelect: (stageId: string, selectAll: boolean) => void;
 }
 function DroppableStage({
   stage,
@@ -197,7 +226,12 @@ function DroppableStage({
   stageIndex,
   onArchive,
   onDelete,
-  onEdit
+  onEdit,
+  onContact,
+  lastContactTimes,
+  selectedLeadIds,
+  onToggleSelect,
+  onToggleStageSelect
 }: DroppableStageProps) {
   const {
     setNodeRef,
@@ -205,19 +239,38 @@ function DroppableStage({
   } = useDroppable({
     id: stage.id
   });
-  return <Card className={`shadow-card animate-slide-up transition-all ${isOver ? 'ring-2 ring-primary' : ''}`} style={{
+  const allSelected = leads.length > 0 && leads.every(lead => selectedLeadIds.includes(lead.id));
+  const someSelected = leads.some(lead => selectedLeadIds.includes(lead.id));
+  return <Card className={`shadow-card animate-slide-up transition-all flex flex-col max-h-[80vh] overflow-hidden ${isOver ? 'ring-2 ring-primary' : ''}`} style={{
     animationDelay: `${stageIndex * 0.1}s`
   }}>
       <CardHeader className={`${stage.color} text-white rounded-t-lg`}>
-        <CardTitle className="text-base md:text-lg flex items-center justify-between">
-          <span>{stage.label}</span>
-          <Badge className="bg-white/20 text-white border-white/30 text-xs md:text-sm">
-            {leads.length}
-          </Badge>
-        </CardTitle>
+        <div className="flex flex-col gap-2">
+          <CardTitle className="text-base md:text-lg flex items-center justify-between">
+            <span>{stage.label}</span>
+            <Badge className="bg-white/20 text-white border-white/30 text-xs md:text-sm">
+              {leads.length}
+            </Badge>
+          </CardTitle>
+          <div className="flex items-center gap-3 text-xs">
+            <button className="text-white/80 hover:text-white transition-colors underline-offset-2 hover:underline disabled:opacity-50" onClick={e => {
+            e.preventDefault();
+            onToggleStageSelect(stage.id, true);
+          }} disabled={leads.length === 0 || allSelected}>
+              Select all
+            </button>
+            <span className="text-white/40">•</span>
+            <button className="text-white/80 hover:text-white transition-colors underline-offset-2 hover:underline disabled:opacity-50" onClick={e => {
+            e.preventDefault();
+            onToggleStageSelect(stage.id, false);
+          }} disabled={!someSelected}>
+              Clear
+            </button>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent ref={setNodeRef} className={`p-3 md:p-4 space-y-3 min-h-[300px] md:min-h-[400px] transition-colors ${isOver ? 'bg-accent/50' : ''}`}>
-        {leads.map((lead, index) => <DraggableLeadCard key={lead.id} lead={lead} index={index} stageIndex={stageIndex} onArchive={onArchive} onDelete={onDelete} onEdit={onEdit} />)}
+      <CardContent ref={setNodeRef} className={`p-3 md:p-4 space-y-3 min-h-[300px] md:min-h-[400px] flex-1 overflow-y-auto transition-colors ${isOver ? 'bg-accent/50' : ''}`}>
+        {leads.map((lead, index) => <DraggableLeadCard key={lead.id} lead={lead} index={index} stageIndex={stageIndex} onArchive={onArchive} onDelete={onDelete} onEdit={onEdit} onContact={onContact} lastContactedAt={lastContactTimes[lead.id]} isSelected={selectedLeadIds.includes(lead.id)} onToggleSelect={onToggleSelect} />)}
 
         {leads.length === 0 && <div className="text-center py-8 text-muted-foreground">
             <p className="text-xs md:text-sm">No leads in this stage</p>
@@ -232,6 +285,8 @@ export default function CRM() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [lastContactTimes, setLastContactTimes] = useState<Record<string, string | undefined>>({});
+  const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [newLead, setNewLead] = useState({
     name: "",
     email: "",
@@ -254,7 +309,7 @@ export default function CRM() {
       const {
         data,
         error
-      } = await supabase.from('crm_leads').select('*').eq('user_id', user?.id).in('stage', ['new', 'contacted', 'qualified', 'converted']).order('created_at', {
+      } = await supabase.from('crm_leads').select('*').eq('user_id', user?.id).in('stage', ['new', 'contacted', 'qualified', 'converted', 'lost']).order('created_at', {
         ascending: false
       });
       if (error) throw error;
@@ -263,8 +318,9 @@ export default function CRM() {
       const stageMap: Record<string, string> = {
         'new': 'new',
         'contacted': 'contacted',
-        'qualified': 'converted',
-        'converted': 'converted'
+        'qualified': 'qualified',
+        'converted': 'converted',
+        'lost': 'lost'
       };
       return data.map(lead => ({
         id: lead.id,
@@ -285,24 +341,70 @@ export default function CRM() {
   const getLeadsByStage = (stage: string) => {
     return leads.filter(lead => lead.stage === stage);
   };
-  const archiveLeadMutation = useMutation({
-    mutationFn: async (leadId: string) => {
-      // First get the current stage
+  const handleToggleLeadSelection = (leadId: string, isSelected: boolean) => {
+    setSelectedLeads(prev => {
+      if (isSelected) {
+        if (prev.includes(leadId)) return prev;
+        return [...prev, leadId];
+      }
+      return prev.filter(id => id !== leadId);
+    });
+  };
+  const handleToggleStageSelection = (stageId: string, selectAll: boolean) => {
+    const stageLeadIds = getLeadsByStage(stageId).map(lead => lead.id);
+    setSelectedLeads(prev => {
+      if (selectAll) {
+        const merged = new Set([...prev, ...stageLeadIds]);
+        return Array.from(merged);
+      }
+      return prev.filter(id => !stageLeadIds.includes(id));
+    });
+  };
+  const handleSelectAllLeads = () => {
+    setSelectedLeads(leads.map(lead => lead.id));
+  };
+  const handleClearSelection = () => setSelectedLeads([]);
+  useEffect(() => {
+    setLastContactTimes(prev => {
+      const next = { ...prev };
+      leads.forEach(lead => {
+        if (!next[lead.id]) {
+          next[lead.id] = lead.lastContact;
+        }
+      });
+      return next;
+    });
+  }, [leads]);
+  useEffect(() => {
+    setSelectedLeads(prev => prev.filter(id => leads.some(lead => lead.id === id)));
+  }, [leads]);
+  const handleContactLead = (lead: Lead, _method: 'call' | 'email') => {
+    const timestamp = new Date().toLocaleString();
+    setLastContactTimes(prev => ({
+      ...prev,
+      [lead.id]: timestamp
+    }));
+  };
+  const archiveLeadInSupabase = async (leadId: string, originalStage?: string) => {
+    let stageToStore = originalStage;
+    if (!stageToStore) {
       const {
         data: currentLead,
         error: fetchError
       } = await supabase.from('crm_leads').select('stage').eq('id', leadId).single();
       if (fetchError) throw fetchError;
-
-      // Update with archived status and save original stage
-      const {
-        error
-      } = await supabase.from('crm_leads').update({
-        stage: 'lost',
-        original_stage: currentLead.stage
-      }).eq('id', leadId);
-      if (error) throw error;
-    },
+      stageToStore = currentLead.stage;
+    }
+    const {
+      error
+    } = await supabase.from('crm_leads').update({
+      stage: 'lost',
+      original_stage: stageToStore
+    }).eq('id', leadId);
+    if (error) throw error;
+  };
+  const archiveLeadMutation = useMutation({
+    mutationFn: (leadId: string) => archiveLeadInSupabase(leadId),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ['crm-leads']
@@ -316,6 +418,27 @@ export default function CRM() {
   const handleArchiveLead = (leadId: string) => {
     archiveLeadMutation.mutate(leadId);
   };
+  const bulkArchiveMutation = useMutation({
+    mutationFn: async (leadIds: string[]) => {
+      await Promise.all(leadIds.map(leadId => {
+        const originalStage = leads.find(lead => lead.id === leadId)?.stage;
+        return archiveLeadInSupabase(leadId, originalStage);
+      }));
+    },
+    onSuccess: (_, leadIds) => {
+      queryClient.invalidateQueries({
+        queryKey: ['crm-leads']
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['archived-leads']
+      });
+      toast.success(`Archived ${leadIds.length} lead${leadIds.length === 1 ? '' : 's'}`);
+      setSelectedLeads([]);
+    },
+    onError: () => {
+      toast.error("Failed to archive selected leads");
+    }
+  });
   const deleteLeadMutation = useMutation({
     mutationFn: async (leadId: string) => {
       const {
@@ -338,6 +461,35 @@ export default function CRM() {
     if (window.confirm("Are you sure you want to permanently delete this lead?")) {
       deleteLeadMutation.mutate(leadId);
     }
+  };
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (leadIds: string[]) => {
+      const {
+        error
+      } = await supabase.from('crm_leads').delete().in('id', leadIds);
+      if (error) throw error;
+    },
+    onSuccess: (_, ids) => {
+      queryClient.invalidateQueries({
+        queryKey: ['crm-leads']
+      });
+      toast.success(`Deleted ${ids.length} lead${ids.length === 1 ? '' : 's'}`);
+      setSelectedLeads([]);
+    },
+    onError: () => {
+      toast.error("Failed to delete selected leads");
+    }
+  });
+  const handleBulkArchive = () => {
+    if (selectedLeads.length === 0) return;
+    bulkArchiveMutation.mutate(selectedLeads);
+  };
+  const handleBulkDelete = () => {
+    if (selectedLeads.length === 0) return;
+    if (!window.confirm(`Delete ${selectedLeads.length} selected lead${selectedLeads.length === 1 ? '' : 's'}? This cannot be undone.`)) {
+      return;
+    }
+    bulkDeleteMutation.mutate(selectedLeads);
   };
   const addLeadMutation = useMutation({
     mutationFn: async (newLead: any) => {
@@ -389,7 +541,9 @@ export default function CRM() {
       const stageMap: Record<string, string> = {
         'new': 'new',
         'contacted': 'contacted',
-        'converted': 'converted'
+        'qualified': 'qualified',
+        'converted': 'converted',
+        'lost': 'lost'
       };
       const {
         error
@@ -437,7 +591,9 @@ export default function CRM() {
       const stageMap: Record<string, string> = {
         'new': 'new',
         'contacted': 'contacted',
-        'converted': 'converted'
+        'qualified': 'qualified',
+        'converted': 'converted',
+        'lost': 'lost'
       };
       const {
         error
@@ -470,6 +626,7 @@ export default function CRM() {
       toast.success(`${lead.name} moved to ${stages.find(s => s.id === newStage)?.label}`);
     }
   };
+  const hasSelection = selectedLeads.length > 0;
   return <div className="min-h-screen bg-background">
       <div className="p-4 md:p-8 space-y-6 md:space-y-8 animate-fade-in">
         {/* Header */}
@@ -565,7 +722,9 @@ export default function CRM() {
                   <SelectContent>
                     <SelectItem value="new">New Lead</SelectItem>
                     <SelectItem value="contacted">Contacted</SelectItem>
+                    <SelectItem value="qualified">Qualified</SelectItem>
                     <SelectItem value="converted">Converted</SelectItem>
+                    <SelectItem value="lost">Lost</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -666,7 +825,9 @@ export default function CRM() {
                     <SelectContent>
                       <SelectItem value="new">New Lead</SelectItem>
                       <SelectItem value="contacted">Contacted</SelectItem>
+                      <SelectItem value="qualified">Qualified</SelectItem>
                       <SelectItem value="converted">Converted</SelectItem>
+                      <SelectItem value="lost">Lost</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -693,7 +854,7 @@ export default function CRM() {
         </Dialog>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-3">
+        <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
           {stages.map((stage, index) => {
           const count = getLeadsByStage(stage.id).length;
           return <Card key={stage.id} className={`shadow-card border-l-4 animate-scale-in`} style={{
@@ -724,11 +885,32 @@ export default function CRM() {
             </div>
           </CardContent>
         </Card>
+        {hasSelection && <Card className="shadow-card border border-primary/40">
+            <CardContent className="p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <p className="text-sm text-muted-foreground">
+                {selectedLeads.length} lead{selectedLeads.length === 1 ? '' : 's'} selected
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={handleSelectAllLeads}>
+                  Select All
+                </Button>
+                <Button variant="ghost" size="sm" onClick={handleClearSelection}>
+                  Clear
+                </Button>
+                <Button variant="secondary" size="sm" disabled={bulkArchiveMutation.isPending} onClick={handleBulkArchive}>
+                  {bulkArchiveMutation.isPending ? 'Archiving...' : 'Archive Selected'}
+                </Button>
+                <Button variant="destructive" size="sm" disabled={bulkDeleteMutation.isPending} onClick={handleBulkDelete}>
+                  {bulkDeleteMutation.isPending ? 'Deleting...' : 'Delete Selected'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>}
 
         {/* Pipeline Board */}
         <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
-            {stages.map((stage, stageIndex) => <DroppableStage key={stage.id} stage={stage} leads={getLeadsByStage(stage.id)} stageIndex={stageIndex} onArchive={handleArchiveLead} onDelete={handleDeleteLead} onEdit={handleOpenEditDialog} />)}
+          <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {stages.map((stage, stageIndex) => <DroppableStage key={stage.id} stage={stage} leads={getLeadsByStage(stage.id)} stageIndex={stageIndex} onArchive={handleArchiveLead} onDelete={handleDeleteLead} onEdit={handleOpenEditDialog} onContact={handleContactLead} lastContactTimes={lastContactTimes} selectedLeadIds={selectedLeads} onToggleSelect={handleToggleLeadSelection} onToggleStageSelect={handleToggleStageSelection} />)}
           </div>
           <DragOverlay>
             {activeLead ? <Card className="border-2 shadow-2xl opacity-90 cursor-grabbing">

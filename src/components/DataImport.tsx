@@ -17,8 +17,10 @@ interface ImportResult {
   success: number;
   failed: number;
   errors: string[];
+  duplicates: number;
+  duplicateDetails: string[];
 }
-const instruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Cello", "Trumpet", "Bass"];
+const instruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Trumpet"];
 export default function DataImport({
   type,
   onSuccess
@@ -26,6 +28,7 @@ export default function DataImport({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const {
     user
   } = useAuth();
@@ -129,9 +132,7 @@ export default function DataImport({
       valid: true
     };
   };
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const processFile = async (file: File) => {
     if (!file.name.endsWith(".csv")) {
       toast.error("Please upload a CSV file");
       return;
@@ -159,15 +160,111 @@ export default function DataImport({
           setResult({
             success: 0,
             failed: rows.length,
-            errors
+            errors,
+            duplicates: 0,
+            duplicateDetails: []
           });
           setImporting(false);
           toast.error("No valid rows to import");
           return;
         }
 
-        // Prepare data for insertion
-        const dataToInsert = validRows.map(row => {
+        // Fetch existing records to check for duplicates
+        const tableName = type === "leads" ? "crm_leads" : type;
+        const { data: existingRecords, error: fetchError } = await supabase
+          .from(tableName)
+          .select("email, name, phone")
+          .eq("user_id", user?.id);
+        
+        if (fetchError) {
+          console.error("Error fetching existing records:", fetchError);
+        }
+
+        // Create sets of existing record identifiers: name+email and name+phone combinations
+        const existingIdentifiers = new Set<string>();
+        (existingRecords || []).forEach((r: any) => {
+          const name = r.name?.trim().toLowerCase() || "";
+          const email = r.email?.trim().toLowerCase() || "";
+          const phone = r.phone?.trim() || "";
+          
+          if (name && email) {
+            existingIdentifiers.add(`${name}|${email}`);
+          }
+          if (name && phone) {
+            existingIdentifiers.add(`${name}|${phone}`);
+          }
+        });
+
+        // Check for duplicates within CSV and against database
+        const seenInCSV = new Set<string>();
+        const rowsToInsert: any[] = [];
+        const duplicateRows: any[] = [];
+        const duplicateDetails: string[] = [];
+
+        validRows.forEach((row, index) => {
+          const email = row.email?.trim().toLowerCase() || "";
+          const phone = row.phone?.trim() || "";
+          const name = row.name?.trim().toLowerCase() || "";
+          
+          if (!name) {
+            // Skip rows without name as we can't create a proper identifier
+            rowsToInsert.push(row);
+            return;
+          }
+          
+          // Create identifiers: name+email and name+phone
+          const identifierWithEmail = email ? `${name}|${email}` : null;
+          const identifierWithPhone = phone ? `${name}|${phone}` : null;
+          
+          // Check for duplicate within CSV
+          const isDuplicateInCSV = 
+            (identifierWithEmail && seenInCSV.has(identifierWithEmail)) ||
+            (identifierWithPhone && seenInCSV.has(identifierWithPhone));
+          
+          if (isDuplicateInCSV) {
+            duplicateRows.push(row);
+            const displayName = row.name?.trim() || 'Unknown';
+            duplicateDetails.push(`Row ${index + 1}: Duplicate in CSV - ${displayName}${email ? ` (${email})` : ''}${phone ? ` (${phone})` : ''}`);
+            return;
+          }
+          
+          // Check for duplicate in database
+          const isDuplicateInDB = 
+            (identifierWithEmail && existingIdentifiers.has(identifierWithEmail)) ||
+            (identifierWithPhone && existingIdentifiers.has(identifierWithPhone));
+          
+          if (isDuplicateInDB) {
+            duplicateRows.push(row);
+            const displayName = row.name?.trim() || 'Unknown';
+            duplicateDetails.push(`Row ${index + 1}: Already exists in database - ${displayName}${email ? ` (${email})` : ''}${phone ? ` (${phone})` : ''}`);
+            return;
+          }
+          
+          // No duplicate, add to insert list and track identifiers
+          if (identifierWithEmail) {
+            seenInCSV.add(identifierWithEmail);
+          }
+          if (identifierWithPhone) {
+            seenInCSV.add(identifierWithPhone);
+          }
+          rowsToInsert.push(row);
+        });
+
+        if (rowsToInsert.length === 0) {
+          setResult({
+            success: 0,
+            failed: errors.length,
+            errors,
+            duplicates: duplicateRows.length,
+            duplicateDetails
+          });
+          setImporting(false);
+          toast.error("All rows are duplicates or invalid");
+          return;
+        }
+
+        // Prepare data for insertion (only non-duplicates)
+        const dataToInsert = rowsToInsert.map(row => {
           if (type === "leads") {
             const leadData: any = {
               name: row.name.trim(),
@@ -215,7 +312,6 @@ export default function DataImport({
         });
 
         // Bulk insert
-        const tableName = type === "leads" ? "crm_leads" : type;
         const {
           data,
           error
@@ -226,7 +322,9 @@ export default function DataImport({
           setResult({
             success: 0,
             failed: validRows.length,
-            errors
+            errors,
+            duplicates: duplicateRows.length,
+            duplicateDetails
           });
           toast.error("Failed to import data");
         } else {
@@ -234,12 +332,20 @@ export default function DataImport({
           setResult({
             success: successCount,
             failed: errors.length,
-            errors
+            errors,
+            duplicates: duplicateRows.length,
+            duplicateDetails
           });
           queryClient.invalidateQueries({
             queryKey: [type]
           });
-          toast.success(`Successfully imported ${successCount} ${type}`);
+          
+          let message = `Successfully imported ${successCount} ${type}`;
+          if (duplicateRows.length > 0) {
+            message += ` (${duplicateRows.length} duplicate${duplicateRows.length > 1 ? 's' : ''} skipped)`;
+          }
+          toast.success(message);
+          
           if (onSuccess) {
             onSuccess();
           }
@@ -252,9 +358,37 @@ export default function DataImport({
         setImporting(false);
       }
     });
+  };
 
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    processFile(file);
     // Reset file input
     event.target.value = "";
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    
+    processFile(file);
   };
 
   const handleExport = async () => {
@@ -341,12 +475,12 @@ export default function DataImport({
               <span className="sm:hidden">Import</span>
             </Button>
           </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Import {type === "students" ? "Students" : type === "tutors" ? "Tutors" : "Leads"} from CSV</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-6 py-4">
+        <div className="space-y-6 py-4 overflow-y-auto flex-1 min-h-0">
           {/* Instructions */}
           <Alert>
             <AlertCircle className="h-4 w-4" />
@@ -377,7 +511,17 @@ export default function DataImport({
           <div className="space-y-2">
             <Label htmlFor="csv-upload">Step 2: Upload Completed CSV</Label>
             <div className="flex items-center justify-center w-full">
-              <label htmlFor="csv-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted transition-colors">
+              <label 
+                htmlFor="csv-upload" 
+                className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                  isDragging 
+                    ? "bg-primary/10 border-primary" 
+                    : "bg-muted/50 hover:bg-muted"
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                   <FileSpreadsheet className="w-10 h-10 mb-3 text-muted-foreground" />
                   <p className="mb-2 text-sm text-muted-foreground">
@@ -398,7 +542,7 @@ export default function DataImport({
 
           {/* Results */}
           {result && <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-4">
+              <div className={`grid gap-4 ${result.duplicates > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                 <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
                   <p className="text-sm text-muted-foreground mb-1">Successful</p>
                   <p className="text-2xl font-bold text-green-600">{result.success}</p>
@@ -407,12 +551,25 @@ export default function DataImport({
                   <p className="text-sm text-muted-foreground mb-1">Failed</p>
                   <p className="text-2xl font-bold text-red-600">{result.failed}</p>
                 </div>
+                {result.duplicates > 0 && (
+                  <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                    <p className="text-sm text-muted-foreground mb-1">Duplicates Skipped</p>
+                    <p className="text-2xl font-bold text-yellow-600">{result.duplicates}</p>
+                  </div>
+                )}
               </div>
 
               {result.errors.length > 0 && <div className="max-h-40 overflow-y-auto space-y-1">
                   <p className="text-sm font-medium text-destructive mb-2">Errors:</p>
                   {result.errors.map((error, index) => <p key={index} className="text-xs text-muted-foreground bg-destructive/10 p-2 rounded">
                       {error}
+                    </p>)}
+                </div>}
+
+              {result.duplicateDetails.length > 0 && <div className="max-h-40 overflow-y-auto space-y-1">
+                  <p className="text-sm font-medium text-yellow-600 mb-2">Duplicates:</p>
+                  {result.duplicateDetails.map((detail, index) => <p key={index} className="text-xs text-muted-foreground bg-yellow-500/10 p-2 rounded">
+                      {detail}
                     </p>)}
                 </div>}
 

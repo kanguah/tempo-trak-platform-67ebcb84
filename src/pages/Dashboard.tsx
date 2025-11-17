@@ -67,7 +67,7 @@ export default function Dashboard() {
         error
       } = await supabase.from("crm_leads").select("*").eq("user_id", user?.id).order("created_at", {
         ascending: false
-      }).limit(5);
+      });
       if (error) throw error;
       return data;
     },
@@ -162,7 +162,7 @@ export default function Dashboard() {
   })), ...leads.slice(0, 3).map(l => ({
     type: "lead",
     title: "New Lead",
-    description: `${l.name} - ${l.email}`,
+    description: `${l.name} - ${l.notes?.split(":")[0] || "Unknown"}`,
     time: new Date(l.created_at).toLocaleString(),
     icon: UserPlus,
     color: "text-green-600"
