@@ -86,13 +86,13 @@ export default function DataImport({
       };
     }
 
-    if (!row.name || !row.email) {
+    if (!row.name) {
       return {
         valid: false,
-        error: `Row ${index + 1}: Missing required fields (name, email)`
+        error: `Row ${index + 1}: Missing required field (name)`
       };
     }
-    if (!row.email.includes("@")) {
+    if (row.email && !row.email.includes("@")) {
       return {
         valid: false,
         error: `Row ${index + 1}: Invalid email format`
@@ -286,8 +286,8 @@ export default function DataImport({
 
           const baseData = {
             name: row.name.trim(),
-            email: row.email.trim().toLowerCase(),
-            phone: row.phone.trim(),
+            email: row.email?.trim().toLowerCase() || null,
+            phone: row.phone?.trim() || null,
             subjects: [row.instrument.trim()],
             user_id: user?.id
           };
