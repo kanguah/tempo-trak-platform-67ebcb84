@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DollarSign, Search, Filter, Download, CheckCircle, Clock, XCircle, CreditCard, Send, RefreshCw } from "lucide-react";
+import { DollarSign, Search, Filter, Download, CheckCircle, Clock, XCircle, CreditCard, Send, RefreshCw, X, Calendar as CalendarIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -7,17 +7,31 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 const COLORS = ["hsl(240 70% 55%)", "hsl(270 60% 60%)", "hsl(45 90% 60%)", "hsl(200 70% 55%)"];
 export default function Payments() {
   const [searchQuery, setSearchQuery] = useState("");
   const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState("");
+  
+  // Filter states
+  const [showFilters, setShowFilters] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [packageTypeFilter, setPackageTypeFilter] = useState<string>("all");
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("all");
+  const [dateRangeFilter, setDateRangeFilter] = useState<{ from: Date | undefined; to: Date | undefined }>({ from: undefined, to: undefined });
+  const [amountRangeFilter, setAmountRangeFilter] = useState<{ min: string; max: string }>({ min: "", max: "" });
+  
   const {
     user
   } = useAuth();
@@ -222,6 +236,59 @@ export default function Payments() {
     name,
     value
   })).sort((a, b) => b.value - a.value).slice(0, 5);
+  
+  // Extract unique values for filters
+  const uniquePackageTypes = Array.from(new Set(payments.map(p => p.package_type).filter(Boolean)));
+  const uniquePaymentMethods = Array.from(new Set(payments.filter(p => p.status === 'completed' && p.description).map(p => p.description).filter(Boolean)));
+  
+  // Apply all filters
+  const filteredPayments = payments.filter(payment => {
+    // Search filter
+    const matchesSearch = !searchQuery || 
+      payment.students?.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      payment.id.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Status filter
+    const matchesStatus = statusFilter === 'all' || payment.status === statusFilter;
+    
+    // Date range filter (due_date)
+    const matchesDateRange = (!dateRangeFilter.from || (payment.due_date && new Date(payment.due_date) >= dateRangeFilter.from)) &&
+      (!dateRangeFilter.to || (payment.due_date && new Date(payment.due_date) <= dateRangeFilter.to));
+    
+    // Amount range filter
+    const amount = Number(payment.amount);
+    const matchesAmountRange = (!amountRangeFilter.min || amount >= Number(amountRangeFilter.min)) &&
+      (!amountRangeFilter.max || amount <= Number(amountRangeFilter.max));
+    
+    // Package type filter
+    const matchesPackageType = packageTypeFilter === 'all' || payment.package_type === packageTypeFilter;
+    
+    // Payment method filter
+    const matchesPaymentMethod = paymentMethodFilter === 'all' || payment.description === paymentMethodFilter;
+    
+    return matchesSearch && matchesStatus && matchesDateRange && matchesAmountRange && matchesPackageType && matchesPaymentMethod;
+  });
+  
+  // Count active filters
+  const activeFilterCount = [
+    statusFilter !== 'all',
+    packageTypeFilter !== 'all',
+    paymentMethodFilter !== 'all',
+    dateRangeFilter.from !== undefined,
+    dateRangeFilter.to !== undefined,
+    amountRangeFilter.min !== '',
+    amountRangeFilter.max !== ''
+  ].filter(Boolean).length;
+  
+  // Clear all filters
+  const clearFilters = () => {
+    setStatusFilter('all');
+    setPackageTypeFilter('all');
+    setPaymentMethodFilter('all');
+    setDateRangeFilter({ from: undefined, to: undefined });
+    setAmountRangeFilter({ min: '', max: '' });
+  };
+  
   if (isLoading) {
     return <div className="min-h-screen bg-background p-8">Loading...</div>;
   }
@@ -385,15 +452,162 @@ export default function Payments() {
           </DialogContent>
         </Dialog>
 
-        {/* Search Bar */}
+        {/* Search and Filter Bar */}
         <Card className="shadow-card">
-          <CardContent className="p-4">
-            <div className="flex gap-4 items-center">
+          <CardContent className="p-4 space-y-4">
+            <div className="flex gap-2 items-center">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input placeholder="Search payments by student, invoice ID, or status..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
+                <Input placeholder="Search payments by student, invoice ID..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
               </div>
+              <Collapsible open={showFilters} onOpenChange={setShowFilters}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" className="relative">
+                    <Filter className="h-4 w-4 mr-2" />
+                    Filters
+                    {activeFilterCount > 0 && (
+                      <Badge className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-primary text-primary-foreground">
+                        {activeFilterCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
+              </Collapsible>
             </div>
+            
+            {/* Filter Panel */}
+            <Collapsible open={showFilters} onOpenChange={setShowFilters}>
+              <CollapsibleContent className="space-y-4 pt-4 border-t animate-accordion-down">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Status Filter */}
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All statuses" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        <SelectItem value="completed">Paid</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="failed">Overdue</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Package Type Filter */}
+                  <div className="space-y-2">
+                    <Label>Package Type</Label>
+                    <Select value={packageTypeFilter} onValueChange={setPackageTypeFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All packages" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Packages</SelectItem>
+                        {uniquePackageTypes.map(type => (
+                          <SelectItem key={type} value={type}>{type}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Payment Method Filter */}
+                  <div className="space-y-2">
+                    <Label>Payment Method</Label>
+                    <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All methods" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Methods</SelectItem>
+                        {uniquePaymentMethods.map(method => (
+                          <SelectItem key={method} value={method}>{method}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Date Range - From */}
+                  <div className="space-y-2">
+                    <Label>Due Date From</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateRangeFilter.from && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {dateRangeFilter.from ? format(dateRangeFilter.from, "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={dateRangeFilter.from}
+                          onSelect={(date) => setDateRangeFilter(prev => ({ ...prev, from: date }))}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* Date Range - To */}
+                  <div className="space-y-2">
+                    <Label>Due Date To</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateRangeFilter.to && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {dateRangeFilter.to ? format(dateRangeFilter.to, "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={dateRangeFilter.to}
+                          onSelect={(date) => setDateRangeFilter(prev => ({ ...prev, to: date }))}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* Amount Range - Min */}
+                  <div className="space-y-2">
+                    <Label>Min Amount (GH₵)</Label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={amountRangeFilter.min}
+                      onChange={(e) => setAmountRangeFilter(prev => ({ ...prev, min: e.target.value }))}
+                    />
+                  </div>
+
+                  {/* Amount Range - Max */}
+                  <div className="space-y-2">
+                    <Label>Max Amount (GH₵)</Label>
+                    <Input
+                      type="number"
+                      placeholder="10000"
+                      value={amountRangeFilter.max}
+                      onChange={(e) => setAmountRangeFilter(prev => ({ ...prev, max: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                {/* Filter Actions */}
+                <div className="flex items-center justify-between pt-2">
+                  <p className="text-sm text-muted-foreground">
+                    {filteredPayments.length} {filteredPayments.length === 1 ? 'payment' : 'payments'} found
+                  </p>
+                  {activeFilterCount > 0 && (
+                    <Button variant="ghost" size="sm" onClick={clearFilters}>
+                      <X className="h-4 w-4 mr-2" />
+                      Clear Filters
+                    </Button>
+                  )}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </CardContent>
         </Card>
 
@@ -405,8 +619,12 @@ export default function Payments() {
           <CardContent>
             {payments.length === 0 ? <div className="text-center py-8 text-muted-foreground max-h-[200px]">
                 No payments yet. Generate monthly payments to get started.
-              </div> : <div className="space-y-3 max-h-[1000px] overflow-y-auto">
-                {payments.filter(payment => !searchQuery || payment.students?.name.toLowerCase().includes(searchQuery.toLowerCase()) || payment.id.toLowerCase().includes(searchQuery.toLowerCase())).map((payment, index) => <Card key={payment.id} className="border-2 animate-scale-in" style={{
+              </div> : filteredPayments.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No payments match your filters. Try adjusting your search criteria.
+                </div>
+              ) : <div className="space-y-3 max-h-[1000px] overflow-y-auto">
+                {filteredPayments.map((payment, index) => <Card key={payment.id} className="border-2 animate-scale-in" style={{
               animationDelay: `${index * 0.05}s`
             }}>
                       <CardContent className="p-4">
