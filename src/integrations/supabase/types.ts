@@ -623,7 +623,7 @@ export type Database = {
       staff: {
         Row: {
           created_at: string | null
-          email: string
+          email: string | null
           hire_date: string | null
           id: string
           monthly_salary: number
@@ -636,7 +636,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          email: string
+          email?: string | null
           hire_date?: string | null
           id?: string
           monthly_salary?: number
@@ -649,7 +649,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          email?: string
+          email?: string | null
           hire_date?: string | null
           id?: string
           monthly_salary?: number
@@ -725,7 +725,7 @@ export type Database = {
           date_of_birth: string | null
           discount_end_date: string | null
           discount_percentage: number | null
-          email: string
+          email: string | null
           enrollment_date: string
           final_monthly_fee: number | null
           grade: string | null
@@ -751,7 +751,7 @@ export type Database = {
           date_of_birth?: string | null
           discount_end_date?: string | null
           discount_percentage?: number | null
-          email: string
+          email?: string | null
           enrollment_date?: string
           final_monthly_fee?: number | null
           grade?: string | null
@@ -777,7 +777,7 @@ export type Database = {
           date_of_birth?: string | null
           discount_end_date?: string | null
           discount_percentage?: number | null
-          email?: string
+          email?: string | null
           enrollment_date?: string
           final_monthly_fee?: number | null
           grade?: string | null
@@ -918,7 +918,7 @@ export type Database = {
         Row: {
           availability: string | null
           created_at: string
-          email: string
+          email: string | null
           id: string
           monthly_salary: number | null
           name: string
@@ -931,7 +931,7 @@ export type Database = {
         Insert: {
           availability?: string | null
           created_at?: string
-          email: string
+          email?: string | null
           id?: string
           monthly_salary?: number | null
           name: string
@@ -944,7 +944,7 @@ export type Database = {
         Update: {
           availability?: string | null
           created_at?: string
-          email?: string
+          email?: string | null
           id?: string
           monthly_salary?: number | null
           name?: string
