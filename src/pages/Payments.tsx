@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DollarSign, Search, Filter, Download, CheckCircle, Clock, XCircle, CreditCard, Send, RefreshCw, X, Calendar as CalendarIcon } from "lucide-react";
+import { Search, Filter, Download, CheckCircle, Clock, XCircle, CreditCard, Send, RefreshCw, X, Calendar as CalendarIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,15 +23,26 @@ export default function Payments() {
   const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState("");
-  
+
   // Filter states
   const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [packageTypeFilter, setPackageTypeFilter] = useState<string>("all");
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("all");
-  const [dateRangeFilter, setDateRangeFilter] = useState<{ from: Date | undefined; to: Date | undefined }>({ from: undefined, to: undefined });
-  const [amountRangeFilter, setAmountRangeFilter] = useState<{ min: string; max: string }>({ min: "", max: "" });
-  
+  const [dateRangeFilter, setDateRangeFilter] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({
+    from: undefined,
+    to: undefined
+  });
+  const [amountRangeFilter, setAmountRangeFilter] = useState<{
+    min: string;
+    max: string;
+  }>({
+    min: "",
+    max: ""
+  });
   const {
     user
   } = useAuth();
@@ -236,59 +247,51 @@ export default function Payments() {
     name,
     value
   })).sort((a, b) => b.value - a.value).slice(0, 5);
-  
+
   // Extract unique values for filters
   const uniquePackageTypes = Array.from(new Set(payments.map(p => p.package_type).filter(Boolean)));
   const uniquePaymentMethods = Array.from(new Set(payments.filter(p => p.status === 'completed' && p.description).map(p => p.description).filter(Boolean)));
-  
+
   // Apply all filters
   const filteredPayments = payments.filter(payment => {
     // Search filter
-    const matchesSearch = !searchQuery || 
-      payment.students?.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      payment.id.toLowerCase().includes(searchQuery.toLowerCase());
-    
+    const matchesSearch = !searchQuery || payment.students?.name.toLowerCase().includes(searchQuery.toLowerCase()) || payment.id.toLowerCase().includes(searchQuery.toLowerCase());
+
     // Status filter
     const matchesStatus = statusFilter === 'all' || payment.status === statusFilter;
-    
+
     // Date range filter (due_date)
-    const matchesDateRange = (!dateRangeFilter.from || (payment.due_date && new Date(payment.due_date) >= dateRangeFilter.from)) &&
-      (!dateRangeFilter.to || (payment.due_date && new Date(payment.due_date) <= dateRangeFilter.to));
-    
+    const matchesDateRange = (!dateRangeFilter.from || payment.due_date && new Date(payment.due_date) >= dateRangeFilter.from) && (!dateRangeFilter.to || payment.due_date && new Date(payment.due_date) <= dateRangeFilter.to);
+
     // Amount range filter
     const amount = Number(payment.amount);
-    const matchesAmountRange = (!amountRangeFilter.min || amount >= Number(amountRangeFilter.min)) &&
-      (!amountRangeFilter.max || amount <= Number(amountRangeFilter.max));
-    
+    const matchesAmountRange = (!amountRangeFilter.min || amount >= Number(amountRangeFilter.min)) && (!amountRangeFilter.max || amount <= Number(amountRangeFilter.max));
+
     // Package type filter
     const matchesPackageType = packageTypeFilter === 'all' || payment.package_type === packageTypeFilter;
-    
+
     // Payment method filter
     const matchesPaymentMethod = paymentMethodFilter === 'all' || payment.description === paymentMethodFilter;
-    
     return matchesSearch && matchesStatus && matchesDateRange && matchesAmountRange && matchesPackageType && matchesPaymentMethod;
   });
-  
+
   // Count active filters
-  const activeFilterCount = [
-    statusFilter !== 'all',
-    packageTypeFilter !== 'all',
-    paymentMethodFilter !== 'all',
-    dateRangeFilter.from !== undefined,
-    dateRangeFilter.to !== undefined,
-    amountRangeFilter.min !== '',
-    amountRangeFilter.max !== ''
-  ].filter(Boolean).length;
-  
+  const activeFilterCount = [statusFilter !== 'all', packageTypeFilter !== 'all', paymentMethodFilter !== 'all', dateRangeFilter.from !== undefined, dateRangeFilter.to !== undefined, amountRangeFilter.min !== '', amountRangeFilter.max !== ''].filter(Boolean).length;
+
   // Clear all filters
   const clearFilters = () => {
     setStatusFilter('all');
     setPackageTypeFilter('all');
     setPaymentMethodFilter('all');
-    setDateRangeFilter({ from: undefined, to: undefined });
-    setAmountRangeFilter({ min: '', max: '' });
+    setDateRangeFilter({
+      from: undefined,
+      to: undefined
+    });
+    setAmountRangeFilter({
+      min: '',
+      max: ''
+    });
   };
-  
   if (isLoading) {
     return <div className="min-h-screen bg-background p-8">Loading...</div>;
   }
@@ -363,7 +366,7 @@ export default function Payments() {
           <Card className="shadow-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-primary" />
+                
                 Revenue vs Expenses (Last 6 Months)
               </CardTitle>
             </CardHeader>
@@ -465,11 +468,9 @@ export default function Payments() {
                   <Button variant="outline" className="relative">
                     <Filter className="h-4 w-4 mr-2" />
                     Filters
-                    {activeFilterCount > 0 && (
-                      <Badge className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-primary text-primary-foreground">
+                    {activeFilterCount > 0 && <Badge className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-primary text-primary-foreground">
                         {activeFilterCount}
-                      </Badge>
-                    )}
+                      </Badge>}
                   </Button>
                 </CollapsibleTrigger>
               </Collapsible>
@@ -504,9 +505,7 @@ export default function Payments() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Packages</SelectItem>
-                        {uniquePackageTypes.map(type => (
-                          <SelectItem key={type} value={type}>{type}</SelectItem>
-                        ))}
+                        {uniquePackageTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -520,9 +519,7 @@ export default function Payments() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Methods</SelectItem>
-                        {uniquePaymentMethods.map(method => (
-                          <SelectItem key={method} value={method}>{method}</SelectItem>
-                        ))}
+                        {uniquePaymentMethods.map(method => <SelectItem key={method} value={method}>{method}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -538,13 +535,10 @@ export default function Payments() {
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={dateRangeFilter.from}
-                          onSelect={(date) => setDateRangeFilter(prev => ({ ...prev, from: date }))}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
+                        <Calendar mode="single" selected={dateRangeFilter.from} onSelect={date => setDateRangeFilter(prev => ({
+                        ...prev,
+                        from: date
+                      }))} initialFocus className="pointer-events-auto" />
                       </PopoverContent>
                     </Popover>
                   </div>
@@ -560,13 +554,10 @@ export default function Payments() {
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={dateRangeFilter.to}
-                          onSelect={(date) => setDateRangeFilter(prev => ({ ...prev, to: date }))}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
+                        <Calendar mode="single" selected={dateRangeFilter.to} onSelect={date => setDateRangeFilter(prev => ({
+                        ...prev,
+                        to: date
+                      }))} initialFocus className="pointer-events-auto" />
                       </PopoverContent>
                     </Popover>
                   </div>
@@ -574,23 +565,19 @@ export default function Payments() {
                   {/* Amount Range - Min */}
                   <div className="space-y-2">
                     <Label>Min Amount (GH₵)</Label>
-                    <Input
-                      type="number"
-                      placeholder="0"
-                      value={amountRangeFilter.min}
-                      onChange={(e) => setAmountRangeFilter(prev => ({ ...prev, min: e.target.value }))}
-                    />
+                    <Input type="number" placeholder="0" value={amountRangeFilter.min} onChange={e => setAmountRangeFilter(prev => ({
+                    ...prev,
+                    min: e.target.value
+                  }))} />
                   </div>
 
                   {/* Amount Range - Max */}
                   <div className="space-y-2">
                     <Label>Max Amount (GH₵)</Label>
-                    <Input
-                      type="number"
-                      placeholder="10000"
-                      value={amountRangeFilter.max}
-                      onChange={(e) => setAmountRangeFilter(prev => ({ ...prev, max: e.target.value }))}
-                    />
+                    <Input type="number" placeholder="10000" value={amountRangeFilter.max} onChange={e => setAmountRangeFilter(prev => ({
+                    ...prev,
+                    max: e.target.value
+                  }))} />
                   </div>
                 </div>
 
@@ -599,12 +586,10 @@ export default function Payments() {
                   <p className="text-sm text-muted-foreground">
                     {filteredPayments.length} {filteredPayments.length === 1 ? 'payment' : 'payments'} found
                   </p>
-                  {activeFilterCount > 0 && (
-                    <Button variant="ghost" size="sm" onClick={clearFilters}>
+                  {activeFilterCount > 0 && <Button variant="ghost" size="sm" onClick={clearFilters}>
                       <X className="h-4 w-4 mr-2" />
                       Clear Filters
-                    </Button>
-                  )}
+                    </Button>}
                 </div>
               </CollapsibleContent>
             </Collapsible>
@@ -619,11 +604,9 @@ export default function Payments() {
           <CardContent>
             {payments.length === 0 ? <div className="text-center py-8 text-muted-foreground max-h-[200px]">
                 No payments yet. Generate monthly payments to get started.
-              </div> : filteredPayments.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+              </div> : filteredPayments.length === 0 ? <div className="text-center py-8 text-muted-foreground">
                   No payments match your filters. Try adjusting your search criteria.
-                </div>
-              ) : <div className="space-y-3 max-h-[1000px] overflow-y-auto">
+                </div> : <div className="space-y-3 max-h-[1000px] overflow-y-auto">
                 {filteredPayments.map((payment, index) => <Card key={payment.id} className="border-2 animate-scale-in" style={{
               animationDelay: `${index * 0.05}s`
             }}>
