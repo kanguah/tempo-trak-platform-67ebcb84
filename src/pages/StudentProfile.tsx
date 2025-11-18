@@ -34,7 +34,13 @@ import { format, subDays, subMonths, startOfYear, parseISO, addDays, startOfWeek
 import { cn } from "@/lib/utils";
 const editStudentSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
-  email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters").optional(),
+  email: z
+    .string()
+    .trim()
+    .email("Invalid email address")
+    .max(255, "Email must be less than 255 characters")
+    .optional()
+    .or(z.literal("")),
   phone: z.string().trim().min(1, "Phone is required").max(20, "Phone must be less than 20 characters"),
   grade: z.string().min(1, "Grade is required"),
   status: z.string().min(1, "Status is required"),
