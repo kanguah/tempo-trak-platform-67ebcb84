@@ -309,8 +309,6 @@ export default function Payments() {
   
   const paidCount = payments.filter(p => p.paid_amount !== null).length;
   
-  const pendingAmount = payments.filter(p => p.status === "pending" || p.status === "failed").reduce((sum, p) => sum + getRemainingBalance(p), 0);
-  const paidCount = payments.filter(p => p.status === "completed").length;
 
   // Count unique students with payments (ensures each payment belongs to unique individual)
   const uniqueStudentsWithPayments = new Set(
