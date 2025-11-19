@@ -307,7 +307,7 @@ export default function Payments() {
     .filter(p => p.status === "pending" || p.status === "failed")
     .reduce((sum, p) => sum + getRemainingBalance(p), 0);
   
-  const paidCount = payments.filter(p => p.status === "completed").length;
+  const paidCount = payments.filter(p => p.paid_amount !== null).length;
   
   // Count unique students with payments (ensures each payment belongs to unique individual)
   const uniqueStudentsWithPayments = new Set(
@@ -855,15 +855,14 @@ export default function Payments() {
                               </div>
                             )}
                             {payment.discount_amount > 0 && <p className="text-xs text-orange-600">Discount: GH₵{payment.discount_amount}</p>}
-                            <div className="flex flex-col gap-2 mt-2">
+                            <div className="flex justify-end gap-2 mt-2">
                               {(payment.status === "pending" || payment.status === "failed") && <>
                                   {payment.status === "pending" && <Button size="sm" onClick={() => openVerifyDialog(payment.id)}>
                                       <CreditCard className="h-4 w-4 mr-1" />
-                                      Verify Payment
+                              
                                     </Button>}
                                   <Button size="sm" variant="outline" onClick={() => sendSingleReminderMutation.mutate(payment.id)} disabled={sendSingleReminderMutation.isPending}>
                                     <Send className="h-4 w-4 mr-1" />
-                                    Send Reminder
                                   </Button>
                                 </>}
                               <Button 
@@ -873,7 +872,7 @@ export default function Payments() {
                                 disabled={deletePaymentMutation.isPending}
                               >
                                 <Trash2 className="h-4 w-4 mr-1" />
-                                Delete
+                            
                               </Button>
                             </div>
                           </div>
