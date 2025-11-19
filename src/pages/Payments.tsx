@@ -159,11 +159,12 @@ export default function Payments() {
         description: method,
         paid_amount: paidAmount
       };
-
+      
       // Only mark as completed if it's a full payment
       if (isFullPayment) {
         updateData.status = 'completed';
       }
+      
       const {
         error
       } = await supabase.from('payments').update(updateData).eq('id', paymentId);
@@ -173,7 +174,9 @@ export default function Payments() {
       queryClient.invalidateQueries({
         queryKey: ['payments']
       });
-      const message = variables.isFullPayment ? "Payment verified successfully!" : "Partial payment recorded successfully!";
+      const message = variables.isFullPayment 
+        ? "Payment verified successfully!" 
+        : "Partial payment recorded successfully!";
       toast.success(message);
       setVerifyDialogOpen(false);
       setSelectedPayment(null);
@@ -185,17 +188,17 @@ export default function Payments() {
       toast.error("Failed to verify payment");
     }
   });
+  
   const deletePaymentMutation = useMutation({
     mutationFn: async (paymentId: string) => {
-      const {
-        error
-      } = await supabase.from('payments').delete().eq('id', paymentId);
+      const { error } = await supabase
+        .from('payments')
+        .delete()
+        .eq('id', paymentId);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['payments']
-      });
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
       toast.success("Payment deleted successfully!");
       setDeleteDialogOpen(false);
       setPaymentToDelete(null);
@@ -204,10 +207,12 @@ export default function Payments() {
       toast.error("Failed to delete payment");
     }
   });
+  
   const openDeleteDialog = (paymentId: string) => {
     setPaymentToDelete(paymentId);
     setDeleteDialogOpen(true);
   };
+  
   const handleDeletePayment = () => {
     if (paymentToDelete) {
       deletePaymentMutation.mutate(paymentToDelete);
@@ -225,6 +230,7 @@ export default function Payments() {
       toast.error("Please select a payment method");
       return;
     }
+    
     if (paymentType === "part") {
       const amount = Number(partialAmount);
       if (!partialAmount || amount <= 0) {
@@ -240,14 +246,20 @@ export default function Payments() {
         }
       }
     }
+    
     if (!selectedPayment) return;
+    
     const payment = payments.find(p => p.id === selectedPayment);
     if (!payment) return;
+    
     const previouslyPaid = Number(payment.paid_amount || 0);
-    const newPayment = paymentType === "full" ? getRemainingBalance(payment) // Pay the remaining balance
-    : Number(partialAmount);
+    const newPayment = paymentType === "full" 
+      ? getRemainingBalance(payment)  // Pay the remaining balance
+      : Number(partialAmount);
+    
     const totalPaidAmount = previouslyPaid + newPayment;
     const willBeFullyPaid = totalPaidAmount >= Number(payment.amount);
+    
     verifyPaymentMutation.mutate({
       paymentId: selectedPayment,
       method: paymentMethod,
@@ -287,10 +299,9 @@ export default function Payments() {
   // Calculate metrics
   const totalRevenue = payments.reduce((sum, p) => {
     // Use paid_amount if available, otherwise use amount for completed payments
-    const paidAmount = p.paid_amount ? Number(p.paid_amount) : p.status === "completed" ? Number(p.amount) : 0;
+    const paidAmount = p.paid_amount ? Number(p.paid_amount) : (p.status === "completed" ? Number(p.amount) : 0);
     return sum + paidAmount;
   }, 0);
-<<<<<<< HEAD
   
   const pendingAmount = payments
     .filter(p => p.status === "pending" || p.status === "failed")
@@ -298,13 +309,10 @@ export default function Payments() {
   
   const paidCount = payments.filter(p => p.paid_amount !== null).length;
   
-=======
-  const pendingAmount = payments.filter(p => p.status === "pending" || p.status === "failed").reduce((sum, p) => sum + getRemainingBalance(p), 0);
-  const paidCount = payments.filter(p => p.status === "completed").length;
-
->>>>>>> c7474c3345b131e0846a323d51cad915549fa62c
   // Count unique students with payments (ensures each payment belongs to unique individual)
-  const uniqueStudentsWithPayments = new Set(payments.filter(p => p.student_id).map(p => p.student_id)).size;
+  const uniqueStudentsWithPayments = new Set(
+    payments.filter(p => p.student_id).map(p => p.student_id)
+  ).size;
 
   // Generate revenue data (last 6 months)
   const last6Months = Array.from({
@@ -453,7 +461,9 @@ export default function Payments() {
                 <div className="w-full">
                   <p className="text-xs md:text-sm text-muted-foreground mb-1">Payments Received</p>
                   <h3 className="text-2xl md:text-3xl font-bold text-green-600">{paidCount}</h3>
-                  
+                  <p className="text-xs text-muted-foreground mt-2">
+                    From {uniqueStudentsWithPayments} unique student{uniqueStudentsWithPayments !== 1 ? 's' : ''}
+                  </p>
                 </div>
                 
               </div>
@@ -543,9 +553,9 @@ export default function Payments() {
               <div className="space-y-2">
                 <Label htmlFor="payment-type">Payment Type</Label>
                 <Select value={paymentType} onValueChange={(value: "full" | "part") => {
-                setPaymentType(value);
-                if (value === "full") setPartialAmount("");
-              }}>
+                  setPaymentType(value);
+                  if (value === "full") setPartialAmount("");
+                }}>
                   <SelectTrigger id="payment-type">
                     <SelectValue />
                   </SelectTrigger>
@@ -556,30 +566,44 @@ export default function Payments() {
                 </Select>
               </div>
 
-              {paymentType === "part" && <div className="space-y-2">
+              {paymentType === "part" && (
+                <div className="space-y-2">
                   <Label htmlFor="partial-amount">Amount Paid (GH₵)</Label>
-                  <Input id="partial-amount" type="number" placeholder="Enter amount paid" value={partialAmount} onChange={e => setPartialAmount(e.target.value)} min="0" step="0.01" />
+                  <Input
+                    id="partial-amount"
+                    type="number"
+                    placeholder="Enter amount paid"
+                    value={partialAmount}
+                    onChange={(e) => setPartialAmount(e.target.value)}
+                    min="0"
+                    step="0.01"
+                  />
                   {selectedPayment && (() => {
-                const payment = payments.find(p => p.id === selectedPayment);
-                if (payment) {
-                  const totalAmount = Number(payment.amount);
-                  const previouslyPaid = Number(payment.paid_amount || 0);
-                  const remainingBalance = totalAmount - previouslyPaid;
-                  return <div className="space-y-1">
+                    const payment = payments.find(p => p.id === selectedPayment);
+                    if (payment) {
+                      const totalAmount = Number(payment.amount);
+                      const previouslyPaid = Number(payment.paid_amount || 0);
+                      const remainingBalance = totalAmount - previouslyPaid;
+                      return (
+                        <div className="space-y-1">
                           <p className="text-sm text-muted-foreground">
                             Total amount: GH₵{totalAmount.toFixed(2)}
                           </p>
-                          {previouslyPaid > 0 && <p className="text-sm text-green-600">
+                          {previouslyPaid > 0 && (
+                            <p className="text-sm text-green-600">
                               Previously paid: GH₵{previouslyPaid.toFixed(2)}
-                            </p>}
+                            </p>
+                          )}
                           <p className="text-sm font-semibold text-orange-600">
                             Remaining balance: GH₵{remainingBalance.toFixed(2)}
                           </p>
-                        </div>;
-                }
-                return null;
-              })()}
-                </div>}
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <Button variant="outline" className="flex-1" onClick={() => {
@@ -605,8 +629,9 @@ export default function Payments() {
               <AlertDialogDescription>
                 Are you sure you want to delete this payment? This action cannot be undone.
                 {paymentToDelete && (() => {
-                const payment = payments.find(p => p.id === paymentToDelete);
-                return payment ? <div className="mt-3 p-3 bg-muted rounded-md">
+                  const payment = payments.find(p => p.id === paymentToDelete);
+                  return payment ? (
+                    <div className="mt-3 p-3 bg-muted rounded-md">
                       <p className="text-sm font-semibold text-foreground">
                         Student: {payment.students?.name || "Unknown"}
                       </p>
@@ -616,13 +641,17 @@ export default function Payments() {
                       <p className="text-sm text-muted-foreground">
                         Status: {payment.status}
                       </p>
-                    </div> : null;
-              })()}
+                    </div>
+                  ) : null;
+                })()}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeletePayment} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              <AlertDialogAction 
+                onClick={handleDeletePayment}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
                 Delete Payment
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -801,10 +830,7 @@ export default function Payments() {
                               </div>
                               <div>
                                 <p className="font-medium">Period</p>
-                                <p>{payment.created_at ? new Date(payment.created_at).toLocaleDateString('en-US', {
-                            month: 'short',
-                            year: 'numeric'
-                          }) : "-"}</p>
+                                <p>{payment.created_at ? new Date(payment.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : "-"}</p>
                               </div>
                               <div>
                                 <p className="font-medium">Due Date</p>
@@ -818,14 +844,16 @@ export default function Payments() {
                           </div>
                           <div className="text-right md:ml-4">
                             <p className="text-xl md:text-2xl font-bold text-foreground">GH₵ {payment.amount}</p>
-                            {payment.paid_amount && Number(payment.paid_amount) > 0 && Number(payment.paid_amount) < Number(payment.amount) && <div className="mt-1 space-y-1">
+                            {payment.paid_amount && Number(payment.paid_amount) > 0 && Number(payment.paid_amount) < Number(payment.amount) && (
+                              <div className="mt-1 space-y-1">
                                 <p className="text-sm text-green-600">
                                   Paid: GH₵{Number(payment.paid_amount).toFixed(2)}
                                 </p>
                                 <p className="text-sm text-orange-600 font-semibold">
                                   Remaining: GH₵{getRemainingBalance(payment).toFixed(2)}
                                 </p>
-                              </div>}
+                              </div>
+                            )}
                             {payment.discount_amount > 0 && <p className="text-xs text-orange-600">Discount: GH₵{payment.discount_amount}</p>}
                             <div className="flex justify-end gap-2 mt-2">
                               {(payment.status === "pending" || payment.status === "failed") && <>
@@ -837,7 +865,12 @@ export default function Payments() {
                                     <Send className="h-4 w-4 mr-1" />
                                   </Button>
                                 </>}
-                              <Button size="sm" variant="destructive" onClick={() => openDeleteDialog(payment.id)} disabled={deletePaymentMutation.isPending}>
+                              <Button 
+                                size="sm" 
+                                variant="destructive" 
+                                onClick={() => openDeleteDialog(payment.id)}
+                                disabled={deletePaymentMutation.isPending}
+                              >
                                 <Trash2 className="h-4 w-4 mr-1" />
                             
                               </Button>
