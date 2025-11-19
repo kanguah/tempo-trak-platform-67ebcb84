@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Search, Filter, Download, CheckCircle, Clock, XCircle, CreditCard, Send, RefreshCw, X, Calendar as CalendarIcon } from "lucide-react";
+import { Search, Filter, Download, CheckCircle, Clock, XCircle, CreditCard, Send, RefreshCw, X, Calendar as CalendarIcon, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -25,6 +26,8 @@ export default function Payments() {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [paymentType, setPaymentType] = useState<"full" | "part">("full");
   const [partialAmount, setPartialAmount] = useState<string>("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
 
   // Filter states
   const [showFilters, setShowFilters] = useState(false);
@@ -185,6 +188,36 @@ export default function Payments() {
       toast.error("Failed to verify payment");
     }
   });
+  
+  const deletePaymentMutation = useMutation({
+    mutationFn: async (paymentId: string) => {
+      const { error } = await supabase
+        .from('payments')
+        .delete()
+        .eq('id', paymentId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      toast.success("Payment deleted successfully!");
+      setDeleteDialogOpen(false);
+      setPaymentToDelete(null);
+    },
+    onError: () => {
+      toast.error("Failed to delete payment");
+    }
+  });
+  
+  const openDeleteDialog = (paymentId: string) => {
+    setPaymentToDelete(paymentId);
+    setDeleteDialogOpen(true);
+  };
+  
+  const handleDeletePayment = () => {
+    if (paymentToDelete) {
+      deletePaymentMutation.mutate(paymentToDelete);
+    }
+  };
   const openVerifyDialog = (paymentId: string) => {
     setSelectedPayment(paymentId);
     setPaymentMethod("");
@@ -275,6 +308,11 @@ export default function Payments() {
     .reduce((sum, p) => sum + getRemainingBalance(p), 0);
   
   const paidCount = payments.filter(p => p.status === "completed").length;
+  
+  // Count unique students with payments (ensures each payment belongs to unique individual)
+  const uniqueStudentsWithPayments = new Set(
+    payments.filter(p => p.student_id).map(p => p.student_id)
+  ).size;
 
   // Generate revenue data (last 6 months)
   const last6Months = Array.from({
@@ -420,9 +458,12 @@ export default function Payments() {
           <Card className="shadow-card">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
-                <div>
+                <div className="w-full">
                   <p className="text-xs md:text-sm text-muted-foreground mb-1">Payments Received</p>
                   <h3 className="text-2xl md:text-3xl font-bold text-green-600">{paidCount}</h3>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    From {uniqueStudentsWithPayments} unique student{uniqueStudentsWithPayments !== 1 ? 's' : ''}
+                  </p>
                 </div>
                 
               </div>
@@ -579,6 +620,43 @@ export default function Payments() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Payment Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Payment</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this payment? This action cannot be undone.
+                {paymentToDelete && (() => {
+                  const payment = payments.find(p => p.id === paymentToDelete);
+                  return payment ? (
+                    <div className="mt-3 p-3 bg-muted rounded-md">
+                      <p className="text-sm font-semibold text-foreground">
+                        Student: {payment.students?.name || "Unknown"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Amount: GH₵{payment.amount}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Status: {payment.status}
+                      </p>
+                    </div>
+                  ) : null;
+                })()}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeletePayment}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete Payment
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Search and Filter Bar */}
         <Card className="shadow-card">
@@ -751,16 +829,16 @@ export default function Payments() {
                                 <p>{payment.id.slice(0, 8)}</p>
                               </div>
                               <div>
-                                <p className="font-medium">Description</p>
-                                <p className="truncate">{payment.description || "Payment"}</p>
+                                <p className="font-medium">Period</p>
+                                <p>{payment.created_at ? new Date(payment.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : "-"}</p>
                               </div>
                               <div>
                                 <p className="font-medium">Due Date</p>
                                 <p>{payment.due_date ? new Date(payment.due_date).toLocaleDateString() : "-"}</p>
                               </div>
                               <div>
-                                <p className="font-medium">Payment Method</p>
-                                <p className="truncate">{payment.description || "-"}</p>
+                                <p className="font-medium">Student ID</p>
+                                <p className="truncate">{payment.student_id?.slice(0, 8) || "-"}</p>
                               </div>
                             </div>
                           </div>
@@ -777,16 +855,27 @@ export default function Payments() {
                               </div>
                             )}
                             {payment.discount_amount > 0 && <p className="text-xs text-orange-600">Discount: GH₵{payment.discount_amount}</p>}
-                            {(payment.status === "pending" || payment.status === "failed") && <div className="flex flex-col gap-2 mt-2">
-                                {payment.status === "pending" && <Button size="sm" onClick={() => openVerifyDialog(payment.id)}>
-                                    <CreditCard className="h-4 w-4 mr-1" />
-                                    Verify Payment
-                                  </Button>}
-                                <Button size="sm" variant="outline" onClick={() => sendSingleReminderMutation.mutate(payment.id)} disabled={sendSingleReminderMutation.isPending}>
-                                  <Send className="h-4 w-4 mr-1" />
-                                  Send Reminder
-                                </Button>
-                              </div>}
+                            <div className="flex flex-col gap-2 mt-2">
+                              {(payment.status === "pending" || payment.status === "failed") && <>
+                                  {payment.status === "pending" && <Button size="sm" onClick={() => openVerifyDialog(payment.id)}>
+                                      <CreditCard className="h-4 w-4 mr-1" />
+                                      Verify Payment
+                                    </Button>}
+                                  <Button size="sm" variant="outline" onClick={() => sendSingleReminderMutation.mutate(payment.id)} disabled={sendSingleReminderMutation.isPending}>
+                                    <Send className="h-4 w-4 mr-1" />
+                                    Send Reminder
+                                  </Button>
+                                </>}
+                              <Button 
+                                size="sm" 
+                                variant="destructive" 
+                                onClick={() => openDeleteDialog(payment.id)}
+                                disabled={deletePaymentMutation.isPending}
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Delete
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </CardContent>
