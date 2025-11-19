@@ -205,24 +205,33 @@ export default function Payments() {
         return;
       }
       const payment = payments.find(p => p.id === selectedPayment);
-      if (payment && amount > Number(payment.amount)) {
-        toast.error("Paid amount cannot exceed total amount");
-        return;
+      if (payment) {
+        const remainingBalance = getRemainingBalance(payment);
+        if (amount > remainingBalance) {
+          toast.error(`Amount cannot exceed remaining balance of GH₵${remainingBalance.toFixed(2)}`);
+          return;
+        }
       }
     }
     
     if (!selectedPayment) return;
     
     const payment = payments.find(p => p.id === selectedPayment);
-    const paidAmount = paymentType === "full" 
-      ? Number(payment?.amount || 0)
+    if (!payment) return;
+    
+    const previouslyPaid = Number(payment.paid_amount || 0);
+    const newPayment = paymentType === "full" 
+      ? getRemainingBalance(payment)  // Pay the remaining balance
       : Number(partialAmount);
+    
+    const totalPaidAmount = previouslyPaid + newPayment;
+    const willBeFullyPaid = totalPaidAmount >= Number(payment.amount);
     
     verifyPaymentMutation.mutate({
       paymentId: selectedPayment,
       method: paymentMethod,
-      paidAmount,
-      isFullPayment: paymentType === "full"
+      paidAmount: totalPaidAmount,
+      isFullPayment: willBeFullyPaid
     });
   };
   const getStatusBadge = (status: string) => {
@@ -247,9 +256,24 @@ export default function Payments() {
     }
   };
 
+  // Helper function to calculate remaining balance
+  const getRemainingBalance = (payment: any) => {
+    const totalAmount = Number(payment.amount);
+    const paidAmount = Number(payment.paid_amount || 0);
+    return totalAmount - paidAmount;
+  };
+
   // Calculate metrics
-  const totalRevenue = payments.filter(p => p.status === "completed").reduce((sum, p) => sum + Number(p.amount), 0);
-  const pendingAmount = payments.filter(p => p.status === "pending" || p.status === "failed").reduce((sum, p) => sum + Number(p.amount), 0);
+  const totalRevenue = payments.reduce((sum, p) => {
+    // Use paid_amount if available, otherwise use amount for completed payments
+    const paidAmount = p.paid_amount ? Number(p.paid_amount) : (p.status === "completed" ? Number(p.amount) : 0);
+    return sum + paidAmount;
+  }, 0);
+  
+  const pendingAmount = payments
+    .filter(p => p.status === "pending" || p.status === "failed")
+    .reduce((sum, p) => sum + getRemainingBalance(p), 0);
+  
   const paidCount = payments.filter(p => p.status === "completed").length;
 
   // Generate revenue data (last 6 months)
@@ -275,7 +299,10 @@ export default function Payments() {
     });
     return {
       month: monthName,
-      revenue: monthPayments.reduce((sum, p) => sum + Number(p.amount), 0),
+      revenue: monthPayments.reduce((sum, p) => {
+        const paidAmount = p.paid_amount ? Number(p.paid_amount) : Number(p.amount);
+        return sum + paidAmount;
+      }, 0),
       expenses: monthExpenses.reduce((sum, e) => sum + Number(e.amount), 0)
     };
   });
@@ -283,7 +310,8 @@ export default function Payments() {
   // Payment method breakdown
   const paymentMethodData: Record<string, number> = {};
   payments.filter(p => p.status === 'completed' && p.description).forEach(p => {
-    paymentMethodData[p.description] = (paymentMethodData[p.description] || 0) + Number(p.amount);
+    const paidAmount = p.paid_amount ? Number(p.paid_amount) : Number(p.amount);
+    paymentMethodData[p.description] = (paymentMethodData[p.description] || 0) + paidAmount;
   });
   const methodChartData = Object.entries(paymentMethodData).map(([name, value]) => ({
     name,
@@ -509,9 +537,30 @@ export default function Payments() {
                     min="0"
                     step="0.01"
                   />
-                  <p className="text-sm text-muted-foreground">
-                    Total due: GH₵ {selectedPayment ? payments.find(p => p.id === selectedPayment)?.amount : 0}
-                  </p>
+                  {selectedPayment && (() => {
+                    const payment = payments.find(p => p.id === selectedPayment);
+                    if (payment) {
+                      const totalAmount = Number(payment.amount);
+                      const previouslyPaid = Number(payment.paid_amount || 0);
+                      const remainingBalance = totalAmount - previouslyPaid;
+                      return (
+                        <div className="space-y-1">
+                          <p className="text-sm text-muted-foreground">
+                            Total amount: GH₵{totalAmount.toFixed(2)}
+                          </p>
+                          {previouslyPaid > 0 && (
+                            <p className="text-sm text-green-600">
+                              Previously paid: GH₵{previouslyPaid.toFixed(2)}
+                            </p>
+                          )}
+                          <p className="text-sm font-semibold text-orange-600">
+                            Remaining balance: GH₵{remainingBalance.toFixed(2)}
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               )}
 
@@ -717,6 +766,16 @@ export default function Payments() {
                           </div>
                           <div className="text-right md:ml-4">
                             <p className="text-xl md:text-2xl font-bold text-foreground">GH₵ {payment.amount}</p>
+                            {payment.paid_amount && Number(payment.paid_amount) > 0 && Number(payment.paid_amount) < Number(payment.amount) && (
+                              <div className="mt-1 space-y-1">
+                                <p className="text-sm text-green-600">
+                                  Paid: GH₵{Number(payment.paid_amount).toFixed(2)}
+                                </p>
+                                <p className="text-sm text-orange-600 font-semibold">
+                                  Remaining: GH₵{getRemainingBalance(payment).toFixed(2)}
+                                </p>
+                              </div>
+                            )}
                             {payment.discount_amount > 0 && <p className="text-xs text-orange-600">Discount: GH₵{payment.discount_amount}</p>}
                             {(payment.status === "pending" || payment.status === "failed") && <div className="flex flex-col gap-2 mt-2">
                                 {payment.status === "pending" && <Button size="sm" onClick={() => openVerifyDialog(payment.id)}>
