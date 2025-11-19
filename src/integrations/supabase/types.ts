@@ -546,6 +546,7 @@ export type Database = {
           due_date: string | null
           id: string
           package_type: string | null
+          paid_amount: number | null
           payment_date: string | null
           reminder_sent: Json | null
           status: Database["public"]["Enums"]["payment_status"]
@@ -561,6 +562,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           package_type?: string | null
+          paid_amount?: number | null
           payment_date?: string | null
           reminder_sent?: Json | null
           status?: Database["public"]["Enums"]["payment_status"]
@@ -576,6 +578,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           package_type?: string | null
+          paid_amount?: number | null
           payment_date?: string | null
           reminder_sent?: Json | null
           status?: Database["public"]["Enums"]["payment_status"]
