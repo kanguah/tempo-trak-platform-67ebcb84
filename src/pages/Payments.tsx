@@ -290,19 +290,9 @@ export default function Payments() {
     const paidAmount = p.paid_amount ? Number(p.paid_amount) : p.status === "completed" ? Number(p.amount) : 0;
     return sum + paidAmount;
   }, 0);
-<<<<<<< HEAD
-  
-  const pendingAmount = payments
-    .filter(p => p.status === "pending" || p.status === "failed")
-    .reduce((sum, p) => sum + getRemainingBalance(p), 0);
-  
-  const paidCount = payments.filter(p => p.paid_amount !== null).length;
-  
-=======
   const pendingAmount = payments.filter(p => p.status === "pending" || p.status === "failed").reduce((sum, p) => sum + getRemainingBalance(p), 0);
   const paidCount = payments.filter(p => p.status === "completed").length;
 
->>>>>>> c7474c3345b131e0846a323d51cad915549fa62c
   // Count unique students with payments (ensures each payment belongs to unique individual)
   const uniqueStudentsWithPayments = new Set(payments.filter(p => p.student_id).map(p => p.student_id)).size;
 
@@ -827,19 +817,20 @@ export default function Payments() {
                                 </p>
                               </div>}
                             {payment.discount_amount > 0 && <p className="text-xs text-orange-600">Discount: GH₵{payment.discount_amount}</p>}
-                            <div className="flex justify-end gap-2 mt-2">
+                            <div className="flex flex-col gap-2 mt-2">
                               {(payment.status === "pending" || payment.status === "failed") && <>
                                   {payment.status === "pending" && <Button size="sm" onClick={() => openVerifyDialog(payment.id)}>
                                       <CreditCard className="h-4 w-4 mr-1" />
-                              
+                                      Verify Payment
                                     </Button>}
                                   <Button size="sm" variant="outline" onClick={() => sendSingleReminderMutation.mutate(payment.id)} disabled={sendSingleReminderMutation.isPending}>
                                     <Send className="h-4 w-4 mr-1" />
+                                    Send Reminder
                                   </Button>
                                 </>}
                               <Button size="sm" variant="destructive" onClick={() => openDeleteDialog(payment.id)} disabled={deletePaymentMutation.isPending}>
                                 <Trash2 className="h-4 w-4 mr-1" />
-                            
+                                Delete
                               </Button>
                             </div>
                           </div>
