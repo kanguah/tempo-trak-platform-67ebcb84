@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { format } from "date-fns";
+import { format, set } from "date-fns";
 import { cn } from "@/lib/utils";
 const COLORS = ["hsl(240 70% 55%)", "hsl(270 60% 60%)", "hsl(45 90% 60%)", "hsl(200 70% 55%)"];
 export default function Payments() {
@@ -28,7 +28,7 @@ export default function Payments() {
   const [partialAmount, setPartialAmount] = useState<string>("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
-
+  
   // Filter states
   const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -293,9 +293,6 @@ export default function Payments() {
   const pendingAmount = payments.filter(p => p.status === "pending" || p.status === "failed").reduce((sum, p) => sum + getRemainingBalance(p), 0);
   const paidCount = payments.filter(p => p.paid_amount !== null).length;
 
-  // Count unique students with payments (ensures each payment belongs to unique individual)
-  const uniqueStudentsWithPayments = new Set(payments.filter(p => p.student_id).map(p => p.student_id)).size;
-
   // Generate revenue data (last 6 months)
   const last6Months = Array.from({
     length: 6
@@ -385,6 +382,8 @@ export default function Payments() {
   if (isLoading) {
     return <div className="min-h-screen bg-background p-8">Loading...</div>;
   }
+  
+
   return <div className="min-h-screen bg-background">
       <div className="p-4 md:p-8 space-y-6 md:space-y-8 animate-fade-in">
         {/* Header */}
@@ -817,21 +816,18 @@ export default function Payments() {
                                 </p>
                               </div>}
                             {payment.discount_amount > 0 && <p className="text-xs text-orange-600">Discount: GH₵{payment.discount_amount}</p>}
-                            <div className="flex flex-col gap-2 mt-2">
+                            <div className="flex justify-end gap-2 mt-2">
                               {(payment.status === "pending" || payment.status === "failed") && <>
                                   {payment.status === "pending" && <Button size="sm" onClick={() => openVerifyDialog(payment.id)}>
                                       <CreditCard className="h-4 w-4 mr-1" />
-                                      Verify Payment
                                     </Button>}
                                   <Button size="sm" variant="outline" onClick={() => sendSingleReminderMutation.mutate(payment.id)} disabled={sendSingleReminderMutation.isPending}>
                                     <Send className="h-4 w-4 mr-1" />
-                                    Send Reminder
                                   </Button>
-                                </>}
+                                
                               <Button size="sm" variant="destructive" onClick={() => openDeleteDialog(payment.id)} disabled={deletePaymentMutation.isPending}>
                                 <Trash2 className="h-4 w-4 mr-1" />
-                                Delete
-                              </Button>
+                              </Button></>}
                             </div>
                           </div>
                         </div>
