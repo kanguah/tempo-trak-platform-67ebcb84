@@ -23,6 +23,8 @@ export default function Payments() {
   const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState("");
+  const [paymentType, setPaymentType] = useState<"full" | "part">("full");
+  const [partialAmount, setPartialAmount] = useState<string>("");
 
   // Filter states
   const [showFilters, setShowFilters] = useState(false);
@@ -140,28 +142,44 @@ export default function Payments() {
   const verifyPaymentMutation = useMutation({
     mutationFn: async ({
       paymentId,
-      method
+      method,
+      paidAmount,
+      isFullPayment
     }: {
       paymentId: string;
       method: string;
+      paidAmount: number;
+      isFullPayment: boolean;
     }) => {
+      const updateData: any = {
+        payment_date: new Date().toISOString(),
+        description: method,
+        paid_amount: paidAmount
+      };
+      
+      // Only mark as completed if it's a full payment
+      if (isFullPayment) {
+        updateData.status = 'completed';
+      }
+      
       const {
         error
-      } = await supabase.from('payments').update({
-        status: 'completed',
-        payment_date: new Date().toISOString(),
-        description: method
-      }).eq('id', paymentId);
+      } = await supabase.from('payments').update(updateData).eq('id', paymentId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: ['payments']
       });
-      toast.success("Payment verified successfully!");
+      const message = variables.isFullPayment 
+        ? "Payment verified successfully!" 
+        : "Partial payment recorded successfully!";
+      toast.success(message);
       setVerifyDialogOpen(false);
       setSelectedPayment(null);
       setPaymentMethod("");
+      setPaymentType("full");
+      setPartialAmount("");
     },
     onError: () => {
       toast.error("Failed to verify payment");
@@ -170,6 +188,8 @@ export default function Payments() {
   const openVerifyDialog = (paymentId: string) => {
     setSelectedPayment(paymentId);
     setPaymentMethod("");
+    setPaymentType("full");
+    setPartialAmount("");
     setVerifyDialogOpen(true);
   };
   const handleVerifyPayment = () => {
@@ -177,10 +197,32 @@ export default function Payments() {
       toast.error("Please select a payment method");
       return;
     }
+    
+    if (paymentType === "part") {
+      const amount = Number(partialAmount);
+      if (!partialAmount || amount <= 0) {
+        toast.error("Please enter a valid payment amount");
+        return;
+      }
+      const payment = payments.find(p => p.id === selectedPayment);
+      if (payment && amount > Number(payment.amount)) {
+        toast.error("Paid amount cannot exceed total amount");
+        return;
+      }
+    }
+    
     if (!selectedPayment) return;
+    
+    const payment = payments.find(p => p.id === selectedPayment);
+    const paidAmount = paymentType === "full" 
+      ? Number(payment?.amount || 0)
+      : Number(partialAmount);
+    
     verifyPaymentMutation.mutate({
       paymentId: selectedPayment,
-      method: paymentMethod
+      method: paymentMethod,
+      paidAmount,
+      isFullPayment: paymentType === "full"
     });
   };
   const getStatusBadge = (status: string) => {
@@ -438,6 +480,40 @@ export default function Payments() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="payment-type">Payment Type</Label>
+                <Select value={paymentType} onValueChange={(value: "full" | "part") => {
+                  setPaymentType(value);
+                  if (value === "full") setPartialAmount("");
+                }}>
+                  <SelectTrigger id="payment-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="full">Full Payment</SelectItem>
+                    <SelectItem value="part">Part Payment</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {paymentType === "part" && (
+                <div className="space-y-2">
+                  <Label htmlFor="partial-amount">Amount Paid (GH₵)</Label>
+                  <Input
+                    id="partial-amount"
+                    type="number"
+                    placeholder="Enter amount paid"
+                    value={partialAmount}
+                    onChange={(e) => setPartialAmount(e.target.value)}
+                    min="0"
+                    step="0.01"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Total due: GH₵ {selectedPayment ? payments.find(p => p.id === selectedPayment)?.amount : 0}
+                  </p>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <Button variant="outline" className="flex-1" onClick={() => {
