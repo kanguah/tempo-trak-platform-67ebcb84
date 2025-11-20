@@ -43,6 +43,7 @@ const editStudentSchema = z.object({
     .or(z.literal("")),
   phone: z.string().trim().min(1, "Phone is required").max(20, "Phone must be less than 20 characters"),
   grade: z.string().min(1, "Grade is required"),
+  instrument: z.string().min(1, "Instrument is required"),
   status: z.string().min(1, "Status is required"),
   date_of_birth: z.string().optional(),
   parent_name: z.string().trim().max(100, "Parent name must be less than 100 characters").optional().or(z.literal("")),
@@ -231,6 +232,7 @@ export default function StudentProfile() {
     email: "",
     phone: "",
     grade: "",
+    instrument: "",
     status: "active",
     date_of_birth: "",
     parent_name: "",
@@ -250,6 +252,7 @@ export default function StudentProfile() {
         email: student.email || "",
         phone: student.phone || "",
         grade: student.grade || "",
+        instrument: student.subjects?.[0] || "",
         status: student.status || "active",
         date_of_birth: student.date_of_birth || "",
         parent_name: student.parent_name || "",
@@ -264,7 +267,7 @@ export default function StudentProfile() {
   }, [student]);
   const updateStudentMutation = useMutation({
     mutationFn: async (updatedData: any) => {
-      const { package_type, discount_percentage, discount_end_date, date_of_birth, ...restData } = updatedData;
+      const { package_type, discount_percentage, discount_end_date, date_of_birth, instrument, ...restData } = updatedData;
 
       // Convert empty string dates to null
       const processedDateOfBirth = date_of_birth?.trim() === "" ? null : date_of_birth;
@@ -281,6 +284,7 @@ export default function StudentProfile() {
         .from("students")
         .update({
           ...restData,
+          subjects: [instrument],
           date_of_birth: processedDateOfBirth,
           package_type: package_type || null,
           monthly_fee: monthly_fee || null,
@@ -948,6 +952,31 @@ export default function StudentProfile() {
                 </SelectContent>
               </Select>
               {errors.grade && <p className="text-sm text-destructive">{errors.grade}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-instrument">Instrument</Label>
+              <Select
+                value={formData.instrument}
+                onValueChange={(value) =>
+                  setFormData({
+                    ...formData,
+                    instrument: value,
+                  })
+                }
+              >
+                <SelectTrigger id="edit-instrument">
+                  <SelectValue placeholder="Select instrument" />
+                </SelectTrigger>
+                <SelectContent>
+                  {instruments.map((instrument) => (
+                    <SelectItem key={instrument} value={instrument}>
+                      {instrument}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.instrument && <p className="text-sm text-destructive">{errors.instrument}</p>}
             </div>
 
             <div className="space-y-2">
