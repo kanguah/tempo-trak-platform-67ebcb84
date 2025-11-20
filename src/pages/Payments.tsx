@@ -818,14 +818,14 @@ export default function Payments() {
                             {payment.discount_amount > 0 && <p className="text-xs text-orange-600">Discount: GH₵{payment.discount_amount}</p>}
                             <div className="flex justify-end gap-2 mt-2">
                               {(payment.status === "pending" || payment.status === "failed") && <>
-                                  {payment.status === "pending" && <Button size="sm" onClick={() => openVerifyDialog(payment.id)}>
+                                  {payment.status === "pending" && <Button title="Verify Payment" size="sm" onClick={() => openVerifyDialog(payment.id)}>
                                       <CreditCard className="h-4 w-4 mr-1" />
                                     </Button>}
-                                  <Button size="sm" variant="outline" onClick={() => sendSingleReminderMutation.mutate(payment.id)} disabled={sendSingleReminderMutation.isPending}>
+                                  <Button size="sm" title="Send Reminder" variant="outline" onClick={() => sendSingleReminderMutation.mutate(payment.id)} disabled={sendSingleReminderMutation.isPending}>
                                     <Send className="h-4 w-4 mr-1" />
                                   </Button>
                                 
-                              <Button size="sm" variant="destructive" onClick={() => openDeleteDialog(payment.id)} disabled={deletePaymentMutation.isPending}>
+                              <Button size="sm" title="Delete Payment" variant="destructive" onClick={() => openDeleteDialog(payment.id)} disabled={deletePaymentMutation.isPending}>
                                 <Trash2 className="h-4 w-4 mr-1" />
                               </Button></>}
                             </div>

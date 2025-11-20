@@ -51,7 +51,7 @@ export default function Dashboard() {
         error
       } = await supabase.from("payments").select("*, students(name)").eq("user_id", user?.id).order("created_at", {
         ascending: false
-      }).limit(10);
+      });
       if (error) throw error;
       return data;
     },
@@ -93,7 +93,7 @@ export default function Dashboard() {
   // Calculate statistics
   const activeStudents = students.filter(s => s.status === "active").length;
   const activeTutors = tutors.filter(t => t.status === "Active").length;
-  const totalRevenue = payments.filter(p => p.status === "completed").reduce((sum, p) => sum + Number(p.amount), 0);
+  const totalRevenue = payments.filter(p => p.paid_amount !== null).reduce((sum, p) => sum + Number(p.paid_amount), 0);
   const pendingPayments = payments.filter(p => p.status === "pending").length;
   const recentLeads = leads.filter(l => l.stage === "new").length;
 
