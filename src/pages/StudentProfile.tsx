@@ -59,6 +59,7 @@ const editStudentSchema = z.object({
   package_type: z.string().optional(),
   discount_percentage: z.number().min(0).max(100).optional(),
   discount_end_date: z.string().optional(),
+  schedule: z.array(z.object({ day: z.number(), time: z.string(), tutorId: z.string().optional() })).optional(),
 });
 const instruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Cello", "Trumpet", "Bass"];
 export default function StudentProfile() {
@@ -190,6 +191,17 @@ export default function StudentProfile() {
     enabled: !!user && !!id,
   });
 
+  // Fetch tutors for schedule assignment
+  const { data: tutors = [] } = useQuery({
+    queryKey: ["tutors"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("tutors").select("*").eq("user_id", user?.id).order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
   // Compute a concrete date for each lesson and sort by the closest date (nearest first)
   const sortedLessons = (() => {
     try {
@@ -242,6 +254,7 @@ export default function StudentProfile() {
     package_type: "",
     discount_percentage: 0,
     discount_end_date: "",
+    schedule: [] as { day: number; time: string; tutorId?: string }[],
   });
   useEffect(() => {
     if (student) {
@@ -262,12 +275,13 @@ export default function StudentProfile() {
         package_type: student.package_type || "",
         discount_percentage: student.discount_percentage || 0,
         discount_end_date: student.discount_end_date || "",
+        schedule: (student.schedule as { day: number; time: string; tutorId?: string }[]) || [],
       });
     }
   }, [student]);
   const updateStudentMutation = useMutation({
     mutationFn: async (updatedData: any) => {
-      const { package_type, discount_percentage, discount_end_date, date_of_birth, instrument, ...restData } = updatedData;
+      const { package_type, discount_percentage, discount_end_date, date_of_birth, instrument, schedule, ...restData } = updatedData;
 
       // Convert empty string dates to null
       const processedDateOfBirth = date_of_birth?.trim() === "" ? null : date_of_birth;
@@ -292,6 +306,7 @@ export default function StudentProfile() {
           discount_end_date: processedDiscountEndDate,
           final_monthly_fee: final_monthly_fee || null,
           payment_status: package_type ? "pending" : null,
+          schedule: schedule || [],
         })
         .eq("id", id)
         .eq("user_id", user?.id)
@@ -1153,6 +1168,87 @@ export default function StudentProfile() {
                         ).toFixed(2)}
                       </span>
                     </div>
+                  </div>
+
+                  {/* Schedule Selection */}
+                  <div className="space-y-3 animate-fade-in">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Weekly Schedule</Label>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Select {formData.package_type === "1x Weekly" ? "1 day" : formData.package_type === "2x Weekly" ? "2 days" : "3 days"} and time(s) for lessons
+                        </p>
+                      </div>
+                    </div>
+                    {Array.from({
+                      length: formData.package_type === "1x Weekly" ? 1 : formData.package_type === "2x Weekly" ? 2 : 3,
+                    }).map((_, index) => (
+                      <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 border rounded-lg">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Day</Label>
+                          <Select
+                            value={formData.schedule[index]?.day?.toString() || ""}
+                            onValueChange={(value) => {
+                              const newSchedule = [...formData.schedule];
+                              if (!newSchedule[index]) newSchedule[index] = { day: 0, time: "", tutorId: "" };
+                              newSchedule[index].day = parseInt(value);
+                              setFormData({ ...formData, schedule: newSchedule });
+                            }}
+                          >
+                            <SelectTrigger className="h-10 bg-background z-50">
+                              <SelectValue placeholder="Day" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background z-50">
+                              <SelectItem value="1">Monday</SelectItem>
+                              <SelectItem value="2">Tuesday</SelectItem>
+                              <SelectItem value="3">Wednesday</SelectItem>
+                              <SelectItem value="4">Thursday</SelectItem>
+                              <SelectItem value="5">Friday</SelectItem>
+                              <SelectItem value="6">Saturday</SelectItem>
+                              <SelectItem value="0">Sunday</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Time</Label>
+                          <Input
+                            type="time"
+                            className="h-10"
+                            value={formData.schedule[index]?.time || ""}
+                            onChange={(e) => {
+                              const newSchedule = [...formData.schedule];
+                              if (!newSchedule[index]) newSchedule[index] = { day: 0, time: "", tutorId: "" };
+                              newSchedule[index].time = e.target.value;
+                              setFormData({ ...formData, schedule: newSchedule });
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Tutor (Optional)</Label>
+                          <Select
+                            value={formData.schedule[index]?.tutorId || "none"}
+                            onValueChange={(value) => {
+                              const newSchedule = [...formData.schedule];
+                              if (!newSchedule[index]) newSchedule[index] = { day: 0, time: "", tutorId: "" };
+                              newSchedule[index].tutorId = value === "none" ? "" : value;
+                              setFormData({ ...formData, schedule: newSchedule });
+                            }}
+                          >
+                            <SelectTrigger className="h-10 bg-background z-50">
+                              <SelectValue placeholder="Select tutor" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background z-50">
+                              <SelectItem value="none">No tutor assigned</SelectItem>
+                              {tutors.map((tutor: any) => (
+                                <SelectItem key={tutor.id} value={tutor.id}>
+                                  {tutor.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
