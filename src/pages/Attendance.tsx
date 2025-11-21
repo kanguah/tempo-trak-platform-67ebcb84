@@ -85,7 +85,10 @@ export default function Attendance() {
         }));
 
       if (newAttendanceRecords.length > 0) {
-        await supabase.from("attendance").insert(newAttendanceRecords);
+        await supabase.from("attendance").upsert(newAttendanceRecords, {
+          onConflict: "lesson_id,lesson_date",
+          ignoreDuplicates: true
+        });
         queryClient.invalidateQueries({ queryKey: ["attendance"] });
       }
     };
