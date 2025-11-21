@@ -48,6 +48,7 @@ export default function Attendance() {
       const dayOfWeek = selectedDate.getDay();
       const adjustedDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday=0 to Sunday=6
 
+      //alert( selectedDate.toISOString().substring(0, 10));
       const { data: lessons, error: lessonsError } = await supabase
         .from("lessons")
         .select(`
@@ -56,9 +57,9 @@ export default function Attendance() {
           tutors (name)
         `)
         .eq("user_id", user.id)
-        .eq("day_of_week", adjustedDay)
+        .eq("lesson_date", selectedDate.toISOString().substring(0, 10))
         .eq("status", "scheduled");
-
+          //alert( lessons[0]?.lesson_date);
       if (lessonsError || !lessons) return;
 
       // Check which lessons already have attendance records
@@ -260,7 +261,8 @@ export default function Attendance() {
         </div>
 
         {/* Attendance List */}
-        <Card className="shadow-card">
+        <div className="max-h-[1000px] overflow-y-auto">
+        <Card className="shadow-card" >
           <CardHeader>
             <CardTitle>Today's Lessons</CardTitle>
           </CardHeader>
@@ -383,6 +385,7 @@ export default function Attendance() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

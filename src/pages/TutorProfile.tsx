@@ -23,8 +23,8 @@ const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Fri
 const availableInstruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Bass", "Cello", "Clarinet", "Music Theory", "Choir", "Percussion"];
 const editTutorSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
-  email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
-  phone: z.string().trim().optional(),
+  email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters").optional().or(z.literal("")),
+  phone: z.string().trim().optional().optional().or(z.literal("")),
   subjects: z.array(z.string()).min(1, "Select at least one subject"),
   status: z.string().min(1, "Status is required"),
   monthly_salary: z.number().min(0, "Salary must be positive").optional(),

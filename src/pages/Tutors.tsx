@@ -39,8 +39,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
 const addTutorSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
-  email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
-  phone: z.string().trim().min(1, "Phone is required").max(20, "Phone must be less than 20 characters"),
+  email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters").optional().or(z.literal("")),
+  phone: z.string().trim().min(1, "Phone is required").max(20, "Phone must be less than 20 characters").optional().or(z.literal("")),
   instrument: z.string().min(1, "Please select an instrument"),
   status: z.string().min(1, "Status is required"),
   //hourly_rate: z.number().optional()
