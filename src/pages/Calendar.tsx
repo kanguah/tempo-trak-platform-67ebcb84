@@ -87,6 +87,12 @@ export default function Calendar() {
     repeatPattern: "weekly",
     occurrences: "4"
   });
+  const [lessonSlots, setLessonSlots] = useState<Array<{
+    day: string;
+    time: string;
+    tutorId: string;
+    room: string;
+  }>>([{ day: "", time: "", tutorId: "", room: "" }]);
 
   // Fetch students
   const {
@@ -187,66 +193,71 @@ export default function Calendar() {
   // Add lesson mutation
   const addLessonMutation = useMutation({
     mutationFn: async (lesson: typeof newLesson) => {
-      if (!lesson.isRecurring) {
-        // Single lesson - no specific date, uses day_of_week as template
-        const {
-          data,
-          error
-        } = await supabase.from("lessons").insert({
-          user_id: user?.id,
-          student_id: lesson.studentId,
-          tutor_id: lesson.tutorId,
-          subject: lesson.subject,
-          day_of_week: parseInt(lesson.day),
-          start_time: lesson.time + ":00",
-          duration: parseInt(lesson.duration),
-          room: lesson.room || null,
-          status: "scheduled"
-        }).select().single();
-        if (error) throw error;
-        return data;
-      } else {
-        // Multiple recurring lessons with specific dates
-        const lessonsToInsert = [];
-        const baseDay = parseInt(lesson.day);
-        const occurrences = 4; // Fixed to 4 weeks for a month
-        const weekIncrement = lesson.repeatPattern === "weekly" ? 1 : lesson.repeatPattern === "biweekly" ? 2 : 4;
+      const lessonsToInsert = [];
+      
+      // Process each lesson slot
+      for (const slot of lessonSlots) {
+        if (!slot.day || !slot.time) continue; // Skip incomplete slots
         
-        // Calculate the first lesson date based on current week
-        const currentDate = new Date();
-        const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
-        const firstLessonDate = addDays(weekStart, baseDay);
-        
-        for (let i = 0; i < occurrences; i++) {
-          // Calculate the specific date for this occurrence
-          const specificLessonDate = addDays(firstLessonDate, i * weekIncrement * 7);
-          
+        if (!lesson.isRecurring) {
+          // Single lesson for this slot
           lessonsToInsert.push({
             user_id: user?.id,
             student_id: lesson.studentId,
-            tutor_id: lesson.tutorId,
+            tutor_id: slot.tutorId || lesson.tutorId,
             subject: lesson.subject,
-            day_of_week: baseDay,
-            lesson_date: format(specificLessonDate, 'yyyy-MM-dd'),
-            start_time: lesson.time + ":00",
+            day_of_week: parseInt(slot.day),
+            start_time: slot.time + ":00",
             duration: parseInt(lesson.duration),
-            room: lesson.room || null,
+            room: slot.room || lesson.room || null,
             status: "scheduled"
           });
+        } else {
+          // Recurring lessons for this slot
+          const baseDay = parseInt(slot.day);
+          const occurrences = 4; // Fixed to 4 weeks for a month
+          const weekIncrement = lesson.repeatPattern === "weekly" ? 1 : lesson.repeatPattern === "biweekly" ? 2 : 4;
+          
+          const currentDate = new Date();
+          const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+          const firstLessonDate = addDays(weekStart, baseDay);
+          
+          for (let i = 0; i < occurrences; i++) {
+            const specificLessonDate = addDays(firstLessonDate, i * weekIncrement * 7);
+            
+            lessonsToInsert.push({
+              user_id: user?.id,
+              student_id: lesson.studentId,
+              tutor_id: slot.tutorId || lesson.tutorId,
+              subject: lesson.subject,
+              day_of_week: baseDay,
+              lesson_date: format(specificLessonDate, 'yyyy-MM-dd'),
+              start_time: slot.time + ":00",
+              duration: parseInt(lesson.duration),
+              room: slot.room || lesson.room || null,
+              status: "scheduled"
+            });
+          }
         }
-        const {
-          data,
-          error
-        } = await supabase.from("lessons").insert(lessonsToInsert).select();
-        if (error) throw error;
-        return data;
       }
+      
+      if (lessonsToInsert.length === 0) {
+        throw new Error("Please complete at least one lesson slot");
+      }
+      
+      const { data, error } = await supabase
+        .from("lessons")
+        .insert(lessonsToInsert)
+        .select();
+      
+      if (error) throw error;
+      return data;
     },
     onSuccess: data => {
       queryClient.invalidateQueries({
         queryKey: ["lessons"]
       });
-      const message = newLesson.isRecurring ? `${Array.isArray(data) ? data.length : 1} recurring lessons scheduled successfully!` : "Lesson scheduled successfully!";
+      const message = `${Array.isArray(data) ? data.length : 1} lesson(s) scheduled successfully!`;
       toast.success(message);
       setAddDialogOpen(false);
       setNewLesson({
@@ -261,6 +272,7 @@ export default function Calendar() {
         repeatPattern: "weekly",
         occurrences: "4"
       });
+      setLessonSlots([{ day: "", time: "", tutorId: "", room: "" }]);
     },
     onError: error => {
       toast.error("Failed to schedule lesson");
@@ -374,30 +386,48 @@ export default function Calendar() {
                     <Label>Student</Label>
                     <Select value={newLesson.studentId} onValueChange={value => {
                     const student = students.find(s => s.id === value);
+                    // Determine number of lessons based on package type
+                    let numLessons = 1;
+                    if (student?.package_type) {
+                      const packageMatch = student.package_type.match(/(\d+)/);
+                      if (packageMatch) {
+                        numLessons = parseInt(packageMatch[1]);
+                      }
+                    }
+                    
+                    // Initialize lesson slots based on package type
+                    const slots = Array.from({ length: numLessons }, () => ({
+                      day: "",
+                      time: "",
+                      tutorId: "",
+                      room: ""
+                    }));
+                    
                     setNewLesson({
                       ...newLesson,
                       studentId: value,
                       subject: student?.subjects?.[0] || ""
                     });
+                    setLessonSlots(slots);
                   }}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select student" />
                       </SelectTrigger>
                       <SelectContent>
                         {students.map(student => <SelectItem key={student.id} value={student.id}>
-                            {student.name}
+                            {student.name} {student.package_type ? `(${student.package_type})` : ""}
                           </SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Tutor</Label>
+                    <Label>Default Tutor (optional)</Label>
                     <Select value={newLesson.tutorId} onValueChange={value => setNewLesson({
                     ...newLesson,
                     tutorId: value
                   })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select tutor" />
+                        <SelectValue placeholder="Select default tutor" />
                       </SelectTrigger>
                       <SelectContent>
                         {tutors.map(tutor => <SelectItem key={tutor.id} value={tutor.id}>
@@ -423,13 +453,13 @@ export default function Calendar() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Room</Label>
+                    <Label>Default Room (optional)</Label>
                     <Select value={newLesson.room} onValueChange={value => setNewLesson({
                     ...newLesson,
                     room: value
                   })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select room" />
+                        <SelectValue placeholder="Select default room" />
                       </SelectTrigger>
                       <SelectContent>
                         {rooms.map(room => <SelectItem key={room} value={room}>
@@ -438,39 +468,114 @@ export default function Calendar() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Day</Label>
-                      <Select value={newLesson.day} onValueChange={value => setNewLesson({
-                      ...newLesson,
-                      day: value
-                    })}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Day" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {daysOfWeek.map((day, idx) => <SelectItem key={day} value={idx.toString()}>
-                              {day}
-                            </SelectItem>)}
-                        </SelectContent>
-                      </Select>
+
+                  {/* Lesson Slots based on package type */}
+                  <div className="space-y-4 border-t pt-4">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-base font-semibold">Lesson Schedule ({lessonSlots.length} {lessonSlots.length === 1 ? "lesson" : "lessons"} per week)</Label>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Time</Label>
-                      <Select value={newLesson.time} onValueChange={value => setNewLesson({
-                      ...newLesson,
-                      time: value
-                    })}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Time" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {timeSlots.map(time => <SelectItem key={time} value={time}>
-                              {time}
-                            </SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    
+                    {lessonSlots.map((slot, index) => (
+                      <div key={index} className="space-y-3 p-4 border rounded-lg bg-muted/50">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-medium">Lesson {index + 1}</Label>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-2">
+                            <Label className="text-xs">Day</Label>
+                            <Select 
+                              value={slot.day} 
+                              onValueChange={value => {
+                                const newSlots = [...lessonSlots];
+                                newSlots[index].day = value;
+                                setLessonSlots(newSlots);
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Day" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {daysOfWeek.map((day, idx) => (
+                                  <SelectItem key={day} value={idx.toString()}>
+                                    {day}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs">Time</Label>
+                            <Select 
+                              value={slot.time} 
+                              onValueChange={value => {
+                                const newSlots = [...lessonSlots];
+                                newSlots[index].time = value;
+                                setLessonSlots(newSlots);
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Time" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {timeSlots.map(time => (
+                                  <SelectItem key={time} value={time}>
+                                    {time}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-2">
+                            <Label className="text-xs">Tutor (override)</Label>
+                            <Select 
+                              value={slot.tutorId} 
+                              onValueChange={value => {
+                                const newSlots = [...lessonSlots];
+                                newSlots[index].tutorId = value;
+                                setLessonSlots(newSlots);
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Use default" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {tutors.map(tutor => (
+                                  <SelectItem key={tutor.id} value={tutor.id}>
+                                    {tutor.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs">Room (override)</Label>
+                            <Select 
+                              value={slot.room} 
+                              onValueChange={value => {
+                                const newSlots = [...lessonSlots];
+                                newSlots[index].room = value;
+                                setLessonSlots(newSlots);
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Use default" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {rooms.map(room => (
+                                  <SelectItem key={room} value={room}>
+                                    {room}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                   <div className="space-y-2">
                     <Label>Duration (minutes)</Label>
@@ -522,9 +627,16 @@ export default function Calendar() {
                   <Button 
                     className="w-full gradient-primary text-primary-foreground" 
                     onClick={() => addLessonMutation.mutate(newLesson)} 
-                    disabled={!newLesson.studentId || !newLesson.tutorId || !newLesson.subject || !newLesson.day || !newLesson.time}
+                    disabled={
+                      !newLesson.studentId || 
+                      !newLesson.subject || 
+                      lessonSlots.some(slot => !slot.day || !slot.time) ||
+                      (!newLesson.tutorId && lessonSlots.some(slot => !slot.tutorId))
+                    }
                   >
-                    {newLesson.isRecurring ? "Schedule Monthly Lessons" : "Schedule Lesson"}
+                    {newLesson.isRecurring 
+                      ? `Schedule ${lessonSlots.length * 4} Lessons (Monthly)` 
+                      : `Schedule ${lessonSlots.length} Lesson${lessonSlots.length > 1 ? 's' : ''}`}
                   </Button>
                 </div>
               </DialogContent>
