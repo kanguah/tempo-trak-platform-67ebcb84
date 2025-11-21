@@ -173,6 +173,21 @@ export default function Attendance() {
     }
   };
 
+  // Group attendance records by student
+  const groupedByStudent = attendanceRecords.reduce((acc: any, record: any) => {
+    const studentId = record.student_id;
+    if (!acc[studentId]) {
+      acc[studentId] = {
+        studentName: record.students?.name,
+        lessons: []
+      };
+    }
+    acc[studentId].lessons.push(record);
+    return acc;
+  }, {});
+
+  const studentGroups = Object.values(groupedByStudent);
+
   const presentCount = attendanceRecords.filter((r) => r.status === "present").length;
   const absentCount = attendanceRecords.filter((r) => r.status === "absent").length;
   const pendingCount = attendanceRecords.filter((r) => r.status === "pending").length;
@@ -269,119 +284,148 @@ export default function Attendance() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {attendanceRecords.length === 0 ? (
+              {studentGroups.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   No lessons scheduled for this date
                 </div>
               ) : (
-                attendanceRecords.map((record: any, index) => (
-                <Card
-                  key={record.id}
-                  className="border-2 animate-scale-in"
-                  style={{ animationDelay: `${index * 0.05}s` }}
-                >
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-bold text-foreground">{record.students?.name}</h3>
-                          {getStatusBadge(record.status)}
-                        </div>
-                        <div className="space-y-1 text-sm text-muted-foreground">
-                          <p>
-                            <span className="font-medium">Time:</span> {record.start_time.substring(0, 5)}
-                          </p>
-                          <p>
-                            <span className="font-medium">Subject:</span> {record.subject}
-                          </p>
-                          <p>
-                            <span className="font-medium">Tutor:</span> {record.tutors?.name}
-                          </p>
-                        </div>
-                      </div>
+                studentGroups.map((group: any, index) => {
+                  const allPresent = group.lessons.every((l: any) => l.status === "present");
+                  const allAbsent = group.lessons.every((l: any) => l.status === "absent");
+                  const hasPending = group.lessons.some((l: any) => l.status === "pending");
+                  
+                  return (
+                    <Card
+                      key={group.lessons[0].student_id}
+                      className="border-2 animate-scale-in"
+                      style={{ animationDelay: `${index * 0.05}s` }}
+                    >
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-lg font-bold text-foreground">{group.studentName}</h3>
+                              {allPresent && getStatusBadge("present")}
+                              {allAbsent && getStatusBadge("absent")}
+                              {hasPending && getStatusBadge("pending")}
+                            </div>
+                            
+                            {/* List all lessons for this student */}
+                            <div className="space-y-2 mt-3">
+                              {group.lessons.map((lesson: any) => (
+                                <div key={lesson.id} className="text-sm text-muted-foreground border-l-2 border-border pl-3">
+                                  <p>
+                                    <span className="font-medium">Time:</span> {lesson.start_time.substring(0, 5)}
+                                    {" • "}
+                                    <span className="font-medium">Subject:</span> {lesson.subject}
+                                    {" • "}
+                                    <span className="font-medium">Tutor:</span> {lesson.tutors?.name}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
 
-                      {record.status === "pending" && (
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => markAttendanceMutation.mutate({ id: record.id, status: "present" })}
-                            className="bg-green-500 hover:bg-green-600 text-white"
-                          >
-                            <Check className="h-4 w-4 mr-1" />
-                            Present
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => markAttendanceMutation.mutate({ id: record.id, status: "absent" })}
-                            variant="destructive"
-                          >
-                            <X className="h-4 w-4 mr-1" />
-                            Absent
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-
-                    {record.status === "present" && (
-                      <div className="mt-4 pt-4 border-t border-border">
-                        <label className="text-sm font-medium text-foreground mb-2 block">
-                          Lesson Feedback
-                        </label>
-                        {editingFeedback === record.id ? (
-                          <div className="space-y-2">
-                            <Textarea
-                              value={feedbackText}
-                              onChange={(e) => setFeedbackText(e.target.value)}
-                              placeholder="Add feedback about the student's progress..."
-                              className="min-h-[100px]"
-                            />
+                          {hasPending && (
                             <div className="flex gap-2">
-                              <Button 
-                                size="sm" 
-                                onClick={() => updateFeedbackMutation.mutate({ id: record.id, feedback: feedbackText })}
+                              <Button
+                                size="sm"
+                                onClick={async () => {
+                                  // Mark all pending lessons as present
+                                  for (const lesson of group.lessons.filter((l: any) => l.status === "pending")) {
+                                    await markAttendanceMutation.mutateAsync({ id: lesson.id, status: "present" });
+                                  }
+                                }}
+                                className="bg-green-500 hover:bg-green-600 text-white"
                               >
-                                Save Feedback
+                                <Check className="h-4 w-4 mr-1" />
+                                Present
                               </Button>
                               <Button
                                 size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setEditingFeedback(null);
-                                  setFeedbackText("");
+                                onClick={async () => {
+                                  // Mark all pending lessons as absent
+                                  for (const lesson of group.lessons.filter((l: any) => l.status === "pending")) {
+                                    await markAttendanceMutation.mutateAsync({ id: lesson.id, status: "absent" });
+                                  }
                                 }}
+                                variant="destructive"
                               >
-                                Cancel
+                                <X className="h-4 w-4 mr-1" />
+                                Absent
                               </Button>
                             </div>
+                          )}
+                        </div>
+
+                        {allPresent && (
+                          <div className="mt-4 pt-4 border-t border-border">
+                            <label className="text-sm font-medium text-foreground mb-2 block">
+                              Lesson Feedback
+                            </label>
+                            {group.lessons.map((lesson: any) => (
+                              <div key={lesson.id} className="mb-3">
+                                <p className="text-xs text-muted-foreground mb-1">
+                                  {lesson.subject} - {lesson.start_time.substring(0, 5)}
+                                </p>
+                                {editingFeedback === lesson.id ? (
+                                  <div className="space-y-2">
+                                    <Textarea
+                                      value={feedbackText}
+                                      onChange={(e) => setFeedbackText(e.target.value)}
+                                      placeholder="Add feedback about the student's progress..."
+                                      className="min-h-[100px]"
+                                    />
+                                    <div className="flex gap-2">
+                                      <Button 
+                                        size="sm" 
+                                        onClick={() => updateFeedbackMutation.mutate({ id: lesson.id, feedback: feedbackText })}
+                                      >
+                                        Save Feedback
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setEditingFeedback(null);
+                                          setFeedbackText("");
+                                        }}
+                                      >
+                                        Cancel
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : lesson.feedback ? (
+                                  <div
+                                    className="p-3 rounded-lg bg-muted/50 text-sm cursor-pointer hover:bg-muted transition-colors"
+                                    onClick={() => {
+                                      setEditingFeedback(lesson.id);
+                                      setFeedbackText(lesson.feedback || "");
+                                    }}
+                                  >
+                                    {lesson.feedback}
+                                  </div>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setEditingFeedback(lesson.id);
+                                      setFeedbackText("");
+                                    }}
+                                  >
+                                    <MessageSquare className="h-4 w-4 mr-2" />
+                                    Add Feedback
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
                           </div>
-                        ) : record.feedback ? (
-                          <div
-                            className="p-3 rounded-lg bg-muted/50 text-sm cursor-pointer hover:bg-muted transition-colors"
-                            onClick={() => {
-                              setEditingFeedback(record.id);
-                              setFeedbackText(record.feedback || "");
-                            }}
-                          >
-                            {record.feedback}
-                          </div>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setEditingFeedback(record.id);
-                              setFeedbackText("");
-                            }}
-                          >
-                            <MessageSquare className="h-4 w-4 mr-2" />
-                            Add Feedback
-                          </Button>
                         )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-                ))
+                      </CardContent>
+                    </Card>
+                  );
+                })
               )}
             </div>
           </CardContent>
