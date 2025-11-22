@@ -39,7 +39,7 @@ export default function DataImport({
       : type === "tutors"
       ? "name,email,phone,instrument,status,hourly_rate\n"
       : type === "payments"
-      ? "student_name,amount,status,due_date,package_type,description,discount_amount\n"
+      ? "student_name,student_email,student_phone,amount,status,due_date,package_type,description,discount_amount\n"
       : type === "expenses"
       ? "category,amount,expense_date,payment_method,status,description\n"
       : "name,email,phone,source,notes,stage,created_date\n";
@@ -48,7 +48,7 @@ export default function DataImport({
       : type === "tutors"
       ? "Mr. Kofi,kofi@email.com,+233 24 123 4567,Piano,Active,50\nMs. Ama,ama@email.com,+233 24 123 4568,Guitar,Active,45\n"
       : type === "payments"
-      ? "John Doe,250,pending,2025-12-31,2x per week,Monthly fee,0\nJane Smith,500,completed,2025-11-30,4x per week,Monthly fee with discount,50\n"
+      ? "John Doe,john@email.com,+233 24 123 4567,250,pending,2025-12-31,2x per week,Monthly fee,0\nJane Smith,jane@email.com,+233 24 123 4568,500,completed,2025-11-30,4x per week,Monthly fee with discount,50\n"
       : type === "expenses"
       ? "Tutor Salaries,3000,2025-11-01,Bank Transfer,paid,Monthly salaries\nFacility Rent,1500,2025-11-05,Cash,paid,Monthly rent payment\n"
       : "Alice Thompson,alice.t@email.com,+233 24 777 8888,Website Form,Interested in beginner lessons,new,2025-01-15\nRobert Kim,robert.kim@email.com,+233 24 888 9999,Facebook Ad,Adult learner wants weekend classes,contacted,2025-01-10\n";
@@ -73,6 +73,9 @@ export default function DataImport({
     if (type === "payments") {
       if (!row.student_name) {
         return { valid: false, error: `Row ${index + 1}: Missing required field (student_name)` };
+      }
+      if (!row.student_email && !row.student_phone) {
+        return { valid: false, error: `Row ${index + 1}: Missing student identifier - provide either student_email or student_phone` };
       }
       if (!row.amount || isNaN(parseFloat(row.amount))) {
         return { valid: false, error: `Row ${index + 1}: Invalid or missing amount` };
@@ -419,24 +422,52 @@ export default function DataImport({
 
   const prepareDataForInsertion = async (rows: any[]) => {
     if (type === "payments") {
-      // Fetch all students to map names to IDs
+      // Fetch all students to map by name + (email OR phone)
       const { data: students } = await supabase
         .from('students')
-        .select('id, name')
+        .select('id, name, email, phone')
         .eq('user_id', user?.id);
       
-      const studentMap = new Map(students?.map(s => [s.name.toLowerCase(), s.id]) || []);
+      // Create a map with multiple identifiers per student
+      const studentMap = new Map<string, string>();
+      students?.forEach(s => {
+        const name = s.name.toLowerCase().trim();
+        const email = s.email?.toLowerCase().trim();
+        const phone = s.phone?.trim();
+        
+        if (email) {
+          studentMap.set(`${name}|${email}`, s.id);
+        }
+        if (phone) {
+          studentMap.set(`${name}|${phone}`, s.id);
+        }
+      });
       
-      return rows.map(row => ({
-        student_id: studentMap.get(row.student_name.trim().toLowerCase()) || null,
-        amount: parseFloat(row.amount),
-        status: row.status?.trim() || 'pending',
-        due_date: row.due_date?.trim() || null,
-        package_type: row.package_type?.trim() || null,
-        description: row.description?.trim() || null,
-        discount_amount: row.discount_amount ? parseFloat(row.discount_amount) : 0,
-        user_id: user?.id
-      }));
+      return rows.map(row => {
+        const name = row.student_name.trim().toLowerCase();
+        const email = row.student_email?.trim().toLowerCase();
+        const phone = row.student_phone?.trim();
+        
+        // Try to match by name + email first, then name + phone
+        let studentId = null;
+        if (email) {
+          studentId = studentMap.get(`${name}|${email}`);
+        }
+        if (!studentId && phone) {
+          studentId = studentMap.get(`${name}|${phone}`);
+        }
+        
+        return {
+          student_id: studentId || null,
+          amount: parseFloat(row.amount),
+          status: row.status?.trim() || 'pending',
+          due_date: row.due_date?.trim() || null,
+          package_type: row.package_type?.trim() || null,
+          description: row.description?.trim() || null,
+          discount_amount: row.discount_amount ? parseFloat(row.discount_amount) : 0,
+          user_id: user?.id
+        };
+      });
     }
 
     if (type === "expenses") {
@@ -505,7 +536,7 @@ export default function DataImport({
       
       const tableName = type === "leads" ? "crm_leads" : type;
       const selectQuery = type === "payments" 
-        ? '*, students(name)'
+        ? '*, students(name, email, phone)'
         : '*';
       
       const { data, error } = await supabase
@@ -549,6 +580,8 @@ export default function DataImport({
         : type === "payments"
         ? data.map((item: any) => ({
             student_name: item.students?.name || '',
+            student_email: item.students?.email || '',
+            student_phone: item.students?.phone || '',
             amount: item.amount,
             status: item.status,
             due_date: item.due_date ? new Date(item.due_date).toISOString().split('T')[0] : '',
@@ -625,7 +658,7 @@ export default function DataImport({
                 </> : type === "tutors" ? <>
                   <br />Required columns: name, email, phone, instrument, status (Active/On Leave), hourly_rate (optional)
                 </> : type === "payments" ? <>
-                  <br />Required: student_name, amount, status (pending/completed/failed/refunded)
+                  <br />Required: student_name, student_email OR student_phone (for accurate matching), amount, status (pending/completed/failed/refunded)
                   <br />Optional: due_date, package_type, description, discount_amount
                 </> : type === "expenses" ? <>
                   <br />Required: category, amount, expense_date, payment_method, status (pending/paid/approved)
