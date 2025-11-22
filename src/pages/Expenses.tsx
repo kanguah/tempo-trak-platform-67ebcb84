@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Plus, DollarSign, TrendingDown, Clock, CheckCircle } from "lucide-react";
+import DataImport from "@/components/DataImport";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -146,13 +147,15 @@ export default function Expenses() {
             <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">Expense Tracking</h1>
             <p className="text-muted-foreground">Monitor and manage all academy expenses</p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gradient-primary text-primary-foreground shadow-primary">
-                <Plus className="mr-2 h-4 w-4 md:h-5 md:w-5" />
-                Add Expense
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2 flex-wrap">
+            <DataImport type="expenses" onSuccess={() => queryClient.invalidateQueries({ queryKey: ['expenses'] })} />
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gradient-primary text-primary-foreground shadow-primary">
+                  <Plus className="mr-2 h-4 w-4 md:h-5 md:w-5" />
+                  Add Expense
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>Add New Expense</DialogTitle>
@@ -249,6 +252,7 @@ export default function Expenses() {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Summary Cards */}
