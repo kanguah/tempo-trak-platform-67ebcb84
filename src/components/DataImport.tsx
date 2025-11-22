@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 interface DataImportProps {
-  type: "students" | "tutors" | "leads";
+  type: "students" | "tutors" | "leads" | "payments" | "expenses";
   onSuccess?: () => void;
 }
 interface ImportResult {
@@ -38,11 +38,19 @@ export default function DataImport({
       ? "name,email,phone,grade,instrument,date_of_birth,parent_name,parent_email,parent_phone,address\n" 
       : type === "tutors"
       ? "name,email,phone,instrument,status,hourly_rate\n"
+      : type === "payments"
+      ? "student_name,amount,status,due_date,package_type,description,discount_amount\n"
+      : type === "expenses"
+      ? "category,amount,expense_date,payment_method,status,description\n"
       : "name,email,phone,source,notes,stage,created_date\n";
     const sampleData = type === "students" 
       ? "John Doe,john@email.com,+233 24 123 4567,Beginner,Piano,2010-05-15,Mary Doe,mary@email.com,+233 24 123 4560,123 Music St\nJane Smith,jane@email.com,+233 24 123 4568,Intermediate,Guitar,2012-08-22,,,,\n" 
       : type === "tutors"
       ? "Mr. Kofi,kofi@email.com,+233 24 123 4567,Piano,Active,50\nMs. Ama,ama@email.com,+233 24 123 4568,Guitar,Active,45\n"
+      : type === "payments"
+      ? "John Doe,250,pending,2025-12-31,2x per week,Monthly fee,0\nJane Smith,500,completed,2025-11-30,4x per week,Monthly fee with discount,50\n"
+      : type === "expenses"
+      ? "Tutor Salaries,3000,2025-11-01,Bank Transfer,paid,Monthly salaries\nFacility Rent,1500,2025-11-05,Cash,paid,Monthly rent payment\n"
       : "Alice Thompson,alice.t@email.com,+233 24 777 8888,Website Form,Interested in beginner lessons,new,2025-01-15\nRobert Kim,robert.kim@email.com,+233 24 888 9999,Facebook Ad,Adult learner wants weekend classes,contacted,2025-01-10\n";
     const csv = headers + sampleData;
     const blob = new Blob([csv], {
@@ -62,6 +70,35 @@ export default function DataImport({
     valid: boolean;
     error?: string;
   } => {
+    if (type === "payments") {
+      if (!row.student_name) {
+        return { valid: false, error: `Row ${index + 1}: Missing required field (student_name)` };
+      }
+      if (!row.amount || isNaN(parseFloat(row.amount))) {
+        return { valid: false, error: `Row ${index + 1}: Invalid or missing amount` };
+      }
+      if (row.status && !["pending", "completed", "failed", "refunded"].includes(row.status)) {
+        return { valid: false, error: `Row ${index + 1}: Invalid status. Must be pending, completed, failed, or refunded` };
+      }
+      return { valid: true };
+    }
+
+    if (type === "expenses") {
+      if (!row.category) {
+        return { valid: false, error: `Row ${index + 1}: Missing required field (category)` };
+      }
+      if (!row.amount || isNaN(parseFloat(row.amount))) {
+        return { valid: false, error: `Row ${index + 1}: Invalid or missing amount` };
+      }
+      if (!row.expense_date) {
+        return { valid: false, error: `Row ${index + 1}: Missing required field (expense_date)` };
+      }
+      if (row.status && !["pending", "paid", "approved"].includes(row.status)) {
+        return { valid: false, error: `Row ${index + 1}: Invalid status. Must be pending, paid, or approved` };
+      }
+      return { valid: true };
+    }
+
     if (type === "leads") {
       if (!row.name) {
         return {
@@ -171,6 +208,40 @@ export default function DataImport({
 
         // Fetch existing records to check for duplicates
         const tableName = type === "leads" ? "crm_leads" : type;
+        
+        // Skip duplicate checking for payments and expenses
+        if (type === "payments" || type === "expenses") {
+          const dataToInsert = await prepareDataForInsertion(validRows);
+          const { data, error } = await supabase.from(tableName).insert(dataToInsert).select();
+          
+          if (error) {
+            console.error("Import error:", error);
+            errors.push(`Database error: ${error.message}`);
+            setResult({
+              success: 0,
+              failed: validRows.length,
+              errors,
+              duplicates: 0,
+              duplicateDetails: []
+            });
+            toast.error("Failed to import data");
+          } else {
+            const successCount = data?.length || 0;
+            setResult({
+              success: successCount,
+              failed: errors.length,
+              errors,
+              duplicates: 0,
+              duplicateDetails: []
+            });
+            queryClient.invalidateQueries({ queryKey: [type] });
+            toast.success(`Successfully imported ${successCount} ${type}`);
+            if (onSuccess) onSuccess();
+          }
+          setImporting(false);
+          return;
+        }
+
         const { data: existingRecords, error: fetchError } = await supabase
           .from(tableName)
           .select("email, name, phone")
@@ -264,52 +335,7 @@ export default function DataImport({
         }
 
         // Prepare data for insertion (only non-duplicates)
-        const dataToInsert = rowsToInsert.map(row => {
-          if (type === "leads") {
-            const leadData: any = {
-              name: row.name.trim(),
-              email: row.email?.trim().toLowerCase() || null,
-              phone: row.phone?.trim() || null,
-              source: row.source?.trim() || null,
-              notes: row.notes?.trim() || null,
-              stage: row.stage?.trim() || "new",
-              user_id: user?.id
-            };
-            
-            // Handle created_date if provided
-            if (row.created_date?.trim()) {
-              leadData.created_at = row.created_date.trim();
-            }
-            
-            return leadData;
-          }
-
-          const baseData = {
-            name: row.name.trim(),
-            email: row.email?.trim().toLowerCase() || null,
-            phone: row.phone?.trim() || null,
-            subjects: [row.instrument.trim()],
-            user_id: user?.id
-          };
-          if (type === "students") {
-            return {
-              ...baseData,
-              grade: row.grade.trim(),
-              status: "active",
-              date_of_birth: row.date_of_birth?.trim() || null,
-              parent_name: row.parent_name?.trim() || null,
-              parent_email: row.parent_email?.trim() || null,
-              parent_phone: row.parent_phone?.trim() || null,
-              address: row.address?.trim() || null,
-            };
-          } else {
-            return {
-              ...baseData,
-              status: row.status.trim().toLowerCase(),
-              hourly_rate: row.hourly_rate ? parseFloat(row.hourly_rate) : null
-            };
-          }
-        });
+        const dataToInsert = await prepareDataForInsertion(rowsToInsert);
 
         // Bulk insert
         const {
@@ -391,14 +417,100 @@ export default function DataImport({
     processFile(file);
   };
 
+  const prepareDataForInsertion = async (rows: any[]) => {
+    if (type === "payments") {
+      // Fetch all students to map names to IDs
+      const { data: students } = await supabase
+        .from('students')
+        .select('id, name')
+        .eq('user_id', user?.id);
+      
+      const studentMap = new Map(students?.map(s => [s.name.toLowerCase(), s.id]) || []);
+      
+      return rows.map(row => ({
+        student_id: studentMap.get(row.student_name.trim().toLowerCase()) || null,
+        amount: parseFloat(row.amount),
+        status: row.status?.trim() || 'pending',
+        due_date: row.due_date?.trim() || null,
+        package_type: row.package_type?.trim() || null,
+        description: row.description?.trim() || null,
+        discount_amount: row.discount_amount ? parseFloat(row.discount_amount) : 0,
+        user_id: user?.id
+      }));
+    }
+
+    if (type === "expenses") {
+      return rows.map(row => ({
+        category: row.category.trim(),
+        amount: parseFloat(row.amount),
+        expense_date: row.expense_date.trim(),
+        payment_method: row.payment_method?.trim() || null,
+        status: row.status?.trim() || 'pending',
+        description: row.description?.trim() || null,
+        user_id: user?.id,
+        approved_by: row.status === 'paid' ? user?.id : null,
+        paid_by: row.status === 'paid' ? user?.id : null
+      }));
+    }
+
+    if (type === "leads") {
+      return rows.map(row => {
+        const leadData: any = {
+          name: row.name.trim(),
+          email: row.email?.trim().toLowerCase() || null,
+          phone: row.phone?.trim() || null,
+          source: row.source?.trim() || null,
+          notes: row.notes?.trim() || null,
+          stage: row.stage?.trim() || "new",
+          user_id: user?.id
+        };
+        if (row.created_date?.trim()) {
+          leadData.created_at = row.created_date.trim();
+        }
+        return leadData;
+      });
+    }
+
+    const baseData = rows.map(row => ({
+      name: row.name.trim(),
+      email: row.email?.trim().toLowerCase() || null,
+      phone: row.phone?.trim() || null,
+      subjects: [row.instrument.trim()],
+      user_id: user?.id
+    }));
+
+    if (type === "students") {
+      return baseData.map((data, i) => ({
+        ...data,
+        grade: rows[i].grade.trim(),
+        status: "active",
+        date_of_birth: rows[i].date_of_birth?.trim() || null,
+        parent_name: rows[i].parent_name?.trim() || null,
+        parent_email: rows[i].parent_email?.trim() || null,
+        parent_phone: rows[i].parent_phone?.trim() || null,
+        address: rows[i].address?.trim() || null,
+      }));
+    } else {
+      return baseData.map((data, i) => ({
+        ...data,
+        status: rows[i].status.trim().toLowerCase(),
+        hourly_rate: rows[i].hourly_rate ? parseFloat(rows[i].hourly_rate) : null
+      }));
+    }
+  };
+
   const handleExport = async () => {
     try {
       toast.loading("Exporting data...");
       
       const tableName = type === "leads" ? "crm_leads" : type;
+      const selectQuery = type === "payments" 
+        ? '*, students(name)'
+        : '*';
+      
       const { data, error } = await supabase
         .from(tableName)
-        .select('*')
+        .select(selectQuery)
         .eq('user_id', user?.id);
 
       if (error) throw error;
@@ -433,6 +545,27 @@ export default function DataImport({
             status: item.status,
             hourly_rate: item.hourly_rate || '',
             availability: item.availability || ''
+          }))
+        : type === "payments"
+        ? data.map((item: any) => ({
+            student_name: item.students?.name || '',
+            amount: item.amount,
+            status: item.status,
+            due_date: item.due_date ? new Date(item.due_date).toISOString().split('T')[0] : '',
+            package_type: item.package_type || '',
+            description: item.description || '',
+            discount_amount: item.discount_amount || 0,
+            paid_amount: item.paid_amount || 0,
+            payment_date: item.payment_date ? new Date(item.payment_date).toISOString().split('T')[0] : ''
+          }))
+        : type === "expenses"
+        ? data.map((item: any) => ({
+            category: item.category,
+            amount: item.amount,
+            expense_date: item.expense_date,
+            payment_method: item.payment_method || '',
+            status: item.status,
+            description: item.description || ''
           }))
         : data.map((item: any) => ({
             name: item.name,
@@ -477,7 +610,7 @@ export default function DataImport({
           </DialogTrigger>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle>Import {type === "students" ? "Students" : type === "tutors" ? "Tutors" : "Leads"} from CSV</DialogTitle>
+          <DialogTitle>Import {type === "students" ? "Students" : type === "tutors" ? "Tutors" : type === "leads" ? "Leads" : type === "payments" ? "Payments" : "Expenses"} from CSV</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6 py-4 overflow-y-auto flex-1 min-h-0">
@@ -491,6 +624,12 @@ export default function DataImport({
                   <br />Optional: date_of_birth, parent_name, parent_email, parent_phone, address (leave empty if not available)
                 </> : type === "tutors" ? <>
                   <br />Required columns: name, email, phone, instrument, status (Active/On Leave), hourly_rate (optional)
+                </> : type === "payments" ? <>
+                  <br />Required: student_name, amount, status (pending/completed/failed/refunded)
+                  <br />Optional: due_date, package_type, description, discount_amount
+                </> : type === "expenses" ? <>
+                  <br />Required: category, amount, expense_date, payment_method, status (pending/paid/approved)
+                  <br />Optional: description
                 </> : <>
                   <br />Required: name
                   <br />Optional: email, phone, source, notes, stage (new/contacted/qualified/converted/lost), created_date (YYYY-MM-DD format)

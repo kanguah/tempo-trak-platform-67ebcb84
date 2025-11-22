@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Search, Filter, Download, CheckCircle, Clock, XCircle, CreditCard, Send, RefreshCw, X, Calendar as CalendarIcon, Trash2 } from "lucide-react";
+import DataImport from "@/components/DataImport";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -401,10 +402,7 @@ export default function Payments() {
               <Send className="mr-2 h-4 w-4" />
               Send Reminders
             </Button>
-            <Button className="gradient-accent text-accent-foreground shadow-accent">
-              <Download className="mr-2 h-4 w-4 md:h-5 md:w-5" />
-              Export
-            </Button>
+            <DataImport type="payments" onSuccess={() => queryClient.invalidateQueries({ queryKey: ['payments'] })} />
           </div>
         </div>
 
