@@ -476,13 +476,7 @@ export default function TutorProfile() {
                     <p className="text-3xl font-bold text-foreground">{uniqueStudents}</p>
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Clock className="h-4 w-4" />
-                      <span className="text-sm">Hours This Month</span>
-                    </div>
-                    <p className="text-3xl font-bold text-foreground">{hoursThisMonth}h</p>
-                  </div>
+                  
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-muted-foreground">
