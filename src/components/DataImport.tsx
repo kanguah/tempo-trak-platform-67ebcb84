@@ -83,6 +83,7 @@ export default function DataImport({
       if (row.status && !["pending", "completed", "failed", "refunded"].includes(row.status)) {
         return { valid: false, error: `Row ${index + 1}: Invalid status. Must be pending, completed, failed, or refunded` };
       }
+      
       return { valid: true };
     }
 
@@ -193,6 +194,7 @@ export default function DataImport({
           if (!validation.valid) {
             errors.push(validation.error!);
           } else {
+            
             validRows.push(row);
           }
         });
@@ -208,10 +210,10 @@ export default function DataImport({
           toast.error("No valid rows to import");
           return;
         }
-
+        console.log("Valid rows:", validRows);
         // Fetch existing records to check for duplicates
         const tableName = type === "leads" ? "crm_leads" : type;
-        
+      
         // Skip duplicate checking for payments and expenses
         if (type === "payments" || type === "expenses") {
           const dataToInsert = await prepareDataForInsertion(validRows);
@@ -465,6 +467,8 @@ export default function DataImport({
           package_type: row.package_type?.trim() || null,
           description: row.description?.trim() || null,
           discount_amount: row.discount_amount ? parseFloat(row.discount_amount) : 0,
+          paid_amount: row.paid_amount ? parseFloat(row.paid_amount) : null,
+          payment_date: row.paid_amount !=null ? (row.payment_date?.trim() || new Date().toISOString().split('T')[0]) : null,
           user_id: user?.id
         };
       });

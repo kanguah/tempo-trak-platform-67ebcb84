@@ -285,61 +285,6 @@ export default function Payments() {
     return totalAmount - paidAmount;
   };
 
-  // Calculate metrics
-  const totalRevenue = payments.reduce((sum, p) => {
-    // Use paid_amount if available, otherwise use amount for completed payments
-    const paidAmount = p.paid_amount ? Number(p.paid_amount) : p.status === "completed" ? Number(p.amount) : 0;
-    return sum + paidAmount;
-  }, 0);
-  const pendingAmount = payments.filter(p => p.status === "pending" || p.status === "failed").reduce((sum, p) => sum + getRemainingBalance(p), 0);
-  const paidCount = payments.filter(p => p.paid_amount !== null).length;
-
-  // Generate revenue data (last 6 months)
-  const last6Months = Array.from({
-    length: 6
-  }, (_, i) => {
-    const date = new Date();
-    date.setMonth(date.getMonth() - (5 - i));
-    return date;
-  });
-  const revenueData = last6Months.map(date => {
-    const monthName = date.toLocaleString('default', {
-      month: 'short'
-    });
-    const monthPayments = payments.filter(p => {
-      if (!p.payment_date) return false;
-      const paymentDate = new Date(p.payment_date);
-      return paymentDate.getMonth() === date.getMonth() && paymentDate.getFullYear() === date.getFullYear();
-    });
-    const monthExpenses = expenses.filter(e => {
-      const expenseDate = new Date(e.expense_date);
-      return expenseDate.getMonth() === date.getMonth() && expenseDate.getFullYear() === date.getFullYear();
-    });
-    return {
-      month: monthName,
-      revenue: monthPayments.reduce((sum, p) => {
-        const paidAmount = p.paid_amount ? Number(p.paid_amount) : Number(p.amount);
-        return sum + paidAmount;
-      }, 0),
-      expenses: monthExpenses.reduce((sum, e) => sum + Number(e.amount), 0)
-    };
-  });
-
-  // Payment method breakdown
-  const paymentMethodData: Record<string, number> = {};
-  payments.filter(p => p.status === 'completed' && p.description).forEach(p => {
-    const paidAmount = p.paid_amount ? Number(p.paid_amount) : Number(p.amount);
-    paymentMethodData[p.description] = (paymentMethodData[p.description] || 0) + paidAmount;
-  });
-  const methodChartData = Object.entries(paymentMethodData).map(([name, value]) => ({
-    name,
-    value
-  })).sort((a, b) => b.value - a.value).slice(0, 5);
-
-  // Extract unique values for filters
-  const uniquePackageTypes = Array.from(new Set(payments.map(p => p.package_type).filter(Boolean)));
-  const uniquePaymentMethods = Array.from(new Set(payments.filter(p => p.status === 'completed' && p.description).map(p => p.description).filter(Boolean)));
-
   // Apply all filters
   const filteredPayments = payments.filter(payment => {
     // Search filter
@@ -363,6 +308,62 @@ export default function Payments() {
     return matchesSearch && matchesStatus && matchesDateRange && matchesAmountRange && matchesPackageType && matchesPaymentMethod;
   });
 
+  // Calculate metrics
+  const totalRevenue = filteredPayments.reduce((sum, p) => {
+    // Use paid_amount if available, otherwise use amount for completed payments
+    const paidAmount = Number(p.paid_amount);
+    return sum + paidAmount;
+  }, 0);
+  const pendingAmount = filteredPayments.filter(p => p.status === "pending" || p.status === "failed").reduce((sum, p) => sum + getRemainingBalance(p), 0);
+  const paidCount = filteredPayments.filter(p => p.paid_amount !== null).length;
+
+  // Generate revenue data (last 6 months)
+  const last6Months = Array.from({
+    length: 6
+  }, (_, i) => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - (5 - i));
+    return date;
+  });
+  const revenueData = last6Months.map(date => {
+    const monthName = date.toLocaleString('default', {
+      month: 'short'
+    });
+    const monthPayments = payments.filter(p => {
+      if (!p.due_date) return false;
+      const paymentDate = new Date(p.due_date);
+      return paymentDate.getMonth() === date.getMonth() && paymentDate.getFullYear() === date.getFullYear();
+    });
+    const monthExpenses = expenses.filter(e => {
+      const expenseDate = new Date(e.expense_date);
+      return expenseDate.getMonth() === date.getMonth() && expenseDate.getFullYear() === date.getFullYear();
+    });
+    return {
+      month: monthName,
+      revenue: monthPayments.reduce((sum, p) => {
+        const paidAmount = Number(p.paid_amount);
+        return sum + paidAmount;
+      }, 0),
+      expenses: monthExpenses.reduce((sum, e) => sum + Number(e.amount), 0)
+    };
+  });
+
+  // Payment method breakdown
+  const paymentMethodData: Record<string, number> = {};
+  payments.filter(p => p.status === 'completed' && p.description).forEach(p => {
+    const paidAmount = p.paid_amount ? Number(p.paid_amount) : Number(p.amount);
+    paymentMethodData[p.description] = (paymentMethodData[p.description] || 0) + paidAmount;
+  });
+  const methodChartData = Object.entries(paymentMethodData).map(([name, value]) => ({
+    name,
+    value
+  })).sort((a, b) => b.value - a.value).slice(0, 5);
+
+  // Extract unique values for filters
+  const uniquePackageTypes = Array.from(new Set(payments.map(p => p.package_type).filter(Boolean)));
+  const uniquePaymentMethods = Array.from(new Set(payments.filter(p => p.status === 'completed' && p.description).map(p => p.description).filter(Boolean)));
+
+  
   // Count active filters
   const activeFilterCount = [statusFilter !== 'all', packageTypeFilter !== 'all', paymentMethodFilter !== 'all', dateRangeFilter.from !== undefined, dateRangeFilter.to !== undefined, amountRangeFilter.min !== '', amountRangeFilter.max !== ''].filter(Boolean).length;
 
@@ -412,7 +413,7 @@ export default function Payments() {
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs md:text-sm opacity-90 mb-1">Total Revenue (This Month)</p>
+                  <p className="text-xs md:text-sm opacity-90 mb-1">Total Revenue</p>
                   <h3 className="text-2xl md:text-3xl font-bold">GH₵ {totalRevenue.toLocaleString()}</h3>
                 </div>
                 
@@ -518,11 +519,9 @@ export default function Payments() {
                     <SelectValue placeholder="Select payment method" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Cash">Cash</SelectItem>
-                    <SelectItem value="Bank Transfer - GTBank">Bank Transfer - GTBank</SelectItem>
-                    <SelectItem value="MTN MoMo">MTN Mobile Money</SelectItem>
-                    <SelectItem value="Vodafone Cash">Vodafone Cash</SelectItem>
-                    <SelectItem value="AirtelTigo Money">AirtelTigo Money</SelectItem>
+                    <SelectItem value="CASH">Cash</SelectItem>
+                    <SelectItem value="BANK TRANSFER">Bank Transfer</SelectItem>
+                    <SelectItem value="MOBILE MONEY">MTN Mobile Money</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -788,7 +787,7 @@ export default function Payments() {
                               </div>
                               <div>
                                 <p className="font-medium">Period</p>
-                                <p>{payment.created_at ? new Date(payment.created_at).toLocaleDateString('en-US', {
+                                <p>{payment.created_at ? new Date(payment.due_date).toLocaleDateString('en-US', {
                             month: 'short',
                             year: 'numeric'
                           }) : "-"}</p>

@@ -207,7 +207,7 @@ export default function TutorProfile() {
   };
 
   // Calculate metrics
-  const completedLessons = attendance.filter(a => a.status === "completed").length;
+  const completedLessons = attendance.filter(a => a.status === "present").length;
   const totalScheduled = attendance.length;
   const attendanceRate = totalScheduled > 0 ? Math.round(completedLessons / totalScheduled * 100) : 0;
   const feedbackWithRatings = attendance.filter(a => a.rating && a.feedback);
@@ -217,7 +217,7 @@ export default function TutorProfile() {
   const thisYear = new Date().getFullYear();
   const thisMonthAttendance = attendance.filter(a => {
     const lessonDate = new Date(a.lesson_date);
-    return lessonDate.getMonth() === thisMonth && lessonDate.getFullYear() === thisYear && a.status === "completed";
+    return lessonDate.getMonth() === thisMonth && lessonDate.getFullYear() === thisYear && a.status === "present";
   });
   const hoursThisMonth = thisMonthAttendance.length * 1; // Assuming 1 hour per lesson
 
