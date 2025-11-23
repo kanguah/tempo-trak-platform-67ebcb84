@@ -60,14 +60,11 @@ const studentSchema = z.object({
   schedule: z.array(z.object({ day: z.number(), time: z.string(), tutorId: z.string().optional(), room: z.number() })).optional(),
 });
 const instruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Cello", "Trumpet", "Bass"];
-type SortField = "name" | "grade" | "created_at" | "status";
+type SortField = "name" | "grade" | "created_at";
 type SortDirection = "asc" | "desc";
 
 export default function Students() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [gradeFilter, setGradeFilter] = useState<string>("all");
-  const [packageFilter, setPackageFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -337,18 +334,10 @@ export default function Students() {
 
   // Filter and sort
   const filteredStudents = students.filter(
-    (student) => {
-      const matchesSearch = 
-        student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (student.subjects && student.subjects.some((s: string) => s.toLowerCase().includes(searchQuery.toLowerCase())));
-      
-      const matchesStatus = statusFilter === "all" || student.status === statusFilter;
-      const matchesGrade = gradeFilter === "all" || student.grade === gradeFilter;
-      const matchesPackage = packageFilter === "all" || student.package_type === packageFilter;
-      
-      return matchesSearch && matchesStatus && matchesGrade && matchesPackage;
-    }
+    (student) =>
+      student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (student.subjects && student.subjects.some((s: string) => s.toLowerCase().includes(searchQuery.toLowerCase()))),
   );
 
   const sortedStudents = [...filteredStudents].sort((a, b) => {
@@ -689,60 +678,26 @@ export default function Students() {
         {/* Search and Actions Bar */}
         <Card className="shadow-card">
           <CardContent className="p-4">
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    placeholder="Search students by name, email, or instrument..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="pl-10"
-                  />
-                </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  placeholder="Search students..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="pl-10"
+                />
+              </div>
+              <div className="flex gap-2">
                 {selectedStudents.size > 0 && (
                   <Button variant="destructive" size="default" onClick={handleBulkDelete}>
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete ({selectedStudents.size})
                   </Button>
                 )}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={gradeFilter} onValueChange={setGradeFilter}>
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue placeholder="Grade" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
-                    <SelectItem value="all">All Grades</SelectItem>
-                    <SelectItem value="Beginner">Beginner</SelectItem>
-                    <SelectItem value="Intermediate">Intermediate</SelectItem>
-                    <SelectItem value="Advanced">Advanced</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={packageFilter} onValueChange={setPackageFilter}>
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue placeholder="Package" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
-                    <SelectItem value="all">All Packages</SelectItem>
-                    <SelectItem value="1x Weekly">1x Weekly</SelectItem>
-                    <SelectItem value="2x Weekly">2x Weekly</SelectItem>
-                    <SelectItem value="3x Weekly">3x Weekly</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           </CardContent>
@@ -857,10 +812,7 @@ export default function Students() {
                     </TableHead>
                     <TableHead className="hidden xl:table-cell">Email</TableHead>
                     <TableHead className="hidden lg:table-cell">Phone</TableHead>
-                    <TableHead className="cursor-pointer" onClick={()=>handleSort("status")}><div className="flex items-center gap-2">
-                        Status
-                        <ArrowUpDown className="h-4 w-4" />
-                      </div></TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
