@@ -219,13 +219,40 @@ export default function TutorProfile() {
     const lessonDate = new Date(a.lesson_date);
     return lessonDate.getMonth() === thisMonth && lessonDate.getFullYear() === thisYear && a.status === "present";
   });
-  const hoursThisMonth = thisMonthAttendance.length * 1; // Assuming 1 hour per lesson
+
+  function getComingWeekRange() {
+  const today = new Date();
+  const day = today.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+
+  // Next Monday
+  const nextMonday = new Date(today);
+  nextMonday.setDate(today.getDate() + ((8 - day) % 7));
+
+  // Next Sunday = nextMonday + 6 days
+  const nextSunday = new Date(nextMonday);
+  nextSunday.setDate(nextMonday.getDate() + 6);
+
+  // Normalize to start/end of day
+  nextMonday.setHours(0,0,0,0);
+  nextSunday.setHours(23,59,59,999);
+
+  return { nextMonday, nextSunday };
+}
+
+const { nextMonday, nextSunday } = getComingWeekRange();
+
+const nextWeekLessons = lessons.filter(l => {
+  console.log("Lesson Date:", l.day_of_week);
+  const lessonDate = new Date(l.lesson_date); 
+  return lessonDate >= nextMonday && lessonDate <= nextSunday;
+});
 
   // Group lessons by day for schedule
   const scheduleByDay = daysOfWeek.map(day => ({
     day,
-    lessons: lessons.filter(l => l.day_of_week === daysOfWeek.indexOf(day))
+    lessons: nextWeekLessons.filter(l => new Date(l.lesson_date).getDay() === daysOfWeek.indexOf(day))
   }));
+
   if (tutorLoading) {
     return <div className="min-h-screen bg-background p-8">
         <Skeleton className="h-12 w-48 mb-8" />

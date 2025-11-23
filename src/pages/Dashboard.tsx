@@ -107,11 +107,11 @@ export default function Dashboard() {
       month: "short"
     });
     const monthPayments = payments.filter(p => {
-      if (!p.payment_date) return false;
-      const paymentDate = new Date(p.payment_date);
+      if (!p.due_date) return false;
+      const paymentDate = new Date(p.due_date);
       return paymentDate.getMonth() === date.getMonth() && paymentDate.getFullYear() === date.getFullYear();
     });
-    const revenue = monthPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+    const revenue = monthPayments.reduce((sum, p) => sum + Number(p.paid_amount), 0);
     return {
       month: monthName,
       revenue
