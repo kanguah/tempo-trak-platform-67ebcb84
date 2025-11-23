@@ -282,6 +282,8 @@ function DroppableStage({
 }
 export default function CRM() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [stageFilter, setStageFilter] = useState<string>("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
@@ -339,8 +341,29 @@ export default function CRM() {
     },
     enabled: !!user
   });
+  // Filter and search leads
+  const filteredLeads = leads.filter(lead => {
+    // Search filter
+    const searchLower = searchQuery.toLowerCase();
+    const matchesSearch = !searchQuery || 
+      lead.name.toLowerCase().includes(searchLower) ||
+      lead.email?.toLowerCase().includes(searchLower) ||
+      lead.phone?.toLowerCase().includes(searchLower) ||
+      lead.instrument?.toLowerCase().includes(searchLower) ||
+      lead.source?.toLowerCase().includes(searchLower) ||
+      lead.notes?.toLowerCase().includes(searchLower);
+
+    // Stage filter
+    const matchesStage = stageFilter === "all" || lead.stage === stageFilter;
+
+    // Source filter
+    const matchesSource = sourceFilter === "all" || lead.source === sourceFilter;
+
+    return matchesSearch && matchesStage && matchesSource;
+  });
+
   const getLeadsByStage = (stage: string) => {
-    return leads.filter(lead => lead.stage === stage);
+    return filteredLeads.filter(lead => lead.stage === stage);
   };
   const handleToggleLeadSelection = (leadId: string, isSelected: boolean) => {
     setSelectedLeads(prev => {
@@ -362,7 +385,7 @@ export default function CRM() {
     });
   };
   const handleSelectAllLeads = () => {
-    setSelectedLeads(leads.map(lead => lead.id));
+    setSelectedLeads(filteredLeads.map(lead => lead.id));
   };
   const handleClearSelection = () => setSelectedLeads([]);
   useEffect(() => {
@@ -877,12 +900,46 @@ export default function CRM() {
         })}
         </div>
 
-        {/* Search Bar */}
+        {/* Search and Filters */}
         <Card className="shadow-card">
           <CardContent className="p-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input placeholder="Search leads..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10 h-11 md:h-10" />
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input 
+                  placeholder="Search by name, email, phone, instrument..." 
+                  value={searchQuery} 
+                  onChange={e => setSearchQuery(e.target.value)} 
+                  className="pl-10 h-11 md:h-10" 
+                />
+              </div>
+              <Select value={stageFilter} onValueChange={setStageFilter}>
+                <SelectTrigger className="w-full md:w-[180px] h-11 md:h-10">
+                  <SelectValue placeholder="Filter by stage" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Stages</SelectItem>
+                  <SelectItem value="new">New Leads</SelectItem>
+                  <SelectItem value="contacted">Contacted</SelectItem>
+                  <SelectItem value="qualified">Qualified</SelectItem>
+                  <SelectItem value="converted">Converted</SelectItem>
+                  <SelectItem value="lost">Lost</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                <SelectTrigger className="w-full md:w-[180px] h-11 md:h-10">
+                  <SelectValue placeholder="Filter by source" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sources</SelectItem>
+                  <SelectItem value="Website Form">Website Form</SelectItem>
+                  <SelectItem value="Facebook Ad">Facebook Ad</SelectItem>
+                  <SelectItem value="Google Ad">Google Ad</SelectItem>
+                  <SelectItem value="Referral">Referral</SelectItem>
+                  <SelectItem value="Walk-in">Walk-in</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
