@@ -282,6 +282,8 @@ function DroppableStage({
 }
 export default function CRM() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [stageFilter, setStageFilter] = useState<string>("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
@@ -339,8 +341,21 @@ export default function CRM() {
     },
     enabled: !!user
   });
+  const filteredLeads = leads.filter(lead => {
+    const matchesSearch = 
+      lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lead.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lead.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lead.instrument.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesStage = stageFilter === "all" || lead.stage === stageFilter;
+    const matchesSource = sourceFilter === "all" || lead.source === sourceFilter;
+    
+    return matchesSearch && matchesStage && matchesSource;
+  });
+
   const getLeadsByStage = (stage: string) => {
-    return leads.filter(lead => lead.stage === stage);
+    return filteredLeads.filter(lead => lead.stage === stage);
   };
   const handleToggleLeadSelection = (leadId: string, isSelected: boolean) => {
     setSelectedLeads(prev => {
@@ -362,7 +377,7 @@ export default function CRM() {
     });
   };
   const handleSelectAllLeads = () => {
-    setSelectedLeads(leads.map(lead => lead.id));
+    setSelectedLeads(filteredLeads.map(lead => lead.id));
   };
   const handleClearSelection = () => setSelectedLeads([]);
   useEffect(() => {
@@ -377,8 +392,8 @@ export default function CRM() {
     });
   }, [leads]);
   useEffect(() => {
-    setSelectedLeads(prev => prev.filter(id => leads.some(lead => lead.id === id)));
-  }, [leads]);
+    setSelectedLeads(prev => prev.filter(id => filteredLeads.some(lead => lead.id === id)));
+  }, [filteredLeads]);
   const handleContactLead = (lead: Lead, _method: 'call' | 'email') => {
     const timestamp = new Date().toLocaleString();
     setLastContactTimes(prev => ({
@@ -628,6 +643,8 @@ export default function CRM() {
     }
   };
   const hasSelection = selectedLeads.length > 0;
+  const allSources = Array.from(new Set(leads.map(lead => lead.source).filter(Boolean)));
+  
   return <div className="min-h-screen bg-background">
       <div className="p-4 md:p-8 space-y-6 md:space-y-8 animate-fade-in">
         {/* Header */}
@@ -644,6 +661,47 @@ export default function CRM() {
             </Button>
           </div>
         </div>
+
+        {/* Search and Filters */}
+        <Card className="shadow-card">
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  placeholder="Search leads by name, email, phone, or instrument..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Select value={stageFilter} onValueChange={setStageFilter}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="All Stages" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    <SelectItem value="all">All Stages</SelectItem>
+                    {stages.map(stage => (
+                      <SelectItem key={stage.id} value={stage.id}>{stage.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="All Sources" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    <SelectItem value="all">All Sources</SelectItem>
+                    {allSources.map(source => (
+                      <SelectItem key={source} value={source}>{source}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Add Lead Dialog */}
         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
