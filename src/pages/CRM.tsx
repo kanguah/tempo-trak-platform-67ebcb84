@@ -568,7 +568,7 @@ export default function CRM() {
             phone: newLead.phone,
             stage: newLead.stage,
             source: newLead.source,
-            notes: `${newLead.instrument}: ${newLead.notes}`,
+            notes: newLead.notes,
             user_id: user?.id,
           },
         ])
