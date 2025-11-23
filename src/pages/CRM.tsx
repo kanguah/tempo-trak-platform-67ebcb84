@@ -346,7 +346,6 @@ export default function CRM() {
       lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lead.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lead.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      lead.instrument.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesStage = stageFilter === "all" || lead.stage === stageFilter;
     const matchesSource = sourceFilter === "all" || lead.source === sourceFilter;
