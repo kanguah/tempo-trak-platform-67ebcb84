@@ -60,7 +60,7 @@ const studentSchema = z.object({
   schedule: z.array(z.object({ day: z.number(), time: z.string(), tutorId: z.string().optional(), room: z.number() })).optional(),
 });
 const instruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Cello", "Trumpet", "Bass"];
-type SortField = "name" | "grade" | "created_at";
+type SortField = "name" | "grade" | "created_at" | "status";
 type SortDirection = "asc" | "desc";
 
 export default function Students() {
@@ -812,7 +812,10 @@ export default function Students() {
                     </TableHead>
                     <TableHead className="hidden xl:table-cell">Email</TableHead>
                     <TableHead className="hidden lg:table-cell">Phone</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="cursor-pointer" onClick={()=>handleSort("status")}><div className="flex items-center gap-2">
+                        Status
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
