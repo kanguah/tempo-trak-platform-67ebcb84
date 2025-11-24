@@ -216,7 +216,6 @@ interface DroppableStageProps {
   onDelete: (leadId: string) => void;
   onEdit: (lead: Lead) => void;
   onContact: (lead: Lead, method: 'call' | 'email') => void;
-  lastContactTimes: Record<string, string | undefined>;
   selectedLeadIds: string[];
   onToggleSelect: (leadId: string, isSelected: boolean) => void;
   onToggleStageSelect: (stageId: string, selectAll: boolean) => void;
@@ -229,7 +228,6 @@ function DroppableStage({
   onDelete,
   onEdit,
   onContact,
-  lastContactTimes,
   selectedLeadIds,
   onToggleSelect,
   onToggleStageSelect
@@ -271,7 +269,7 @@ function DroppableStage({
         </div>
       </CardHeader>
       <CardContent ref={setNodeRef} className={`p-3 md:p-4 space-y-3 min-h-[300px] md:min-h-[400px] flex-1 overflow-y-auto transition-colors ${isOver ? 'bg-accent/50' : ''}`}>
-        {leads.map((lead, index) => <DraggableLeadCard key={lead.id} lead={lead} index={index} stageIndex={stageIndex} onArchive={onArchive} onDelete={onDelete} onEdit={onEdit} onContact={onContact} lastContactedAt={lastContactTimes[lead.id]} isSelected={selectedLeadIds.includes(lead.id)} onToggleSelect={onToggleSelect} />)}
+        {leads.map((lead, index) => <DraggableLeadCard key={lead.id} lead={lead} index={index} stageIndex={stageIndex} onArchive={onArchive} onDelete={onDelete} onEdit={onEdit} onContact={onContact} lastContactedAt={lead.lastContact} isSelected={selectedLeadIds.includes(lead.id)} onToggleSelect={onToggleSelect} />)}
 
         {leads.length === 0 && <div className="text-center py-8 text-muted-foreground">
             <p className="text-xs md:text-sm">No leads in this stage</p>
@@ -288,7 +286,6 @@ export default function CRM() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
-  const [lastContactTimes, setLastContactTimes] = useState<Record<string, string | undefined>>({});
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [newLead, setNewLead] = useState({
     name: "",
@@ -334,7 +331,7 @@ export default function CRM() {
         instrument: lead.notes?.split(":")[0] || "",
         source: lead.source || "",
         notes: lead.notes || "",
-        lastContact: new Date(lead.updated_at).toLocaleDateString(),
+        lastContact: lead.last_contacted_at ? new Date(lead.last_contacted_at).toLocaleString() : 'Not yet',
         archived: lead.stage === 'lost',
         createdAt: new Date(lead.created_at).toLocaleDateString()
       }));
@@ -388,26 +385,25 @@ export default function CRM() {
     setSelectedLeads(filteredLeads.map(lead => lead.id));
   };
   const handleClearSelection = () => setSelectedLeads([]);
-  useEffect(() => {
-    setLastContactTimes(prev => {
-      const next = { ...prev };
-      leads.forEach(lead => {
-        if (!next[lead.id]) {
-          next[lead.id] = lead.lastContact;
-        }
-      });
-      return next;
-    });
-  }, [leads]);
+  // Remove the local state syncing effect since we're using database now
   useEffect(() => {
     setSelectedLeads(prev => prev.filter(id => leads.some(lead => lead.id === id)));
   }, [leads]);
+  const contactLeadMutation = useMutation({
+    mutationFn: async (leadId: string) => {
+      const { error } = await supabase
+        .from('crm_leads')
+        .update({ last_contacted_at: new Date().toISOString() })
+        .eq('id', leadId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
+    }
+  });
+
   const handleContactLead = (lead: Lead, _method: 'call' | 'email') => {
-    const timestamp = new Date().toLocaleString();
-    setLastContactTimes(prev => ({
-      ...prev,
-      [lead.id]: timestamp
-    }));
+    contactLeadMutation.mutate(lead.id);
   };
   const archiveLeadInSupabase = async (leadId: string, originalStage?: string) => {
     let stageToStore = originalStage;
@@ -968,7 +964,7 @@ export default function CRM() {
         {/* Pipeline Board */}
         <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            {stages.map((stage, stageIndex) => <DroppableStage key={stage.id} stage={stage} leads={getLeadsByStage(stage.id)} stageIndex={stageIndex} onArchive={handleArchiveLead} onDelete={handleDeleteLead} onEdit={handleOpenEditDialog} onContact={handleContactLead} lastContactTimes={lastContactTimes} selectedLeadIds={selectedLeads} onToggleSelect={handleToggleLeadSelection} onToggleStageSelect={handleToggleStageSelection} />)}
+            {stages.map((stage, stageIndex) => <DroppableStage key={stage.id} stage={stage} leads={getLeadsByStage(stage.id)} stageIndex={stageIndex} onArchive={handleArchiveLead} onDelete={handleDeleteLead} onEdit={handleOpenEditDialog} onContact={handleContactLead} selectedLeadIds={selectedLeads} onToggleSelect={handleToggleLeadSelection} onToggleStageSelect={handleToggleStageSelection} />)}
           </div>
           <DragOverlay>
             {activeLead ? <Card className="border-2 shadow-2xl opacity-90 cursor-grabbing">
