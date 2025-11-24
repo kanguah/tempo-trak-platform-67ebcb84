@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { LayoutDashboard, Users, UserCheck, Briefcase, Calendar, ClipboardCheck, CreditCard, DollarSign, Megaphone, MessageSquare, TrendingUp, FileText, Bell, Settings, Music, Archive, TrendingDown } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 const directorItems = [{
   title: "Dashboard",
   url: "/",
@@ -82,6 +84,107 @@ export function AppSidebar() {
   const {
     user
   } = useAuth();
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  // Fetch logo URL from profile
+  useEffect(() => {
+    const fetchLogo = async () => {
+      if (!user?.id) return;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('logo_url')
+        .eq('id', user.id)
+        .single();
+      
+      if (data?.logo_url) {
+        setLogoUrl(data.logo_url);
+      }
+    };
+    
+    fetchLogo();
+  }, [user?.id]);
+
+  const handleLogoClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user?.id) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/svg+xml'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a JPG, PNG, WEBP, or SVG image.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5242880) {
+      toast({
+        title: "File too large",
+        description: "Please upload an image smaller than 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      // Delete old logo if exists
+      if (logoUrl) {
+        const oldPath = logoUrl.split('/').slice(-2).join('/');
+        await supabase.storage.from('logos').remove([oldPath]);
+      }
+
+      // Upload new logo
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}/logo.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('logos')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('logos')
+        .getPublicUrl(filePath);
+
+      // Update profile
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ logo_url: publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      setLogoUrl(publicUrl);
+      toast({
+        title: "Logo updated",
+        description: "Your logo has been successfully uploaded.",
+      });
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload logo. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   // When sidebar is open (fully expanded), no hover needed
   // When sidebar is closed (mini mode), enable hover to expand
@@ -98,10 +201,26 @@ export function AppSidebar() {
       <Sidebar collapsible="icon" className={`border-r border-sidebar-border transition-all duration-300 ${showExpanded ? 'w-64' : 'w-16'}`}>
         {/* Header: School Management title */}
         <SidebarHeader className={`px-4 py-4 transition-all ${showExpanded ? 'text-left' : 'text-center'}`}>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/webp,image/svg+xml"
+            onChange={handleFileChange}
+            className="hidden"
+          />
           <div className="flex items-center gap-3">
-            <div className={`h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center text-primary font-bold ${showExpanded ? '' : 'mx-auto'}`}>
-              SM
-            </div>
+            <button
+              onClick={handleLogoClick}
+              disabled={uploading}
+              className={`h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center text-primary font-bold transition-all hover:bg-primary/20 cursor-pointer ${showExpanded ? '' : 'mx-auto'} ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              title="Click to upload logo"
+            >
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="h-full w-full rounded-md object-cover" />
+              ) : (
+                'SM'
+              )}
+            </button>
             {showExpanded && <div>
               <div className="text-sm font-semibold text-sidebar-foreground">School Management</div>
               <div className="text-xs text-sidebar-foreground/60">Admin Dashboard</div>
