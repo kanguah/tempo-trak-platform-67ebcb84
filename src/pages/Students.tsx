@@ -65,6 +65,9 @@ type SortDirection = "asc" | "desc";
 
 export default function Students() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [gradeFilter, setGradeFilter] = useState<string>("all");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
+  const [packageTypeFilter, setPackageTypeFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -333,12 +336,18 @@ export default function Students() {
   };
 
   // Filter and sort
-  const filteredStudents = students.filter(
-    (student) =>
+  const filteredStudents = students.filter((student) => {
+    const matchesSearch =
       student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (student.subjects && student.subjects.some((s: string) => s.toLowerCase().includes(searchQuery.toLowerCase()))),
-  );
+      (student.subjects && student.subjects.some((s: string) => s.toLowerCase().includes(searchQuery.toLowerCase())));
+
+    const matchesGrade = gradeFilter === "all" || student.grade === gradeFilter;
+    const matchesPaymentStatus = paymentStatusFilter === "all" || student.payment_status === paymentStatusFilter;
+    const matchesPackageType = packageTypeFilter === "all" || student.package_type === packageTypeFilter;
+
+    return matchesSearch && matchesGrade && matchesPaymentStatus && matchesPackageType;
+  });
 
   const sortedStudents = [...filteredStudents].sort((a, b) => {
     let aValue: any = a[sortField];
@@ -678,26 +687,67 @@ export default function Students() {
         {/* Search and Actions Bar */}
         <Card className="shadow-card">
           <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                  placeholder="Search students..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="pl-10"
-                />
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    placeholder="Search students by name, email, or instrument..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="pl-10"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  {selectedStudents.size > 0 && (
+                    <Button variant="destructive" size="default" onClick={handleBulkDelete}>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete ({selectedStudents.size})
+                    </Button>
+                  )}
+                </div>
               </div>
-              <div className="flex gap-2">
-                {selectedStudents.size > 0 && (
-                  <Button variant="destructive" size="default" onClick={handleBulkDelete}>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete ({selectedStudents.size})
-                  </Button>
-                )}
+
+              {/* Filters */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Select value={gradeFilter} onValueChange={setGradeFilter}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Grade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Grades</SelectItem>
+                    <SelectItem value="Beginner">Beginner</SelectItem>
+                    <SelectItem value="Intermediate">Intermediate</SelectItem>
+                    <SelectItem value="Advanced">Advanced</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Payment Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={packageTypeFilter} onValueChange={setPackageTypeFilter}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Package Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Packages</SelectItem>
+                    <SelectItem value="1x Weekly">1x Weekly</SelectItem>
+                    <SelectItem value="2x Weekly">2x Weekly</SelectItem>
+                    <SelectItem value="3x Weekly">3x Weekly</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </CardContent>
@@ -730,11 +780,11 @@ export default function Students() {
                 <div>
                   <h3 className="text-xl font-semibold mb-2">No students yet</h3>
                   <p className="text-muted-foreground mb-6">
-                    {searchQuery
-                      ? "No students match your search."
+                    {searchQuery || gradeFilter !== "all" || paymentStatusFilter !== "all" || packageTypeFilter !== "all"
+                      ? "No students match your search or filters."
                       : "Get started by adding your first student or importing from CSV."}
                   </p>
-                  {!searchQuery && (
+                  {!searchQuery && gradeFilter === "all" && paymentStatusFilter === "all" && packageTypeFilter === "all" && (
                     <Button onClick={() => setDialogOpen(true)} className="gradient-primary text-primary-foreground">
                       <Plus className="mr-2 h-5 w-5" />
                       Add Your First Student
