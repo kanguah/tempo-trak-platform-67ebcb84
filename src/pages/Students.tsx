@@ -338,9 +338,9 @@ export default function Students() {
   // Filter and sort
   const filteredStudents = students.filter((student) => {
     const matchesSearch =
-      student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (student.subjects && student.subjects.some((s: string) => s.toLowerCase().includes(searchQuery.toLowerCase())));
+      student.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (student.subjects && student.subjects.some((s: string) => s?.toLowerCase().includes(searchQuery.toLowerCase())));
 
     const matchesGrade = gradeFilter === "all" || student.grade === gradeFilter;
     const matchesPaymentStatus = paymentStatusFilter === "all" || student.payment_status === paymentStatusFilter;
