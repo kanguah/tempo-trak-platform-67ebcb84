@@ -8,6 +8,7 @@ const corsHeaders = {
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SMSONLINEGH_API_KEY = Deno.env.get("SMSONLINEGH_API_KEY");
+const senderId = "49ice Music";
 
 interface Recipient {
   id?: string;
@@ -103,17 +104,17 @@ serve(async (req) => {
           console.log(`Email sent to ${recipient.contact}:`, emailResult.id);
         } else if (channel === "sms") {
           // Send SMS using SMS Online Ghana
-          const smsUrl =
-            "https://api.smsonlinegh.com/v5/message/sms/send?" +
-            "key=42f6c30f7672857217e2ea4d3b4be21f67ef2aa3573782c45aaff999bd74626f" +
-            "&text=" +
-            encodeURIComponent(query) +
-            "&type=0" +
-            "&sender=49ice+Music" +
-            "&to=" +
-            recipient.contact;
+          const smsUrl = new URL("https://api.smsonlinegh.com/v5/sms/send");
+          smsUrl.searchParams.append("key", SMSONLINEGH_API_KEY);
+          smsUrl.searchParams.append("to", recipient.contact);
+          smsUrl.searchParams.append("type", "0");
+          smsUrl.searchParams.append("text", messageBody);
+          smsUrl.searchParams.append("sender", senderId);
 
-          const smsResponse = await fetch(smsUrl);
+          console.log(smsUrl);
+
+          const smsResponse = await fetch(smsUrl.toString());
+
 
           const smsResult = await smsResponse.json();
 
