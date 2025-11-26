@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
-const COLORS = ["hsl(170 60% 70%)", "hsl(15 90% 75%)", "hsl(265 60% 75%)", "hsl(340 70% 75%)", "hsl(200 65% 70%)", "hsl(45 85% 70%)"];
+const COLORS = ["hsl(170 65% 60%)", "hsl(15 95% 68%)", "hsl(265 65% 65%)", "hsl(340 75% 65%)", "hsl(200 70% 60%)", "hsl(45 90% 62%)"];
 
 const EXPENSE_CATEGORIES = [
   "Tutor Salaries",
