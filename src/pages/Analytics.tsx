@@ -22,7 +22,7 @@ import {
   Area,
 } from "recharts";
 
-const COLORS = ["hsl(240 70% 55%)", "hsl(270 60% 60%)", "hsl(45 90% 60%)", "hsl(200 70% 55%)", "hsl(320 65% 60%)"];
+const COLORS = ["hsl(170 60% 70%)", "hsl(15 90% 75%)", "hsl(265 60% 75%)", "hsl(340 70% 75%)", "hsl(200 65% 70%)"];
 
 export default function Analytics() {
   const { user } = useAuth();
