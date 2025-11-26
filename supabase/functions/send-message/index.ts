@@ -124,7 +124,7 @@ serve(async (req) => {
           if (!smsResponse.ok || smsResult.status === "error") {
             throw new Error(smsResult.message || "SMS sending failed");
           }
-          console.error("in that shit");
+          console.log("in that shit");
           console.log(`SMS sent to ${recipient.contact}:`, smsResult);
         }
 
