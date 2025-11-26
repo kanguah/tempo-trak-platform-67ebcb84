@@ -318,14 +318,22 @@ export default function Payments() {
   const paidCount = filteredPayments.filter(p => p.paid_amount !== null).length;
 
   // Generate revenue data (last 6 months)
-  const last6Months = Array.from({
+  /*const last6Months = Array.from({
     length: 6
   }, (_, i) => {
     const date = new Date();
     date.setMonth(date.getMonth() - (5 - i));
     return date;
-  });
-  const revenueData = last6Months.map(date => {
+  });*/
+  const today = new Date();
+const currentYear = today.getFullYear();
+const currentMonth = today.getMonth(); // 0-based (0 = January)
+
+const monthsFromStartOfYear = Array.from(
+  { length: currentMonth + 1 }, // +1 to include current month
+  (_, i) => new Date(currentYear, i, 1) // first day of each month
+);
+  const revenueData = monthsFromStartOfYear.map(date => {
     const monthName = date.toLocaleString('default', {
       month: 'short'
     });

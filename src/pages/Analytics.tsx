@@ -80,17 +80,25 @@ export default function Analytics() {
   });
 
   // Calculate profit data for last 6 months
-  const last6Months = Array.from({ length: 6 }, (_, i) => {
+  /*const last6Months = Array.from({ length: 6 }, (_, i) => {
     const date = new Date();
     date.setMonth(date.getMonth() - (5 - i));
     return date;
   });
+*/
+const today = new Date();
+const Year = today.getFullYear();
+const Month = today.getMonth(); // 0-based (0 = January)
 
-  const profitData = last6Months.map(date => {
+const monthsFromStartOfYear = Array.from(
+  { length: Month + 1 }, // +1 to include current month
+  (_, i) => new Date(Year, i, 1) // first day of each month
+);
+  const profitData = monthsFromStartOfYear.map(date => {
     const monthName = date.toLocaleString('default', { month: 'short' });
     const monthPayments = payments.filter(p => {
       if (!p.payment_date) return false;
-      const paymentDate = new Date(p.payment_date);
+      const paymentDate = new Date(p.due_date);
       return paymentDate.getMonth() === date.getMonth() && paymentDate.getFullYear() === date.getFullYear();
     });
     const monthExpenses = expenses.filter(e => {
@@ -98,7 +106,7 @@ export default function Analytics() {
       return expenseDate.getMonth() === date.getMonth() && expenseDate.getFullYear() === date.getFullYear();
     });
     
-    const revenue = monthPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+    const revenue = monthPayments.reduce((sum, p) => sum + Number(p.paid_amount), 0);
     const expenseTotal = monthExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
     
     return {

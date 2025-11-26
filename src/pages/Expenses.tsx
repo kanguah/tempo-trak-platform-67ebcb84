@@ -364,7 +364,7 @@ export default function Expenses() {
             ) : expenses.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">No expenses recorded yet</div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-[1000px] overflow-y-auto">
                 {expenses.map((expense, index) => (
                   <Card
                     key={expense.id}
