@@ -102,7 +102,7 @@ serve(async (req) => {
 
           console.log(`Email sent to ${recipient.contact}:`, emailResult.id);
         } else if (channel === "sms") {
-          console.log("in that shit");
+          console.error("in that shit");
           // Send SMS using SMS Online Ghana
           const smsUrl = "https://api.smsonlinegh.com/v5/message/sms/send";
 
