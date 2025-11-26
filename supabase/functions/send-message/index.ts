@@ -109,7 +109,9 @@ serve(async (req) => {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${SMSONLINEGH_API_KEY}`,
+              Authorization: `key ${SMSONLINEGH_API_KEY}`,
+              Accept: "application/json",
+              Host: "api.smsonlinegh.com",
             },
             body: JSON.stringify({
               sender: "49ice Music",
@@ -124,7 +126,7 @@ serve(async (req) => {
           if (!smsResponse.ok || smsResult.status === "error") {
             throw new Error(smsResult.message || "SMS sending failed");
           }
-          console.log("in that shit");
+          console.log(`in that shit ${messageBody}`);
           console.log(`SMS sent to ${recipient.contact}:`, smsResult);
         }
 
