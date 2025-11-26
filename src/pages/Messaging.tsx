@@ -10,6 +10,7 @@ import {
 } from "@/hooks/useMessaging";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import CreateTemplateDialog from "@/components/messaging/CreateTemplateDialog";
+import IndividualRecipientSelector from "@/components/messaging/IndividualRecipientSelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,6 +27,7 @@ export default function Messaging() {
   const [subject, setSubject] = useState("");
   const [messageBody, setMessageBody] = useState("");
   const [recipients, setRecipients] = useState<any[]>([]);
+  const [sendMode, setSendMode] = useState<"bulk" | "individual">("bulk");
 
   const { data: templates = [], isLoading: templatesLoading } = useMessageTemplates();
   const { data: messages = [], isLoading: messagesLoading } = useMessages();
@@ -34,9 +36,9 @@ export default function Messaging() {
   const sendMessage = useSendMessage();
   const toggleReminder = useToggleReminder();
 
-  // Fetch recipients when recipient type or channel changes
+  // Fetch recipients when recipient type or channel changes (only for bulk mode)
   useEffect(() => {
-    if (selectedRecipientType && selectedChannel) {
+    if (sendMode === "bulk" && selectedRecipientType && selectedChannel) {
       console.log("the is my debug data" + selectedRecipientType + selectedChannel);
       getRecipients.mutate(
         { recipientType: selectedRecipientType, channel: selectedChannel },
@@ -48,7 +50,7 @@ export default function Messaging() {
         },
       );
     }
-  }, [selectedRecipientType, selectedChannel]);
+  }, [selectedRecipientType, selectedChannel, sendMode]);
 
   // Load template when selected
   useEffect(() => {
@@ -139,12 +141,44 @@ export default function Messaging() {
                   <CardTitle className="text-base md:text-lg">Compose Message</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm">Send Mode</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant={sendMode === "bulk" ? "default" : "outline"}
+                        onClick={() => {
+                          setSendMode("bulk");
+                          setRecipients([]);
+                        }}
+                        className="flex-1"
+                      >
+                        Bulk Send
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={sendMode === "individual" ? "default" : "outline"}
+                        onClick={() => {
+                          setSendMode("individual");
+                          setSelectedRecipientType("");
+                          setRecipients([]);
+                        }}
+                        className="flex-1"
+                      >
+                        Individual
+                      </Button>
+                    </div>
+                  </div>
+
                   <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label className="text-sm">Channel</Label>
                       <Select
                         value={selectedChannel}
-                        onValueChange={(value) => setSelectedChannel(value as "email" | "sms")}
+                        onValueChange={(value) => {
+                          setSelectedChannel(value as "email" | "sms");
+                          setRecipients([]);
+                        }}
                       >
                         <SelectTrigger className="h-11 md:h-10">
                           <SelectValue />
@@ -174,24 +208,31 @@ export default function Messaging() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-sm">Recipients</Label>
-                    <Select value={selectedRecipientType} onValueChange={setSelectedRecipientType}>
-                      <SelectTrigger className="h-11 md:h-10">
-                        <SelectValue placeholder="Select recipients" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background z-50">
-                        <SelectItem value="all-students">All Students</SelectItem>
-                        <SelectItem value="all-parents">All Parents</SelectItem>
-                        <SelectItem value="all-tutors">All Tutors</SelectItem>
-                        <SelectItem value="all-staff">All Staff</SelectItem>
-                        <SelectItem value="pending-payments">Pending Payments</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {recipients.length > 0 && (
-                      <p className="text-xs md:text-sm text-muted-foreground">{recipients.length} recipient(s) selected</p>
-                    )}
-                  </div>
+                  {sendMode === "bulk" ? (
+                    <div className="space-y-2">
+                      <Label className="text-sm">Recipients</Label>
+                      <Select value={selectedRecipientType} onValueChange={setSelectedRecipientType}>
+                        <SelectTrigger className="h-11 md:h-10">
+                          <SelectValue placeholder="Select recipients" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background z-50">
+                          <SelectItem value="all-students">All Students</SelectItem>
+                          <SelectItem value="all-parents">All Parents</SelectItem>
+                          <SelectItem value="all-tutors">All Tutors</SelectItem>
+                          <SelectItem value="all-staff">All Staff</SelectItem>
+                          <SelectItem value="pending-payments">Pending Payments</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {recipients.length > 0 && (
+                        <p className="text-xs md:text-sm text-muted-foreground">{recipients.length} recipient(s) selected</p>
+                      )}
+                    </div>
+                  ) : (
+                    <IndividualRecipientSelector
+                      channel={selectedChannel}
+                      onRecipientsChange={setRecipients}
+                    />
+                  )}
 
                   {selectedChannel === "email" && (
                     <div className="space-y-2">
