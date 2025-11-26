@@ -104,18 +104,18 @@ serve(async (req) => {
         } else if (channel === "sms") {
           console.log("in that shit");
           // Send SMS using SMS Online Ghana
-          const smsUrl = "https://api.smsonlinegh.com/v4/message/sms/send";
+          const smsUrl = "https://api.smsonlinegh.com/v5/message/sms/send";
 
           const smsResponse = await fetch(smsUrl, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${SMSONLINEGH_API_KEY}`,
+              Authorization: `key ${SMSONLINEGH_API_KEY}`,
             },
             body: JSON.stringify({
               sender: "49ice Music",
-              recipient: recipient.contact,
-              message: messageBody,
+              destinations: recipient.contact,
+              text: messageBody,
               type: 0, // 0 for text, 1 for flash
             }),
           });
