@@ -97,7 +97,7 @@ const monthsFromStartOfYear = Array.from(
   const profitData = monthsFromStartOfYear.map(date => {
     const monthName = date.toLocaleString('default', { month: 'short' });
     const monthPayments = payments.filter(p => {
-      if (!p.payment_date) return false;
+      if (!p.due_date) return false;
       const paymentDate = new Date(p.due_date);
       return paymentDate.getMonth() === date.getMonth() && paymentDate.getFullYear() === date.getFullYear();
     });
@@ -136,8 +136,8 @@ const monthsFromStartOfYear = Array.from(
   const retentionRate = students.length > 0 ? ((activeStudents / students.length) * 100).toFixed(0) : 0;
 
   // Calculate avg revenue per student
-  const totalRevenue = payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + Number(p.amount), 0);
-  const avgRevenuePerStudent = activeStudents > 0 ? (totalRevenue / activeStudents).toFixed(0) : 0;
+  const totalRevenue = payments.reduce((sum, p) => sum + Number(p.paid_amount), 0);
+  const avgRevenuePerStudent = activeStudents > 0 ? (currentMonthData.revenue / activeStudents).toFixed(0) : 0;
 
   // Tutor performance
   const tutorPerformance = tutors.map(tutor => {

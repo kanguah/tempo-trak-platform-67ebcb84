@@ -776,7 +776,7 @@ const monthsFromStartOfYear = Array.from(
                 No payments yet. Generate monthly payments to get started.
               </div> : filteredPayments.length === 0 ? <div className="text-center py-8 text-muted-foreground">
                   No payments match your filters. Try adjusting your search criteria.
-                </div> : <div className="space-y-3 max-h-[1000px] overflow-y-auto">
+                </div> : <div className="space-y-3 max-h-[600px] overflow-y-auto">
                 {filteredPayments.map((payment, index) => <Card key={payment.id} className="border-2 animate-scale-in" style={{
               animationDelay: `${index * 0.05}s`
             }}>

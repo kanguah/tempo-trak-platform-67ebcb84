@@ -481,7 +481,7 @@ export default function Expenses() {
                 No expenses match your filters
               </div>
             ) : (
-              <div className="space-y-3 max-h-[1000px] overflow-y-auto">
+              <div className="space-y-3 max-h-[600px] overflow-y-auto">
                 {filteredExpenses.map((expense, index) => (
                   <Card
                     key={expense.id}

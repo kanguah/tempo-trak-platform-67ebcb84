@@ -425,17 +425,17 @@ const nextWeekLessons = lessons.filter(l => {
                   </Badge>
                 </div>
 
-                <p className="text-muted-foreground mb-4">{tutor.availability || "No availability information"}</p>
+                {tutor.availability && <p className="text-muted-foreground mb-4">{tutor.availability}</p>}
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="flex items-center gap-2">
+                  {tutor.email && <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm text-foreground">{tutor.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
+                  </div>}
+                  {(tutor.phone) && <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm text-foreground">{tutor.phone || "N/A"}</span>
-                  </div>
+                  </div>}
                   <div className="flex items-center gap-2">
                     <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
                     <span className="text-sm font-semibold text-foreground">{averageRating}/5.0</span>
