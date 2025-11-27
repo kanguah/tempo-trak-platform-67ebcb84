@@ -67,7 +67,6 @@ export default function Messaging() {
     if (!messageBody || recipients.length === 0) {
       return;
     }
-
     sendMessage.mutate(
       {
         channel: selectedChannel,

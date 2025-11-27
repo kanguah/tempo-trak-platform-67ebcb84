@@ -213,6 +213,14 @@ export function useSendMessage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
+      console.log("Debug: Preparing to send message", {
+        channel,
+        subject,
+        messageBody,
+        recipients,
+        templateId,
+        recipientType,
+      });
       // Create message record
       const { data: message, error: messageError } = await supabase
         .from("messages")
@@ -239,7 +247,7 @@ export function useSendMessage() {
           messageBody,
           recipients: recipients.map(r => ({
             name: r.name,
-            contact: channel === 'email' ? r.email : r.phone,
+            contact: r.contact,
             type: r.type,
             recipientId: r.id,
           })),

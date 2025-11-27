@@ -49,6 +49,7 @@ export default function IndividualRecipientSelector({
       type: r.type,
     }));
     onRecipientsChange(formattedRecipients, recipientType);
+    
   }, [selectedRecipients, recipientType]);
 
   const fetchRecipients = async () => {
