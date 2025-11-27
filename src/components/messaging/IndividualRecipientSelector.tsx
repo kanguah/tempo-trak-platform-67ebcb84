@@ -18,7 +18,7 @@ interface Recipient {
 
 interface IndividualRecipientSelectorProps {
   channel: "email" | "sms";
-  onRecipientsChange: (recipients: any[]) => void;
+  onRecipientsChange: (recipients: any[], recipientType: string) => void;
 }
 
 export default function IndividualRecipientSelector({ 
@@ -48,8 +48,8 @@ export default function IndividualRecipientSelector({
       contact: r.contact,
       type: r.type,
     }));
-    onRecipientsChange(formattedRecipients);
-  }, [selectedRecipients]);
+    onRecipientsChange(formattedRecipients, recipientType);
+  }, [selectedRecipients, recipientType]);
 
   const fetchRecipients = async () => {
     setLoading(true);

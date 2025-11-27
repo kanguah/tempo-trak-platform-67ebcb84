@@ -230,7 +230,10 @@ export default function Messaging() {
                   ) : (
                     <IndividualRecipientSelector
                       channel={selectedChannel}
-                      onRecipientsChange={setRecipients}
+                      onRecipientsChange={(recipients, type) => {
+                        setRecipients(recipients);
+                        setSelectedRecipientType(type);
+                      }}
                     />
                   )}
 
