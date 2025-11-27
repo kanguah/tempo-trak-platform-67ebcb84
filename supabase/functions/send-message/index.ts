@@ -104,6 +104,9 @@ serve(async (req) => {
           console.log(`Email sent to ${recipient.contact}:`, emailResult.id);
         } else if (channel === "sms") {
           // Send SMS using SMS Online Ghana
+          if (!SMSONLINEGH_API_KEY) {
+            throw new Error("SMS API key not configured");
+          }
           const smsUrl = new URL("https://api.smsonlinegh.com/v5/sms/send");
           smsUrl.searchParams.append("key", SMSONLINEGH_API_KEY);
           smsUrl.searchParams.append("to", recipient.contact);
