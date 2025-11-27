@@ -44,6 +44,14 @@ export default function Expenses() {
     payment_method: "",
     status: "paid",
   });
+  
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState("all");
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
 
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -137,6 +145,43 @@ export default function Expenses() {
 
   // Find largest category
   const largestCategory = chartData.length > 0 ? chartData[0].name : "None";
+
+  // Filter expenses for display
+  const filteredExpenses = expenses.filter(expense => {
+    // Search filter
+    const matchesSearch = searchQuery === "" || 
+      expense.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      expense.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      expense.payment_method?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Category filter
+    const matchesCategory = filterCategory === "all" || expense.category === filterCategory;
+    
+    // Status filter
+    const matchesStatus = filterStatus === "all" || expense.status === filterStatus;
+    
+    // Payment method filter
+    const matchesPaymentMethod = filterPaymentMethod === "all" || expense.payment_method === filterPaymentMethod;
+    
+    // Date range filter
+    const expenseDate = new Date(expense.expense_date);
+    const matchesDateFrom = !filterDateFrom || expenseDate >= new Date(filterDateFrom);
+    const matchesDateTo = !filterDateTo || expenseDate <= new Date(filterDateTo);
+    
+    return matchesSearch && matchesCategory && matchesStatus && matchesPaymentMethod && matchesDateFrom && matchesDateTo;
+  });
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setFilterCategory("all");
+    setFilterStatus("all");
+    setFilterPaymentMethod("all");
+    setFilterDateFrom("");
+    setFilterDateTo("");
+  };
+
+  const hasActiveFilters = searchQuery || filterCategory !== "all" || filterStatus !== "all" || 
+    filterPaymentMethod !== "all" || filterDateFrom || filterDateTo;
 
   return (
     <div className="min-h-screen bg-background">
@@ -359,13 +404,89 @@ export default function Expenses() {
             <CardTitle>Recent Expenses</CardTitle>
           </CardHeader>
           <CardContent>
+            {/* Search and Filters */}
+            <div className="space-y-4 mb-6">
+              <div className="flex flex-col md:flex-row gap-3">
+                <Input
+                  placeholder="Search expenses..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="md:flex-1"
+                />
+                {hasActiveFilters && (
+                  <Button
+                    variant="outline"
+                    onClick={clearFilters}
+                    className="md:w-auto"
+                  >
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Select value={filterCategory} onValueChange={setFilterCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {EXPENSE_CATEGORIES.map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Payment Method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Methods</SelectItem>
+                    {PAYMENT_METHODS.map(method => (
+                      <SelectItem key={method} value={method}>{method}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <div className="col-span-2 md:col-span-1 flex gap-2">
+                  <Input
+                    type="date"
+                    placeholder="From"
+                    value={filterDateFrom}
+                    onChange={(e) => setFilterDateFrom(e.target.value)}
+                  />
+                  <Input
+                    type="date"
+                    placeholder="To"
+                    value={filterDateTo}
+                    onChange={(e) => setFilterDateTo(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
             {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">Loading...</div>
             ) : expenses.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">No expenses recorded yet</div>
+            ) : filteredExpenses.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No expenses match your filters
+              </div>
             ) : (
               <div className="space-y-3 max-h-[1000px] overflow-y-auto">
-                {expenses.map((expense, index) => (
+                {filteredExpenses.map((expense, index) => (
                   <Card
                     key={expense.id}
                     className="border-2 animate-scale-in"
