@@ -58,7 +58,7 @@ export default function IndividualRecipientSelector({
       let recipients: Recipient[] = [];
 
       switch (recipientType) {
-        case "students":
+        case "all-students":
           const { data: students } = await supabase
             .from("students")
             .select("id, name, email, phone")
@@ -73,7 +73,7 @@ export default function IndividualRecipientSelector({
           })).filter(r => r.contact);
           break;
 
-        case "parents":
+        case "all-parents":
           const { data: parents } = await supabase
             .from("students")
             .select("id, parent_name, parent_email, parent_phone")
@@ -89,7 +89,7 @@ export default function IndividualRecipientSelector({
           })).filter(r => r.contact && r.name);
           break;
 
-        case "tutors":
+        case "all-tutors":
           const { data: tutors } = await supabase
             .from("tutors")
             .select("id, name, email, phone")
@@ -104,7 +104,7 @@ export default function IndividualRecipientSelector({
           })).filter(r => r.contact);
           break;
 
-        case "staff":
+        case "all-staff":
           const { data: staff } = await supabase
             .from("staff")
             .select("id, name, email, phone")
@@ -174,10 +174,10 @@ export default function IndividualRecipientSelector({
             <SelectValue placeholder="Select type" />
           </SelectTrigger>
           <SelectContent className="bg-background z-50">
-            <SelectItem value="students">Students</SelectItem>
-            <SelectItem value="parents">Parents</SelectItem>
-            <SelectItem value="tutors">Tutors</SelectItem>
-            <SelectItem value="staff">Staff</SelectItem>
+            <SelectItem value="all-students">Students</SelectItem>
+            <SelectItem value="all-parents">Parents</SelectItem>
+            <SelectItem value="all-tutors">Tutors</SelectItem>
+            <SelectItem value="all-staff">Staff</SelectItem>
           </SelectContent>
         </Select>
       </div>
