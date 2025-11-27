@@ -94,8 +94,8 @@ export default function Reports() {
         .from("payments")
         .select("*, students(name)")
         .eq("user_id", user?.id!)
-        .gte("created_at", dateFilter.start.toISOString())
-        .lte("created_at", dateFilter.end.toISOString());
+        .gte("due_date", dateFilter.start.toISOString())
+        .lte("due_date", dateFilter.end.toISOString());
       
       if (error) throw error;
       return data;
@@ -182,7 +182,7 @@ export default function Reports() {
     const reportData: any[] = paymentsData.map(payment => ({
       Date: format(new Date(payment.created_at), "MMM dd, yyyy"),
       Student: payment.students?.name || "N/A",
-      Amount: `$${Number(payment.amount).toFixed(2)}`,
+      Amount: `GH₵${Number(payment.amount).toFixed(2)}`,
       Status: payment.status,
       "Due Date": payment.due_date ? format(new Date(payment.due_date), "MMM dd, yyyy") : "N/A",
       Description: payment.description || "N/A"
@@ -199,7 +199,7 @@ export default function Reports() {
     reportData.push({
       Date: "Total Revenue",
       Student: "",
-      Amount: `$${totalRevenue.toFixed(2)}`,
+      Amount: `GH₵${totalRevenue.toFixed(2)}`,
       Status: "",
       "Due Date": "",
       Description: ""
@@ -207,7 +207,7 @@ export default function Reports() {
     reportData.push({
       Date: "Total Expenses",
       Student: "",
-      Amount: `$${totalExpenses.toFixed(2)}`,
+      Amount: `GH₵${totalExpenses.toFixed(2)}`,
       Status: "",
       "Due Date": "",
       Description: ""
@@ -215,7 +215,7 @@ export default function Reports() {
     reportData.push({
       Date: "Net Profit",
       Student: "",
-      Amount: `$${(totalRevenue - totalExpenses).toFixed(2)}`,
+      Amount: `GH₵${(totalRevenue - totalExpenses).toFixed(2)}`,
       Status: "",
       "Due Date": "",
       Description: ""
@@ -237,7 +237,7 @@ export default function Reports() {
       "Enrollment Date": format(new Date(student.enrollment_date), "MMM dd, yyyy"),
       Status: student.status,
       Subjects: student.subjects?.join(", ") || "N/A",
-      "Monthly Fee": student.monthly_fee ? `$${Number(student.monthly_fee).toFixed(2)}` : "N/A",
+      "Monthly Fee": student.monthly_fee ? `GH₵${Number(student.monthly_fee).toFixed(2)}` : "N/A",
       "Payment Status": student.payment_status || "N/A"
     }));
 
@@ -264,7 +264,7 @@ export default function Reports() {
         Subjects: tutor.subjects?.join(", ") || "N/A",
         "Lessons Taught": tutorAttendance.length,
         "Average Rating": avgRating > 0 ? avgRating.toFixed(1) : "N/A",
-        "Monthly Salary": tutor.monthly_salary ? `$${Number(tutor.monthly_salary).toFixed(2)}` : "N/A"
+        "Monthly Salary": tutor.monthly_salary ? `GH₵${Number(tutor.monthly_salary).toFixed(2)}` : "N/A"
       };
     });
 
@@ -281,7 +281,7 @@ export default function Reports() {
     const reportData = expensesData.map(expense => ({
       Date: format(new Date(expense.expense_date), "MMM dd, yyyy"),
       Category: expense.category,
-      Amount: `$${Number(expense.amount).toFixed(2)}`,
+      Amount: `GH₵${Number(expense.amount).toFixed(2)}`,
       Description: expense.description || "N/A",
       Status: expense.status,
       "Payment Method": expense.payment_method || "N/A"
@@ -291,7 +291,7 @@ export default function Reports() {
     reportData.push({
       Date: "TOTAL",
       Category: "",
-      Amount: `$${totalExpenses.toFixed(2)}`,
+      Amount: `GH₵${totalExpenses.toFixed(2)}`,
       Description: "",
       Status: "",
       "Payment Method": ""
@@ -304,7 +304,7 @@ export default function Reports() {
   // Calculate statistics
   const totalStudents = studentsData?.length || 0;
   const activeStudents = studentsData?.filter(s => s.status === "active").length || 0;
-  const totalRevenue = paymentsData?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+  const totalRevenue = paymentsData?.reduce((sum, p) => sum + Number(p.paid_amount), 0) || 0;
   const totalExpenses = expensesData?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
   const attendanceRate = attendanceData?.length 
     ? ((attendanceData.filter(a => a.status === "completed").length / attendanceData.length) * 100).toFixed(1)
@@ -324,12 +324,12 @@ export default function Reports() {
     {
       id: "financial",
       title: "Financial Report",
-      description: `Revenue: $${totalRevenue.toFixed(2)} | Expenses: $${totalExpenses.toFixed(2)}`,
+      description: `Revenue: GH₵${totalRevenue.toFixed(2)} | Expenses: GH₵${totalExpenses.toFixed(2)}`,
       type: "Financial",
       icon: DollarSign,
       count: paymentsData?.length || 0,
       onGenerate: generateFinancialReport,
-      stats: `Net: $${(totalRevenue - totalExpenses).toFixed(2)}`
+      stats: `Net: GH₵${(totalRevenue - totalExpenses).toFixed(2)}`
     },
     {
       id: "enrollment",
@@ -339,7 +339,7 @@ export default function Reports() {
       icon: GraduationCap,
       count: totalStudents,
       onGenerate: generateEnrollmentReport,
-      stats: `${((activeStudents / (totalStudents || 1)) * 100).toFixed(0)}% active`
+      stats: `GH₵{((activeStudents / (totalStudents || 1)) * 100).toFixed(0)}% active`
     },
     {
       id: "performance",
@@ -354,7 +354,7 @@ export default function Reports() {
     {
       id: "expenses",
       title: "Expenses Report",
-      description: `Total expenses: $${totalExpenses.toFixed(2)}`,
+      description: `Total expenses: GH₵${totalExpenses.toFixed(2)}`,
       type: "Expenses",
       icon: DollarSign,
       count: expensesData?.length || 0,
@@ -399,7 +399,7 @@ export default function Reports() {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <p className="text-xs sm:text-sm font-medium mb-1 text-muted-foreground">Total Revenue</p>
-                  <h3 className="text-2xl sm:text-3xl font-bold mb-1">${totalRevenue.toFixed(0)}</h3>
+                  <h3 className="text-2xl sm:text-3xl font-bold mb-1">GH₵{totalRevenue.toFixed(0)}</h3>
                   <p className="text-xs text-muted-foreground">Selected period</p>
                 </div>
                 <div className="p-2 sm:p-3 rounded-lg bg-accent/10">
@@ -414,7 +414,7 @@ export default function Reports() {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <p className="text-xs sm:text-sm font-medium mb-1 text-muted-foreground">Total Expenses</p>
-                  <h3 className="text-2xl sm:text-3xl font-bold mb-1">${totalExpenses.toFixed(0)}</h3>
+                  <h3 className="text-2xl sm:text-3xl font-bold mb-1">GH₵{totalExpenses.toFixed(0)}</h3>
                   <p className="text-xs text-muted-foreground">Selected period</p>
                 </div>
                 <div className="p-2 sm:p-3 rounded-lg bg-destructive/10">

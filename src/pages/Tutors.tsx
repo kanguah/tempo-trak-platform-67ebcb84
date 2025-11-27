@@ -57,7 +57,7 @@ export default function Tutors() {
     email: "",
     phone: "",
     instrument: "",
-    status: "Active",
+    status: "active",
     //hourly_rate: 0
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -108,7 +108,7 @@ export default function Tutors() {
         email: "",
         phone: "",
         instrument: "",
-        status: "Active",
+        status: "active",
         //hourly_rate: 0
       });
       setErrors({});
@@ -153,7 +153,7 @@ export default function Tutors() {
   };
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Active":
+      case "active":
         return "bg-green-500/10 text-green-600 border-green-500/20";
       case "Inactive":
         return "bg-red-500/10 text-red-600 border-red-500/20";
@@ -461,30 +461,10 @@ export default function Tutors() {
                       </div>
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center gap-2 text-muted-foreground">
-                          <Mail className="h-4 w-4" />
-                          <span className="truncate">{tutor.email}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-muted-foreground">
                           <Phone className="h-4 w-4" />
                           {tutor.phone || "No phone"}
                         </div>
-                        <div className="flex items-center justify-between pt-2 border-t">
-                          <span className="text-muted-foreground">Monthly Salary:</span>
-                          <span className="font-semibold">GH₵ {tutor.monthly_salary || 0}</span>
-                        </div>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/tutors/${tutor.id}`);
-                        }}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View Profile
-                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -514,9 +494,7 @@ export default function Tutors() {
                         <ArrowUpDown className="h-4 w-4" />
                       </div>
                     </TableHead>
-                    <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
-                    <TableHead>Monthly Salary</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -546,13 +524,7 @@ export default function Tutors() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm truncate max-w-[200px]">{tutor.email}</span>
-                      </TableCell>
-                      <TableCell>
                         <span className="text-sm">{tutor.phone || "N/A"}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-semibold">GH₵ {tutor.monthly_salary || 0}</span>
                       </TableCell>
                     </TableRow>
                   ))}

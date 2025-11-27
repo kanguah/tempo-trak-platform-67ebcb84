@@ -466,7 +466,7 @@ const monthsFromStartOfYear = Array.from(
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 
-                Revenue vs Expenses (Last 6 Months)
+                Revenue vs Expenses
               </CardTitle>
             </CardHeader>
             <CardContent>

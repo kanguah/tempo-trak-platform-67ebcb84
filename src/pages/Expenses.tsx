@@ -29,9 +29,7 @@ const EXPENSE_CATEGORIES = [
 const PAYMENT_METHODS = [
   "Cash",
   "Bank Transfer",
-  "MTN Mobile Money",
-  "Vodafone Cash",
-  "AirtelTigo Money",
+  "Mobile Money",
 ];
 
 export default function Expenses() {
@@ -460,7 +458,6 @@ export default function Expenses() {
                   </SelectContent>
                 </Select>
 
-                <div className="col-span-2 md:col-span-1 flex gap-2">
                   <Input
                     type="date"
                     placeholder="From"
@@ -475,7 +472,6 @@ export default function Expenses() {
                   />
                 </div>
               </div>
-            </div>
             {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">Loading...</div>
             ) : expenses.length === 0 ? (

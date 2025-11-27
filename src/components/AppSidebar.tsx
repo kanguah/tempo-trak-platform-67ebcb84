@@ -197,7 +197,7 @@ export function AppSidebar() {
     }
     return true;
   });
-  return <div onMouseEnter={() => !open && setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} className="relative">
+  return <div className="relative">
       <Sidebar collapsible="icon" className={`border-r border-sidebar-border transition-all duration-300 ${showExpanded ? 'w-64' : 'w-16'}`}>
         {/* Header: School Management title */}
         <SidebarHeader className={`px-4 py-4 transition-all ${showExpanded ? 'text-left' : 'text-center'}`}>
