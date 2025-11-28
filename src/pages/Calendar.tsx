@@ -119,7 +119,7 @@ export default function Calendar() {
       const {
         data,
         error
-      } = await supabase.from("tutors").select("*").eq("user_id", user?.id).eq("status", "Active");
+      } = await supabase.from("tutors").select("*").eq("user_id", user?.id).eq("status", "active");
       if (error) throw error;
       return data || [];
     },

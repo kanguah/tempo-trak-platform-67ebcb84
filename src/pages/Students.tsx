@@ -116,7 +116,7 @@ export default function Students() {
         .from("tutors")
         .select("*")
         .eq("user_id", user?.id)
-        .eq("status", "Active");
+        .eq("status", "active");
       if (error) throw error;
       return data || [];
     },
