@@ -42,18 +42,21 @@ serve(async (req) => {
     let paymentsSkipped = 0;
 
     for (const student of students) {
-      // Check if payment already exists for this month
+      // Check if payment already exists for this month based on due_date
+      const startOfMonth = new Date(currentYear, currentMonth, 1).toISOString();
+      const endOfMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59).toISOString();
+      
       const { data: existingPayment } = await supabase
         .from('payments')
         .select('id')
         .eq('student_id', student.id)
         .eq('user_id', student.user_id)
-        .gte('created_at', new Date(currentYear, currentMonth, 1).toISOString())
-        .lte('created_at', new Date(currentYear, currentMonth + 1, 0).toISOString())
-        .single();
+        .gte('due_date', startOfMonth)
+        .lte('due_date', endOfMonth)
+        .maybeSingle();
 
       if (existingPayment) {
-        console.log(`Payment already exists for student ${student.name}`);
+        console.log(`Payment already exists for student ${student.name} for ${dueDate.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
         paymentsSkipped++;
         continue;
       }
