@@ -24,7 +24,7 @@ const timeSlots = Array.from({
   return `${hour}:${minute}`;
 });
 const rooms = ["Room 4", "Room 3"];
-const instruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Cello", "Trumpet", "Bass"];
+const instruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Cello", "Trumpet", "Bass"];
 type Lesson = {
   id: string;
   day: number;
@@ -365,7 +365,7 @@ export default function Calendar() {
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold text-foreground">Schedule</h1>
               <Badge variant="default" className="text-sm px-3 py-1">
-                {lessonsByDate[selectedDateKey]?.length || 0} lessons on {format(selectedDate, "MMM d")}
+                {lessonsByDate[selectedDateKey]?.length || 0}
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground mt-1">Manage your lessons and appointments</p>
@@ -690,7 +690,7 @@ export default function Calendar() {
           {/* Instrument Legend */}
           <Card className="p-4">
             <h3 className="text-sm font-semibold mb-3 text-foreground">Instruments</h3>
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-28 overflow-y-auto">
               {instruments.map((instrument) => {
                 const count = lessonsWithDates.filter(
                   (l) => l.instrument === instrument && isSameDay(l.date, selectedDate)
