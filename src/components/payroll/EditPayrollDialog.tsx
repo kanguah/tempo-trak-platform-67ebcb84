@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,8 @@ interface PayrollRecord {
   notes?: string;
   lessons_taught?: number;
   active_students?: number;
+  tutor_id?: string;
+  month?: string;
 }
 
 interface EditPayrollDialogProps {
@@ -33,6 +35,24 @@ export function EditPayrollDialog({ open, onOpenChange, record, type }: EditPayr
   const [bonuses, setBonuses] = useState(0);
   const [deductions, setDeductions] = useState(0);
   const [notes, setNotes] = useState('');
+
+  // Fetch actual lessons taught from attendance for tutors
+  const { data: actualLessonsTaught } = useQuery({
+    queryKey: ['lessons-taught', record?.tutor_id, record?.month],
+    queryFn: async () => {
+      if (!record?.tutor_id || !record?.month || type !== 'tutor') return null;
+      
+      const { count } = await supabase
+        .from('attendance')
+        .select('*', { count: 'exact', head: true })
+        .eq('tutor_id', record.tutor_id)
+        .eq('status', 'completed')
+        .ilike('lesson_date', `${record.month}%`);
+      
+      return count || 0;
+    },
+    enabled: !!record?.tutor_id && !!record?.month && type === 'tutor' && open
+  });
 
   useEffect(() => {
     if (record) {
@@ -62,6 +82,10 @@ export function EditPayrollDialog({ open, onOpenChange, record, type }: EditPayr
       if (type === 'tutor') {
         updateData.lesson_bonus = bonuses;
         updateData.student_bonus = 0;
+        // Update lessons_taught with the actual count from attendance
+        if (actualLessonsTaught !== null && actualLessonsTaught !== undefined) {
+          updateData.lessons_taught = actualLessonsTaught;
+        }
       } else {
         updateData.bonuses = bonuses;
       }
@@ -104,8 +128,11 @@ export function EditPayrollDialog({ open, onOpenChange, record, type }: EditPayr
           {type === 'tutor' && (
             <>
               <div>
-                <Label>Lessons Taught</Label>
-                <Input value={record.lessons_taught || 0} disabled />
+                <Label>Lessons Taught (from attendance records)</Label>
+                <Input 
+                  value={actualLessonsTaught !== null && actualLessonsTaught !== undefined ? actualLessonsTaught : (record.lessons_taught || 0)} 
+                  disabled 
+                />
               </div>
               <div>
                 <Label>Active Students</Label>
