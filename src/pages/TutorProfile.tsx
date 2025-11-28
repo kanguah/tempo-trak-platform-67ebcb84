@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Mail, Phone, Download, Upload, FileText, Calendar, TrendingUp, Star, Clock, DollarSign, Award, Pencil } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Download, Upload, FileText, Calendar, TrendingUp, Star, Clock, DollarSign, Award, Pencil, Send } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
+import { useSendMessage } from "@/hooks/useMessaging";
 const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const availableInstruments = ["Piano", "Guitar", "Violin", "Drums", "Voice", "Saxophone", "Flute", "Bass", "Cello", "Clarinet", "Music Theory", "Choir", "Percussion"];
 const editTutorSchema = z.object({
@@ -42,6 +43,19 @@ export default function TutorProfile() {
   const [activeTab, setActiveTab] = useState("overview");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [messageData, setMessageData] = useState({
+    channel: "email",
+    subject: "",
+    message: ""
+  });
+  const [uploadData, setUploadData] = useState({
+    file: null as File | null,
+    name: "",
+    category: "contract"
+  });
+  const [uploading, setUploading] = useState(false);
 
   // Fetch tutor data
   const {
@@ -206,6 +220,125 @@ export default function TutorProfile() {
     }));
   };
 
+  // Send message mutation
+  const sendMessageMutation = useSendMessage();
+
+  const handleSendMessage = async () => {
+    if (!messageData.message.trim()) {
+      toast.error("Message cannot be empty");
+      return;
+    }
+
+    if (messageData.channel === "email" && !messageData.subject.trim()) {
+      toast.error("Subject is required for email");
+      return;
+    }
+
+    if (!tutor?.email && messageData.channel === "email") {
+      toast.error("Tutor has no email address");
+      return;
+    }
+
+    if (!tutor?.phone && messageData.channel === "sms") {
+      toast.error("Tutor has no phone number");
+      return;
+    }
+
+    try {
+      // Create recipient object
+      const contact = messageData.channel === "email" ? tutor.email : tutor.phone;
+      const recipients = [{
+        id: id!,
+        name: tutor.name,
+        contact: contact!,
+        type: "tutor"
+      }];
+
+      await sendMessageMutation.mutateAsync({
+        channel: messageData.channel as "email" | "sms",
+        recipientType: "individual",
+        subject: messageData.channel === "email" ? messageData.subject : undefined,
+        messageBody: messageData.message,
+        recipients
+      });
+
+      toast.success("Message sent successfully!");
+      setMessageDialogOpen(false);
+      setMessageData({ channel: "email", subject: "", message: "" });
+    } catch (error) {
+      console.error("Error sending message:", error);
+      toast.error("Failed to send message");
+    }
+  };
+
+  // Upload document mutation
+  const uploadDocumentMutation = useMutation({
+    mutationFn: async (data: { file: File; name: string; category: string }) => {
+      // Upload file to storage
+      const fileExt = data.file.name.split('.').pop();
+      const fileName = `${id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError, data: uploadData } = await supabase.storage
+        .from('logos')
+        .upload(fileName, data.file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('logos')
+        .getPublicUrl(fileName);
+
+      // Create document record
+      const { error: dbError } = await supabase
+        .from('tutor_documents')
+        .insert({
+          tutor_id: id,
+          user_id: user?.id!,
+          name: data.name,
+          file_url: publicUrl,
+          file_type: data.file.type,
+          file_size: `${(data.file.size / 1024).toFixed(2)} KB`,
+          category: data.category
+        });
+
+      if (dbError) throw dbError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tutor-documents", id] });
+      toast.success("Document uploaded successfully!");
+      setUploadDialogOpen(false);
+      setUploadData({ file: null, name: "", category: "contract" });
+    },
+    onError: (error) => {
+      console.error("Error uploading document:", error);
+      toast.error("Failed to upload document");
+    }
+  });
+
+  const handleUploadDocument = async () => {
+    if (!uploadData.file) {
+      toast.error("Please select a file");
+      return;
+    }
+
+    if (!uploadData.name.trim()) {
+      toast.error("Document name is required");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      await uploadDocumentMutation.mutateAsync({
+        file: uploadData.file,
+        name: uploadData.name,
+        category: uploadData.category
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   // Calculate metrics
   const completedLessons = attendance.filter(a => a.status === "present").length;
   const totalScheduled = attendance.length;
@@ -285,7 +418,10 @@ const nextWeekLessons = lessons.filter(l => {
               <Pencil className="mr-2 h-4 w-4" />
               Edit Profile
             </Button>
-            <Button className="gradient-primary text-primary-foreground shadow-primary">
+            <Button 
+              className="gradient-primary text-primary-foreground shadow-primary"
+              onClick={() => setMessageDialogOpen(true)}
+            >
               <Mail className="mr-2 h-4 w-4" />
               Send Message
             </Button>
@@ -394,6 +530,157 @@ const nextWeekLessons = lessons.filter(l => {
                 </Button>
                 <Button className="flex-1 gradient-primary text-primary-foreground" onClick={handleEditTutor}>
                   Save Changes
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Send Message Dialog */}
+        <Dialog open={messageDialogOpen} onOpenChange={setMessageDialogOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Send Message to {tutor?.name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="channel">Channel</Label>
+                <Select 
+                  value={messageData.channel} 
+                  onValueChange={(value) => setMessageData({ ...messageData, channel: value })}
+                >
+                  <SelectTrigger id="channel">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="sms">SMS</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {messageData.channel === "email" && (
+                <div className="space-y-2">
+                  <Label htmlFor="subject">Subject</Label>
+                  <Input
+                    id="subject"
+                    placeholder="Enter subject"
+                    value={messageData.subject}
+                    onChange={(e) => setMessageData({ ...messageData, subject: e.target.value })}
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="message">Message</Label>
+                <Textarea
+                  id="message"
+                  placeholder="Enter your message..."
+                  rows={6}
+                  value={messageData.message}
+                  onChange={(e) => setMessageData({ ...messageData, message: e.target.value })}
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => {
+                    setMessageDialogOpen(false);
+                    setMessageData({ channel: "email", subject: "", message: "" });
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  className="flex-1 gradient-primary text-primary-foreground"
+                  onClick={handleSendMessage}
+                  disabled={sendMessageMutation.isPending}
+                >
+                  <Send className="mr-2 h-4 w-4" />
+                  {sendMessageMutation.isPending ? "Sending..." : "Send Message"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Upload Document Dialog */}
+        <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Upload Document</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="doc-name">Document Name</Label>
+                <Input
+                  id="doc-name"
+                  placeholder="Enter document name"
+                  value={uploadData.name}
+                  onChange={(e) => setUploadData({ ...uploadData, name: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <Select 
+                  value={uploadData.category} 
+                  onValueChange={(value) => setUploadData({ ...uploadData, category: value })}
+                >
+                  <SelectTrigger id="category">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="contract">Contract</SelectItem>
+                    <SelectItem value="certificate">Certificate</SelectItem>
+                    <SelectItem value="id">ID Document</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="file">File</Label>
+                <Input
+                  id="file"
+                  type="file"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setUploadData({ ...uploadData, file });
+                      if (!uploadData.name) {
+                        setUploadData({ ...uploadData, file, name: file.name });
+                      }
+                    }
+                  }}
+                />
+                {uploadData.file && (
+                  <p className="text-sm text-muted-foreground">
+                    Selected: {uploadData.file.name} ({(uploadData.file.size / 1024).toFixed(2)} KB)
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => {
+                    setUploadDialogOpen(false);
+                    setUploadData({ file: null, name: "", category: "contract" });
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  className="flex-1 gradient-primary text-primary-foreground"
+                  onClick={handleUploadDocument}
+                  disabled={uploading}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  {uploading ? "Uploading..." : "Upload"}
                 </Button>
               </div>
             </div>
@@ -640,7 +927,10 @@ const nextWeekLessons = lessons.filter(l => {
                     <FileText className="h-5 w-5 text-primary" />
                     Documents
                   </CardTitle>
-                  <Button className="gradient-primary text-primary-foreground">
+                  <Button 
+                    className="gradient-primary text-primary-foreground"
+                    onClick={() => setUploadDialogOpen(true)}
+                  >
                     <Upload className="mr-2 h-4 w-4" />
                     Upload Document
                   </Button>
@@ -662,7 +952,11 @@ const nextWeekLessons = lessons.filter(l => {
                             </div>
                           </div>
                         </div>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => window.open(doc.file_url, '_blank')}
+                        >
                           <Download className="h-4 w-4" />
                         </Button>
                       </div>) : <p className="text-muted-foreground text-center py-8">No documents yet</p>}
