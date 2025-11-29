@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
@@ -31,6 +32,10 @@ export default function Payments() {
   const [partialAmount, setPartialAmount] = useState<string>("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
+  const [selectedPayments, setSelectedPayments] = useState<Set<string>>(new Set());
+  const [bulkMarkPaidDialogOpen, setBulkMarkPaidDialogOpen] = useState(false);
+  const [bulkPaymentMethod, setBulkPaymentMethod] = useState("");
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   
   // Filter states
   const [showFilters, setShowFilters] = useState(false);
@@ -190,15 +195,11 @@ export default function Payments() {
   });
   const deletePaymentMutation = useMutation({
     mutationFn: async (paymentId: string) => {
-      const {
-        error
-      } = await supabase.from('payments').delete().eq('id', paymentId);
+      const { error } = await supabase.from('payments').delete().eq('id', paymentId);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['payments']
-      });
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
       toast.success("Payment deleted successfully!");
       setDeleteDialogOpen(false);
       setPaymentToDelete(null);
@@ -206,6 +207,60 @@ export default function Payments() {
     onError: () => {
       toast.error("Failed to delete payment");
     }
+  });
+
+  const bulkMarkPaidMutation = useMutation({
+    mutationFn: async ({ paymentIds, method }: { paymentIds: string[]; method: string }) => {
+      const updates = paymentIds.map(id => {
+        const payment = payments.find(p => p.id === id);
+        return {
+          id,
+          status: 'completed' as const,
+          payment_date: new Date().toISOString(),
+          description: method,
+          paid_amount: payment?.amount || 0,
+        };
+      });
+
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('payments')
+          .update({
+            status: update.status,
+            payment_date: update.payment_date,
+            description: update.description,
+            paid_amount: update.paid_amount,
+          })
+          .eq('id', update.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      setSelectedPayments(new Set());
+      setBulkMarkPaidDialogOpen(false);
+      setBulkPaymentMethod("");
+      toast.success("Payments marked as paid!");
+    },
+    onError: () => {
+      toast.error("Failed to mark payments as paid");
+    },
+  });
+
+  const bulkDeletePaymentsMutation = useMutation({
+    mutationFn: async (paymentIds: string[]) => {
+      const { error } = await supabase.from('payments').delete().in('id', paymentIds);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      setSelectedPayments(new Set());
+      setBulkDeleteDialogOpen(false);
+      toast.success("Payments deleted successfully!");
+    },
+    onError: () => {
+      toast.error("Failed to delete payments");
+    },
   });
   const openDeleteDialog = (paymentId: string) => {
     setPaymentToDelete(paymentId);
@@ -215,6 +270,49 @@ export default function Payments() {
     if (paymentToDelete) {
       deletePaymentMutation.mutate(paymentToDelete);
     }
+  };
+
+  const handleSelectAll = (checked: boolean, visiblePayments: any[]) => {
+    if (checked) {
+      setSelectedPayments(new Set(visiblePayments.map(p => p.id)));
+    } else {
+      setSelectedPayments(new Set());
+    }
+  };
+
+  const handleSelectPayment = (paymentId: string, checked: boolean) => {
+    const newSelected = new Set(selectedPayments);
+    if (checked) {
+      newSelected.add(paymentId);
+    } else {
+      newSelected.delete(paymentId);
+    }
+    setSelectedPayments(newSelected);
+  };
+
+  const handleBulkMarkPaid = () => {
+    if (selectedPayments.size === 0) return;
+    setBulkMarkPaidDialogOpen(true);
+  };
+
+  const confirmBulkMarkPaid = () => {
+    if (!bulkPaymentMethod) {
+      toast.error("Please select a payment method");
+      return;
+    }
+    bulkMarkPaidMutation.mutate({
+      paymentIds: Array.from(selectedPayments),
+      method: bulkPaymentMethod,
+    });
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedPayments.size === 0) return;
+    setBulkDeleteDialogOpen(true);
+  };
+
+  const confirmBulkDelete = () => {
+    bulkDeletePaymentsMutation.mutate(Array.from(selectedPayments));
   };
   const openVerifyDialog = (paymentId: string) => {
     setSelectedPayment(paymentId);

@@ -21,6 +21,8 @@ export default function Attendance() {
   const displayDate = format(selectedDate, "EEEE, MMMM d, yyyy");
 
   // Fetch attendance records for the selected date
+
+  // Fetch attendance records for the selected date
   const { data: attendanceRecords = [], isLoading } = useQuery({
     queryKey: ["attendance", user?.id, formattedDate],
     queryFn: async () => {
@@ -140,6 +142,32 @@ export default function Attendance() {
     },
   });
 
+  // Bulk mark all mutation
+  const markAllAttendanceMutation = useMutation({
+    mutationFn: async (status: string) => {
+      const pendingIds = attendanceRecords
+        .filter((r: any) => r.status === "pending")
+        .map((r: any) => r.id);
+
+      if (pendingIds.length === 0) return;
+
+      const { error } = await supabase
+        .from("attendance")
+        .update({ status })
+        .in("id", pendingIds);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, status) => {
+      queryClient.invalidateQueries({ queryKey: ["attendance"] });
+      toast.success(`Marked all pending as ${status}!`);
+    },
+    onError: (error) => {
+      toast.error("Failed to mark attendance");
+      console.error(error);
+    },
+  });
+
   const handlePreviousDay = () => {
     setSelectedDate(subDays(selectedDate, 1));
   };
@@ -192,10 +220,34 @@ export default function Attendance() {
             <h1 className="text-4xl font-bold text-foreground mb-2">Attendance & Progress</h1>
             <p className="text-muted-foreground">Track lesson attendance and student feedback</p>
           </div>
-          <Button className="gradient-accent text-accent-foreground shadow-accent">
-            <Download className="mr-2 h-5 w-5" />
-            Export Report
-          </Button>
+          <div className="flex gap-2">
+            {pendingCount > 0 && (
+              <>
+                <Button 
+                  variant="outline"
+                  className="bg-green-500/10 hover:bg-green-500/20 border-green-500/20"
+                  onClick={() => markAllAttendanceMutation.mutate("present")}
+                  disabled={markAllAttendanceMutation.isPending}
+                >
+                  <Check className="mr-2 h-5 w-5 text-green-600" />
+                  Mark All Present
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="bg-red-500/10 hover:bg-red-500/20 border-red-500/20"
+                  onClick={() => markAllAttendanceMutation.mutate("absent")}
+                  disabled={markAllAttendanceMutation.isPending}
+                >
+                  <X className="mr-2 h-5 w-5 text-red-600" />
+                  Mark All Absent
+                </Button>
+              </>
+            )}
+            <Button className="gradient-accent text-accent-foreground shadow-accent">
+              <Download className="mr-2 h-5 w-5" />
+              Export Report
+            </Button>
+          </div>
         </div>
 
         {/* Date Navigation */}
