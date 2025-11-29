@@ -1,14 +1,16 @@
 import { useState } from "react";
-import { Plus, DollarSign, TrendingDown, Clock, CheckCircle } from "lucide-react";
+import { Plus, DollarSign, TrendingDown, Clock, CheckCircle, Trash2 } from "lucide-react";
 import DataImport from "@/components/DataImport";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -42,6 +44,12 @@ export default function Expenses() {
     payment_method: "",
     status: "paid",
   });
+  
+  // Selection and bulk states
+  const [selectedExpenses, setSelectedExpenses] = useState<Set<string>>(new Set());
+  const [bulkStatusDialogOpen, setBulkStatusDialogOpen] = useState(false);
+  const [bulkStatusValue, setBulkStatusValue] = useState("");
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -100,6 +108,52 @@ export default function Expenses() {
     },
   });
 
+  const bulkStatusChangeMutation = useMutation({
+    mutationFn: async ({ expenseIds, status }: { expenseIds: string[]; status: string }) => {
+      const updateData: any = { status };
+      if (status === 'paid') {
+        updateData.paid_by = user?.id;
+      }
+
+      const { error } = await supabase
+        .from('expenses')
+        .update(updateData)
+        .in('id', expenseIds);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      setSelectedExpenses(new Set());
+      setBulkStatusDialogOpen(false);
+      setBulkStatusValue("");
+      toast.success("Expenses updated successfully!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update expenses");
+    },
+  });
+
+  const bulkDeleteExpensesMutation = useMutation({
+    mutationFn: async (expenseIds: string[]) => {
+      const { error } = await supabase
+        .from('expenses')
+        .delete()
+        .in('id', expenseIds);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      setSelectedExpenses(new Set());
+      setBulkDeleteDialogOpen(false);
+      toast.success("Expenses deleted successfully!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to delete expenses");
+    },
+  });
+
   const handleAddExpense = () => {
     if (!formData.category || !formData.amount || !formData.payment_method) {
       toast.error("Please fill in all required fields");
@@ -110,6 +164,49 @@ export default function Expenses() {
       ...formData,
       amount: parseFloat(formData.amount),
     });
+  };
+
+  const handleSelectAll = (checked: boolean, visibleExpenses: any[]) => {
+    if (checked) {
+      setSelectedExpenses(new Set(visibleExpenses.map(e => e.id)));
+    } else {
+      setSelectedExpenses(new Set());
+    }
+  };
+
+  const handleSelectExpense = (expenseId: string, checked: boolean) => {
+    const newSelected = new Set(selectedExpenses);
+    if (checked) {
+      newSelected.add(expenseId);
+    } else {
+      newSelected.delete(expenseId);
+    }
+    setSelectedExpenses(newSelected);
+  };
+
+  const handleBulkStatusChange = () => {
+    if (selectedExpenses.size === 0) return;
+    setBulkStatusDialogOpen(true);
+  };
+
+  const confirmBulkStatusChange = () => {
+    if (!bulkStatusValue) {
+      toast.error("Please select a status");
+      return;
+    }
+    bulkStatusChangeMutation.mutate({
+      expenseIds: Array.from(selectedExpenses),
+      status: bulkStatusValue,
+    });
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedExpenses.size === 0) return;
+    setBulkDeleteDialogOpen(true);
+  };
+
+  const confirmBulkDelete = () => {
+    bulkDeleteExpensesMutation.mutate(Array.from(selectedExpenses));
   };
 
   // Calculate totals
@@ -411,15 +508,28 @@ export default function Expenses() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="md:flex-1"
                 />
-                {hasActiveFilters && (
-                  <Button
-                    variant="outline"
-                    onClick={clearFilters}
-                    className="md:w-auto"
-                  >
-                    Clear Filters
-                  </Button>
-                )}
+                <div className="flex gap-2">
+                  {selectedExpenses.size > 0 && (
+                    <>
+                      <Button variant="outline" size="sm" onClick={handleBulkStatusChange}>
+                        Change Status ({selectedExpenses.size})
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete ({selectedExpenses.size})
+                      </Button>
+                    </>
+                  )}
+                  {hasActiveFilters && (
+                    <Button
+                      variant="outline"
+                      onClick={clearFilters}
+                      className="md:w-auto"
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
+                </div>
               </div>
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -523,6 +633,55 @@ export default function Expenses() {
             )}
           </CardContent>
         </Card>
+
+        {/* Bulk Status Change Dialog */}
+        <Dialog open={bulkStatusDialogOpen} onOpenChange={setBulkStatusDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Change Status for {selectedExpenses.size} Expense(s)</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>New Status</Label>
+                <Select value={bulkStatusValue} onValueChange={setBulkStatusValue}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <Button variant="outline" className="flex-1" onClick={() => setBulkStatusDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button className="flex-1" onClick={confirmBulkStatusChange} disabled={!bulkStatusValue}>
+                  Update Status
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk Delete Dialog */}
+        <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete {selectedExpenses.size} Expense(s)</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete these expenses? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Delete Expenses
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

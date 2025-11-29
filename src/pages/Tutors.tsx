@@ -66,6 +66,8 @@ export default function Tutors() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [selectedTutors, setSelectedTutors] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [bulkStatusDialogOpen, setBulkStatusDialogOpen] = useState(false);
+  const [bulkStatusValue, setBulkStatusValue] = useState("");
   const itemsPerPage = 20;
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -135,6 +137,26 @@ export default function Tutors() {
       toast.error(error.message || "Failed to delete tutors");
     },
   });
+
+  const bulkStatusChangeMutation = useMutation({
+    mutationFn: async ({ tutorIds, status }: { tutorIds: string[]; status: string }) => {
+      const { error } = await supabase
+        .from("tutors")
+        .update({ status })
+        .in("id", tutorIds);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tutors"] });
+      setSelectedTutors(new Set());
+      setBulkStatusDialogOpen(false);
+      setBulkStatusValue("");
+      toast.success("Tutors updated successfully!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update tutors");
+    },
+  });
   const handleAddTutor = () => {
     try {
       const validated = addTutorSchema.parse(formData);
@@ -198,6 +220,22 @@ export default function Tutors() {
   };
   const confirmDelete = () => {
     deleteTutorsMutation.mutate(Array.from(selectedTutors));
+  };
+
+  const handleBulkStatusChange = () => {
+    if (selectedTutors.size === 0) return;
+    setBulkStatusDialogOpen(true);
+  };
+
+  const confirmBulkStatusChange = () => {
+    if (!bulkStatusValue) {
+      toast.error("Please select a status");
+      return;
+    }
+    bulkStatusChangeMutation.mutate({
+      tutorIds: Array.from(selectedTutors),
+      status: bulkStatusValue,
+    });
   };
 
   // Filter and sort
@@ -379,10 +417,15 @@ export default function Tutors() {
               </div>
               <div className="flex gap-2">
                 {selectedTutors.size > 0 && (
-                  <Button variant="destructive" size="default" onClick={handleBulkDelete}>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete ({selectedTutors.size})
-                  </Button>
+                  <>
+                    <Button variant="outline" size="default" onClick={handleBulkStatusChange}>
+                      Change Status ({selectedTutors.size})
+                    </Button>
+                    <Button variant="destructive" size="default" onClick={handleBulkDelete}>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete ({selectedTutors.size})
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -597,6 +640,38 @@ export default function Tutors() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bulk Status Change Dialog */}
+      <Dialog open={bulkStatusDialogOpen} onOpenChange={setBulkStatusDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Status for {selectedTutors.size} Tutor(s)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>New Status</Label>
+              <Select value={bulkStatusValue} onValueChange={setBulkStatusValue}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="On Leave">On Leave</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-3 pt-4">
+              <Button variant="outline" className="flex-1" onClick={() => setBulkStatusDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button className="flex-1" onClick={confirmBulkStatusChange} disabled={!bulkStatusValue}>
+                Update Status
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

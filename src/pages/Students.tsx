@@ -91,6 +91,9 @@ export default function Students() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [bulkEditDialogOpen, setBulkEditDialogOpen] = useState(false);
+  const [bulkEditField, setBulkEditField] = useState("");
+  const [bulkEditValue, setBulkEditValue] = useState("");
   const itemsPerPage = 20;
 
   const navigate = useNavigate();
@@ -265,6 +268,31 @@ export default function Students() {
       toast.error(error.message || "Failed to delete students");
     },
   });
+
+  const bulkEditStudentsMutation = useMutation({
+    mutationFn: async ({ studentIds, field, value }: { studentIds: string[]; field: string; value: any }) => {
+      const updateData: any = {};
+      updateData[field] = value;
+      
+      const { error } = await supabase
+        .from("students")
+        .update(updateData)
+        .in("id", studentIds);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      setSelectedStudents(new Set());
+      setBulkEditDialogOpen(false);
+      setBulkEditField("");
+      setBulkEditValue("");
+      toast.success("Students updated successfully!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update students");
+    },
+  });
   const handleAddStudent = () => {
     try {
       const validated = studentSchema.parse(formData);
@@ -333,6 +361,23 @@ export default function Students() {
 
   const confirmDelete = () => {
     deleteStudentsMutation.mutate(Array.from(selectedStudents));
+  };
+
+  const handleBulkEdit = () => {
+    if (selectedStudents.size === 0) return;
+    setBulkEditDialogOpen(true);
+  };
+
+  const confirmBulkEdit = () => {
+    if (!bulkEditField || !bulkEditValue) {
+      toast.error("Please select a field and value to update");
+      return;
+    }
+    bulkEditStudentsMutation.mutate({
+      studentIds: Array.from(selectedStudents),
+      field: bulkEditField,
+      value: bulkEditValue,
+    });
   };
 
   // Filter and sort
@@ -701,14 +746,19 @@ export default function Students() {
                     className="pl-10"
                   />
                 </div>
-                <div className="flex gap-2">
-                  {selectedStudents.size > 0 && (
+              <div className="flex gap-2">
+                {selectedStudents.size > 0 && (
+                  <>
+                    <Button variant="outline" size="default" onClick={handleBulkEdit}>
+                      Bulk Edit ({selectedStudents.size})
+                    </Button>
                     <Button variant="destructive" size="default" onClick={handleBulkDelete}>
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete ({selectedStudents.size})
                     </Button>
-                  )}
-                </div>
+                  </>
+                )}
+              </div>
               </div>
 
               {/* Filters */}

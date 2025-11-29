@@ -67,6 +67,8 @@ export default function Staff() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [selectedStaff, setSelectedStaff] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [bulkStatusDialogOpen, setBulkStatusDialogOpen] = useState(false);
+  const [bulkStatusValue, setBulkStatusValue] = useState("");
   const itemsPerPage = 20;
   const { user } = useAuth();
   const { isAdmin, isLoading: adminLoading } = useAdmin();
@@ -148,6 +150,26 @@ export default function Staff() {
     },
   });
 
+  const bulkStatusChangeMutation = useMutation({
+    mutationFn: async ({ staffIds, status }: { staffIds: string[]; status: string }) => {
+      const { error } = await supabase
+        .from("staff")
+        .update({ status })
+        .in("id", staffIds);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
+      setSelectedStaff(new Set());
+      setBulkStatusDialogOpen(false);
+      setBulkStatusValue("");
+      toast.success("Staff members updated successfully!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update staff members");
+    },
+  });
+
   const handleAddStaff = () => {
     try {
       const validated = addStaffSchema.parse({
@@ -216,6 +238,22 @@ export default function Staff() {
 
   const confirmDelete = () => {
     deleteStaffMutation.mutate(Array.from(selectedStaff));
+  };
+
+  const handleBulkStatusChange = () => {
+    if (selectedStaff.size === 0) return;
+    setBulkStatusDialogOpen(true);
+  };
+
+  const confirmBulkStatusChange = () => {
+    if (!bulkStatusValue) {
+      toast.error("Please select a status");
+      return;
+    }
+    bulkStatusChangeMutation.mutate({
+      staffIds: Array.from(selectedStaff),
+      status: bulkStatusValue,
+    });
   };
 
   // Filter and sort
@@ -410,10 +448,15 @@ export default function Staff() {
               </div>
               <div className="flex gap-2">
                 {selectedStaff.size > 0 && (
-                  <Button variant="destructive" size="default" onClick={handleBulkDelete}>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete ({selectedStaff.size})
-                  </Button>
+                  <>
+                    <Button variant="outline" size="default" onClick={handleBulkStatusChange}>
+                      Change Status ({selectedStaff.size})
+                    </Button>
+                    <Button variant="destructive" size="default" onClick={handleBulkDelete}>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete ({selectedStaff.size})
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -618,6 +661,59 @@ export default function Staff() {
           </Pagination>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {selectedStaff.size} staff member(s). This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Status Change Dialog */}
+      <Dialog open={bulkStatusDialogOpen} onOpenChange={setBulkStatusDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Status for {selectedStaff.size} Staff Member(s)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>New Status</Label>
+              <Select value={bulkStatusValue} onValueChange={setBulkStatusValue}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="on_leave">On Leave</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-3 pt-4">
+              <Button variant="outline" className="flex-1" onClick={() => setBulkStatusDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button className="flex-1" onClick={confirmBulkStatusChange} disabled={!bulkStatusValue}>
+                Update Status
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
