@@ -41,19 +41,34 @@ export function EditPayrollDialog({ open, onOpenChange, record, type }: EditPayr
     queryKey: ['lessons-taught', record?.tutor_id, record?.month],
     queryFn: async () => {
       if (!record?.tutor_id || !record?.month || type !== 'tutor') return null;
-      
+     
+      //console.log(new Date().setMonth(month.getMonth()+1));
+    const [year, month] = record.month.split('-').map(Number);
+
+const start = `${record.month}-01`; // 2025-11-01
+const nextMonth = month === 12 
+  ? `${year + 1}-01`
+  : `${year}-${String(month + 1).padStart(2, '0')}`;
+
+const end = `${nextMonth}-01`; // 2025-12-01
+
+//console.log(start +": "+end);
       const { count } = await supabase
         .from('attendance')
         .select('*', { count: 'exact', head: true })
         .eq('tutor_id', record.tutor_id)
-        .eq('status', 'completed')
-        .ilike('lesson_date', `${record.month}%`);
+        .eq('status', 'present')
+        .gte('lesson_date', new Date(start).toISOString())
+  .lte('lesson_date', new Date(end).toISOString());
+        
       
+  console.log(count);
       return count || 0;
     },
     enabled: !!record?.tutor_id && !!record?.month && type === 'tutor' && open
   });
 
+  
   useEffect(() => {
     if (record) {
       if (type === 'tutor') {

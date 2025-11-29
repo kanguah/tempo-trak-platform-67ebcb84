@@ -520,18 +520,6 @@ export default function Staff() {
                           <span className="font-semibold">GH₵ {member.monthly_salary || 0}</span>
                         </div>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/staff/${member.id}`);
-                        }}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View Profile
-                      </Button>
                     </div>
                   </div>
                 </CardContent>

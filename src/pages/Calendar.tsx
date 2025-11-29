@@ -374,7 +374,7 @@ export default function Calendar() {
             <DialogTrigger asChild>
               <Button className="gradient-primary text-primary-foreground">
                 <Plus className="mr-2 h-4 w-4" />
-                Add Lesson
+                Lesson
               </Button>
             </DialogTrigger>
               <DialogContent className="max-h-[90vh]">
