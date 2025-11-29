@@ -691,24 +691,32 @@ export default function Calendar() {
           <Card className="p-4">
             <h3 className="text-sm font-semibold mb-3 text-foreground">Instruments</h3>
             <div className="space-y-2 max-h-28 overflow-y-auto">
-              {instruments.map((instrument) => {
-                const count = lessonsWithDates.filter(
-                  (l) => l.instrument === instrument && isSameDay(l.date, selectedDate)
-                ).length;
-                const color = getInstrumentColor(instrument);
-                return (
-                  <div key={instrument} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: `hsl(${color})` }}
-                      />
-                      <span className="text-foreground">{instrument}</span>
-                    </div>
-                    <span className="text-muted-foreground">{count}</span>
-                  </div>
-                );
-              })}
+              {[...instruments]
+  .map((instrument) => {
+    const count = lessonsWithDates.filter(
+      (l) => l.instrument === instrument && isSameDay(l.date, selectedDate)
+    ).length;
+
+    return { instrument, count };
+  })
+  .sort((a, b) => b.count - a.count) // DESCENDING (highest count first)
+  .map(({ instrument, count }) => {
+    const color = getInstrumentColor(instrument);
+
+    return (
+      <div key={instrument} className="flex items-center justify-between text-sm">
+        <div className="flex items-center gap-2">
+          <div
+            className="w-3 h-3 rounded-full"
+            style={{ backgroundColor: `hsl(${color})` }}
+          />
+          <span className="text-foreground">{instrument}</span>
+        </div>
+        <span className="text-muted-foreground">{count}</span>
+      </div>
+    );
+  })}
+
             </div>
           </Card>
         </div>

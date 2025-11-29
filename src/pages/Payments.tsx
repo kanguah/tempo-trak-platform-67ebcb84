@@ -886,7 +886,7 @@ const monthsFromStartOfYear = Array.from(
                                 {payment.students?.name || "Unknown Student"}
                               </h3>
                               {getStatusBadge(payment.status)}
-                              {payment.package_type}
+                        
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
                               <div>
@@ -899,10 +899,6 @@ const monthsFromStartOfYear = Array.from(
                             month: 'short',
                             year: 'numeric'
                           }) : "-"}</p>
-                              </div>
-                              <div>
-                                <p className="font-medium">Due Date</p>
-                                <p>{payment.due_date ? new Date(payment.due_date).toLocaleDateString() : "-"}</p>
                               </div>
                               <div>
                                 <p className="font-medium">Student ID</p>

@@ -15,6 +15,7 @@ import { PayrollStatusBadge } from "@/components/payroll/PayrollStatusBadge";
 import { Edit, Check, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { stat } from "fs";
 
 export default function Payroll() {
   const { isAdmin, isLoading: adminLoading } = useAdmin();
@@ -75,6 +76,26 @@ export default function Payroll() {
     enabled: !!user?.id && isAdmin,
   });
 
+  const addExpenseMutation = useMutation({
+      mutationFn: async (newExpense: any) => {
+        const { error } = await supabase
+          .from('expenses')
+          .insert([{
+            ...newExpense,
+            user_id: user?.id,
+            approved_by: user?.id,
+            paid_by: newExpense.status === 'paid' ? user?.id : null,
+          }]);
+        
+        if (error) throw error;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      },
+      onError: (error: any) => {
+        toast.error(error.message || "Failed to add expense");
+      },
+    });
   const updateStatus = useMutation({
     mutationFn: async ({ id, status, type }: { id: string; status: string; type: 'tutor' | 'staff' }) => {
       const table = type === 'tutor' ? 'tutor_payroll' : 'staff_payroll';
@@ -90,10 +111,23 @@ export default function Payroll() {
         .eq('id', id);
 
       if (error) throw error;
+
+      if(status==='paid'){
+      addExpenseMutation.mutate({
+          category: "Tutor Salaries",
+          amount: type==='tutor' ? tutorPayroll.find((rec: any) => rec.id === id)?.total_amount : staffPayroll.find((rec: any) => rec.id === id)?.total_amount,
+          description: `Salary Payment for ${type==='tutor' ? tutorPayroll.find((rec: any) => rec.id === id)?.tutors?.name : staffPayroll.find((rec: any) => rec.id === id)?.staff?.name} for 
+          ${new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}`,
+          expense_date: new Date().toISOString().split('T')[0],
+          payment_method: "Cash",
+          status: "paid",
+        });
+      }
     },
     onSuccess: () => {
       toast.success('Status updated successfully');
       queryClient.invalidateQueries({ queryKey: ['payroll'] });
+      
     },
     onError: (error) => {
       toast.error(`Failed to update status: ${error.message}`);

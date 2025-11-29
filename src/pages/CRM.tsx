@@ -16,51 +16,7 @@ import { toast } from "sonner";
 import { DndContext, DragEndEvent, DragOverlay, useDraggable, useDroppable, DragStartEvent } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import DataImport from "@/components/DataImport";
-const initialLeads = [{
-  id: 1,
-  name: "Alice Thompson",
-  email: "alice.t@email.com",
-  phone: "+233 24 777 8888",
-  stage: "new",
-  instrument: "Piano",
-  source: "Website Form",
-  notes: "Interested in beginner lessons for 7-year-old daughter",
-  lastContact: "2 hours ago",
-  archived: false
-}, {
-  id: 2,
-  name: "Robert Kim",
-  email: "robert.kim@email.com",
-  phone: "+233 24 888 9999",
-  stage: "contacted",
-  instrument: "Guitar",
-  source: "Facebook Ad",
-  notes: "Adult learner, wants weekend classes",
-  lastContact: "1 day ago",
-  archived: false
-}, {
-  id: 3,
-  name: "Maria Santos",
-  email: "maria.s@email.com",
-  phone: "+233 24 999 0000",
-  stage: "contacted",
-  instrument: "Voice",
-  source: "Referral",
-  notes: "Professional singer looking for advanced training",
-  lastContact: "3 days ago",
-  archived: false
-}, {
-  id: 4,
-  name: "John Appiah",
-  email: "j.appiah@email.com",
-  phone: "+233 24 000 1111",
-  stage: "converted",
-  instrument: "Drums",
-  source: "Walk-in",
-  notes: "Enrolled in 8-lesson package",
-  lastContact: "1 week ago",
-  archived: false
-}];
+
 const stages = [{
   id: "new",
   label: "New Leads",

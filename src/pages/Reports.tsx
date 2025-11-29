@@ -307,7 +307,7 @@ export default function Reports() {
   const totalRevenue = paymentsData?.reduce((sum, p) => sum + Number(p.paid_amount), 0) || 0;
   const totalExpenses = expensesData?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
   const attendanceRate = attendanceData?.length 
-    ? ((attendanceData.filter(a => a.status === "completed").length / attendanceData.length) * 100).toFixed(1)
+    ? ((attendanceData.filter(a => a.status === "present").length / attendanceData.length) * 100).toFixed(1)
     : "0";
 
   const reports = [
@@ -324,12 +324,12 @@ export default function Reports() {
     {
       id: "financial",
       title: "Financial Report",
-      description: `Revenue: GH₵${totalRevenue.toFixed(2)} | Expenses: GH₵${totalExpenses.toFixed(2)}`,
+      description: `Revenue: GH₵${totalRevenue.toLocaleString()} | Expenses: GH₵${totalExpenses.toLocaleString()}`,
       type: "Financial",
       icon: DollarSign,
       count: paymentsData?.length || 0,
       onGenerate: generateFinancialReport,
-      stats: `Net: GH₵${(totalRevenue - totalExpenses).toFixed(2)}`
+      stats: `Net: GH₵${(totalRevenue - totalExpenses).toLocaleString()}`
     },
     {
       id: "enrollment",
@@ -339,7 +339,7 @@ export default function Reports() {
       icon: GraduationCap,
       count: totalStudents,
       onGenerate: generateEnrollmentReport,
-      stats: `GH₵{((activeStudents / (totalStudents || 1)) * 100).toFixed(0)}% active`
+      stats: `${((activeStudents / (totalStudents || 1)) * 100).toFixed(0)}% active`
     },
     {
       id: "performance",
@@ -354,7 +354,7 @@ export default function Reports() {
     {
       id: "expenses",
       title: "Expenses Report",
-      description: `Total expenses: GH₵${totalExpenses.toFixed(2)}`,
+      description: `Total expenses: GH₵${totalExpenses.toLocaleString()}`,
       type: "Expenses",
       icon: DollarSign,
       count: expensesData?.length || 0,
@@ -399,7 +399,7 @@ export default function Reports() {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <p className="text-xs sm:text-sm font-medium mb-1 text-muted-foreground">Total Revenue</p>
-                  <h3 className="text-2xl sm:text-3xl font-bold mb-1">GH₵{totalRevenue.toFixed(0)}</h3>
+                  <h3 className="text-2xl sm:text-3xl font-bold mb-1">GH₵{totalRevenue.toLocaleString()}</h3>
                   <p className="text-xs text-muted-foreground">Selected period</p>
                 </div>
                 <div className="p-2 sm:p-3 rounded-lg bg-accent/10">
@@ -414,7 +414,7 @@ export default function Reports() {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <p className="text-xs sm:text-sm font-medium mb-1 text-muted-foreground">Total Expenses</p>
-                  <h3 className="text-2xl sm:text-3xl font-bold mb-1">GH₵{totalExpenses.toFixed(0)}</h3>
+                  <h3 className="text-2xl sm:text-3xl font-bold mb-1">GH₵{totalExpenses.toLocaleString()}</h3>
                   <p className="text-xs text-muted-foreground">Selected period</p>
                 </div>
                 <div className="p-2 sm:p-3 rounded-lg bg-destructive/10">

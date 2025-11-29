@@ -388,7 +388,7 @@ export default function Students() {
       (student.subjects && student.subjects.some((s: string) => s?.toLowerCase().includes(searchQuery.toLowerCase())));
 
     const matchesGrade = gradeFilter === "all" || student.grade === gradeFilter;
-    const matchesPaymentStatus = paymentStatusFilter === "all" || student.payment_status === paymentStatusFilter;
+    const matchesPaymentStatus = paymentStatusFilter === "all" || student.status === paymentStatusFilter;
     const matchesPackageType = packageTypeFilter === "all" || student.package_type === packageTypeFilter;
 
     return matchesSearch && matchesGrade && matchesPaymentStatus && matchesPackageType;
@@ -781,9 +781,9 @@ export default function Students() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="failed">Failed</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+              
                   </SelectContent>
                 </Select>
 
