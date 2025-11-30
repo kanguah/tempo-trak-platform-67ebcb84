@@ -1023,6 +1023,82 @@ export default function Students() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bulk Edit Dialog */}
+      <Dialog open={bulkEditDialogOpen} onOpenChange={setBulkEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Bulk Edit Students ({selectedStudents.size})</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Field to Update</Label>
+              <Select value={bulkEditField} onValueChange={setBulkEditField}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select field" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="status">Status</SelectItem>
+                  <SelectItem value="package_type">Package Type</SelectItem>
+                  <SelectItem value="payment_status">Payment Status</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {bulkEditField === "status" && (
+              <div className="space-y-2">
+                <Label>New Status</Label>
+                <Select value={bulkEditValue} onValueChange={setBulkEditValue}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {bulkEditField === "package_type" && (
+              <div className="space-y-2">
+                <Label>New Package Type</Label>
+                <Select value={bulkEditValue} onValueChange={setBulkEditValue}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select package" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1x Weekly">1x Weekly</SelectItem>
+                    <SelectItem value="2x Weekly">2x Weekly</SelectItem>
+                    <SelectItem value="3x Weekly">3x Weekly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {bulkEditField === "payment_status" && (
+              <div className="space-y-2">
+                <Label>New Payment Status</Label>
+                <Select value={bulkEditValue} onValueChange={setBulkEditValue}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setBulkEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmBulkEdit}>Update Students</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
