@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import {sendMail} from "@/lib/mail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -81,6 +82,7 @@ serve(async (req) => {
 
         if (channel === "email") {
           // Send email using Resend API
+          /*
           const emailResponse = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
@@ -94,7 +96,12 @@ serve(async (req) => {
               html: messageBody.replace(/\n/g, "<br>"),
             }),
           });
-
+*/
+          const emailResponse = await sendMail({
+            to: recipient.contact,
+            subject: subject || "Message from Musical Academy",
+            html: messageBody.replace(/\n/g, "<br>"),
+          });
           const emailResult = await emailResponse.json();
 
           if (!emailResponse.ok) {

@@ -87,8 +87,8 @@ serve(async (req) => {
       if (force) {
         reminderType = "manual";
         emailSubject = "Payment Reminder";
-        emailBody = `Dear ${payment.students?.parent_name || payment.students?.name},\n\nThis is a reminder about your payment for 49ice Music Academy.\n\nPayment Details:\n- Student: ${payment.students?.name}\n- Package: ${payment.package_type}\n- Amount Due: GHS${payment.amount}\n- Due Date: 15th ${new Date(payment.due_date).toLocaleString("default", { month: "long", year: "numeric" })}\n\n${PAYMENT_INSTRUCTIONS}\n\nThank you for your continued support!\n\nBest regards,\n49ice Music Academy`;
-        smsMessage = `Reminder: Your payment of GHS${payment.amount} is due on 15th ${new Date(payment.due_date).toLocaleString("default", { month: "short" })}. Thank you!`;
+        emailBody = `Dear ${payment.students?.parent_name || payment.students?.name},\n\nThis is a reminder about your payment for 49ice Music Academy.\n\nPayment Details:\n- Student: ${payment.students?.name}\n- Package: ${payment.package_type}\n- Amount Due: GHS${payment.amount}\n- Due Date: ${new Date(payment.due_date).toLocaleString("default", { month: "long", year: "numeric" })}\n\n${PAYMENT_INSTRUCTIONS}\n\nThank you for your continued support!\n\nBest regards,\n49ice Music Academy`;
+        smsMessage = `Reminder: Your payment of GHS${payment.amount} is due for ${new Date(payment.due_date).toLocaleString("default", { month: "short" })}. Thank you!`;
       }
       // Determine which reminder to send based on date
       else if (daysDiff === 3 && !reminderSent.three_days_before) {
