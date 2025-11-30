@@ -1,9 +1,7 @@
 ---
 deployment:
   tasks:
-    - export PROJECTPATH=/home/flezqiyl/repositories/tempo-trak-platform-67ebcb84
-    - export DEPLOYPATH=/home/flezqiyl/public_html/admin
-    - cd $PROJECTPATH && npm install
-    - cd $PROJECTPATH && npm run build
-    - /bin/rm -rf ${DEPLOYPATH}/*
-    - /bin/cp -r ${PROJECTPATH}/dist/* ${DEPLOYPATH}/
+    - npm install
+    - npm run build
+    - /bin/rm -rf /home/flezqiyl/public_html/admin/*
+    - /bin/cp -r /home/flezqiyl/repositories/tempo-trak-platform-67ebcb84/dist/* /home/flezqiyl/public_html/admin/
