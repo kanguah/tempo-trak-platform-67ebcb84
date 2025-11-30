@@ -2,10 +2,10 @@
 deployment:
   tasks:
     # 1. Go to the project directory where cPanel cloned your Git repo
-    - export PROJECTPATH=/home/flezqiyl/app_source
+    - export PROJECTPATH=/home2/flezqiyl/repositories/tempo-trak-platform-67ebcb84
 
     # 2. Location to publish the built site
-    - export DEPLOYPATH=/home/flezqiyl/public_html
+    - export DEPLOYPATH=/home/flezqiyl/public_html/admin
 
     # 3. Install dependencies
     - cd $PROJECTPATH && npm install
