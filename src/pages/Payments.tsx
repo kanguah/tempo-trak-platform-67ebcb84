@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Filter, Download, CheckCircle, Clock, XCircle, CreditCard, Send, RefreshCw, X, Calendar as CalendarIcon, Trash2 } from "lucide-react";
+import { Search, Filter, Download, CheckCircle, Clock, XCircle, CreditCard, Send, RefreshCw, X, Calendar as CalendarIcon, Trash2, Edit } from "lucide-react";
 import DataImport from "@/components/DataImport";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,21 @@ export default function Payments() {
   const [bulkMarkPaidDialogOpen, setBulkMarkPaidDialogOpen] = useState(false);
   const [bulkPaymentMethod, setBulkPaymentMethod] = useState("");
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  
+  // Individual edit states
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<any>(null);
+  const [editAmount, setEditAmount] = useState("");
+  const [editDueDate, setEditDueDate] = useState<Date | undefined>(undefined);
+  const [editPackageType, setEditPackageType] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  
+  // Bulk edit states
+  const [bulkEditDialogOpen, setBulkEditDialogOpen] = useState(false);
+  const [bulkEditField, setBulkEditField] = useState("");
+  const [bulkEditValue, setBulkEditValue] = useState("");
+  const [bulkEditAmount, setBulkEditAmount] = useState("");
+  const [bulkEditDueDate, setBulkEditDueDate] = useState<Date | undefined>(undefined);
   
   // Filter states
   const [showFilters, setShowFilters] = useState(false);
@@ -313,6 +328,128 @@ export default function Payments() {
 
   const confirmBulkDelete = () => {
     bulkDeletePaymentsMutation.mutate(Array.from(selectedPayments));
+  };
+
+  // Individual edit mutation
+  const editPaymentMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
+      const { error } = await supabase
+        .from('payments')
+        .update(updates)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      toast.success("Payment updated successfully!");
+      setEditDialogOpen(false);
+      setEditingPayment(null);
+    },
+    onError: () => {
+      toast.error("Failed to update payment");
+    },
+  });
+
+  // Bulk edit mutation
+  const bulkEditPaymentsMutation = useMutation({
+    mutationFn: async ({ paymentIds, field, value }: { paymentIds: string[]; field: string; value: any }) => {
+      const updates: any = {};
+      updates[field] = value;
+
+      for (const id of paymentIds) {
+        const { error } = await supabase
+          .from('payments')
+          .update(updates)
+          .eq('id', id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      setSelectedPayments(new Set());
+      setBulkEditDialogOpen(false);
+      setBulkEditField("");
+      setBulkEditValue("");
+      setBulkEditAmount("");
+      setBulkEditDueDate(undefined);
+      toast.success("Payments updated successfully!");
+    },
+    onError: () => {
+      toast.error("Failed to update payments");
+    },
+  });
+
+  const openEditDialog = (payment: any) => {
+    setEditingPayment(payment);
+    setEditAmount(payment.amount?.toString() || "");
+    setEditDueDate(payment.due_date ? new Date(payment.due_date) : undefined);
+    setEditPackageType(payment.package_type || "");
+    setEditDescription(payment.description || "");
+    setEditDialogOpen(true);
+  };
+
+  const handleEditPayment = () => {
+    if (!editingPayment) return;
+    
+    if (!editAmount || Number(editAmount) <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+
+    const updates: any = {
+      amount: Number(editAmount),
+      package_type: editPackageType,
+      description: editDescription,
+    };
+
+    if (editDueDate) {
+      updates.due_date = editDueDate.toISOString();
+    }
+
+    editPaymentMutation.mutate({ id: editingPayment.id, updates });
+  };
+
+  const handleBulkEdit = () => {
+    if (selectedPayments.size === 0) return;
+    setBulkEditDialogOpen(true);
+  };
+
+  const confirmBulkEdit = () => {
+    if (!bulkEditField) {
+      toast.error("Please select a field to update");
+      return;
+    }
+
+    let value: any;
+    
+    if (bulkEditField === "amount") {
+      if (!bulkEditAmount || Number(bulkEditAmount) <= 0) {
+        toast.error("Please enter a valid amount");
+        return;
+      }
+      value = Number(bulkEditAmount);
+    } else if (bulkEditField === "due_date") {
+      if (!bulkEditDueDate) {
+        toast.error("Please select a due date");
+        return;
+      }
+      value = bulkEditDueDate.toISOString();
+    } else if (bulkEditField === "status") {
+      value = bulkEditValue;
+    } else if (bulkEditField === "package_type") {
+      value = bulkEditValue;
+    }
+
+    if (!value) {
+      toast.error("Please enter a value");
+      return;
+    }
+
+    bulkEditPaymentsMutation.mutate({
+      paymentIds: Array.from(selectedPayments),
+      field: bulkEditField,
+      value,
+    });
   };
   const openVerifyDialog = (paymentId: string) => {
     setSelectedPayment(paymentId);
@@ -866,21 +1003,66 @@ const monthsFromStartOfYear = Array.from(
 
         {/* Payments Table */}
         <Card className="shadow-card">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Recent Payments</CardTitle>
+            {selectedPayments.size > 0 && (
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleBulkEdit}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Bulk Edit ({selectedPayments.size})
+                </Button>
+                <Button
+                  onClick={handleBulkMarkPaid}
+                  variant="outline"
+                  size="sm"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Mark Paid ({selectedPayments.size})
+                </Button>
+                <Button
+                  onClick={handleBulkDelete}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete ({selectedPayments.size})
+                </Button>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             {payments.length === 0 ? <div className="text-center py-8 text-muted-foreground max-h-[200px]">
                 No payments yet. Generate monthly payments to get started.
               </div> : filteredPayments.length === 0 ? <div className="text-center py-8 text-muted-foreground">
                   No payments match your filters. Try adjusting your search criteria.
-                </div> : <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                </div> : <>
+                <div className="flex items-center gap-4 mb-4 p-4 bg-muted/30 rounded-lg">
+                  <Checkbox
+                    checked={selectedPayments.size === filteredPayments.length && filteredPayments.length > 0}
+                    onCheckedChange={(checked) => handleSelectAll(!!checked, filteredPayments)}
+                  />
+                  <span className="text-sm font-medium">
+                    {selectedPayments.size > 0 
+                      ? `${selectedPayments.size} of ${filteredPayments.length} selected`
+                      : "Select all"}
+                  </span>
+                </div>
+                <div className="space-y-3 max-h-[600px] overflow-y-auto">
                 {filteredPayments.map((payment, index) => <Card key={payment.id} className="border-2 animate-scale-in" style={{
               animationDelay: `${index * 0.05}s`
             }}>
                       <CardContent className="p-4">
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                          <div className="flex-1">
+                          <div className="flex items-center gap-3 flex-1">
+                            <Checkbox
+                              checked={selectedPayments.has(payment.id)}
+                              onCheckedChange={(checked) => handleSelectPayment(payment.id, !!checked)}
+                            />
+                            <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2 flex-wrap">
                               <h3 className="font-bold text-foreground">
                                 {payment.students?.name || "Unknown Student"}
@@ -917,7 +1099,10 @@ const monthsFromStartOfYear = Array.from(
                                 </p>
                               </div>}
                             {payment.discount_amount > 0 && <p className="text-xs text-orange-600">Discount: GH₵{payment.discount_amount}</p>}
-                            <div className="flex justify-end gap-2 mt-2">
+                            <div className="flex justify-end gap-2 mt-2 flex-wrap">
+                              <Button size="sm" title="Edit Payment" variant="outline" onClick={() => openEditDialog(payment)}>
+                                <Edit className="h-4 w-4 mr-1" />
+                              </Button>
                               {(payment.status === "pending" || payment.status === "failed") && <>
                                   {payment.status === "pending" && <Button title="Verify Payment" size="sm" onClick={() => openVerifyDialog(payment.id)}>
                                       <CreditCard className="h-4 w-4 mr-1" />
@@ -930,13 +1115,245 @@ const monthsFromStartOfYear = Array.from(
                                 <Trash2 className="h-4 w-4 mr-1" />
                               </Button></>}
                             </div>
+                            </div>
                           </div>
                         </div>
                       </CardContent>
                     </Card>)}
-              </div>}
+              </div></>}
           </CardContent>
         </Card>
+
+        {/* Bulk Mark Paid Dialog */}
+        <Dialog open={bulkMarkPaidDialogOpen} onOpenChange={setBulkMarkPaidDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Mark {selectedPayments.size} Payments as Paid</DialogTitle>
+              <DialogDescription>Select the payment method used</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Payment Method</Label>
+                <Select value={bulkPaymentMethod} onValueChange={setBulkPaymentMethod}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Cash">Cash</SelectItem>
+                    <SelectItem value="Mobile Money">Mobile Money</SelectItem>
+                    <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="Card">Card</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setBulkMarkPaidDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={confirmBulkMarkPaid}>Mark as Paid</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk Delete Dialog */}
+        <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete {selectedPayments.size} Payments?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the selected payment records.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmBulkDelete}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Individual Edit Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Payment</DialogTitle>
+              <DialogDescription>
+                Update payment details for {editingPayment?.students?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Amount (GH₵)</Label>
+                <Input
+                  type="number"
+                  value={editAmount}
+                  onChange={(e) => setEditAmount(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Due Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !editDueDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {editDueDate ? format(editDueDate, "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={editDueDate}
+                      onSelect={setEditDueDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>Package Type</Label>
+                <Select value={editPackageType} onValueChange={setEditPackageType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select package" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1x Weekly">1x Weekly</SelectItem>
+                    <SelectItem value="2x Weekly">2x Weekly</SelectItem>
+                    <SelectItem value="3x Weekly">3x Weekly</SelectItem>
+                    <SelectItem value="Custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Input
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  placeholder="Payment description"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleEditPayment}>Save Changes</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk Edit Dialog */}
+        <Dialog open={bulkEditDialogOpen} onOpenChange={setBulkEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Bulk Edit Payments ({selectedPayments.size})</DialogTitle>
+              <DialogDescription>
+                Update a field for all selected payments
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Field to Update</Label>
+                <Select value={bulkEditField} onValueChange={setBulkEditField}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select field" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="status">Status</SelectItem>
+                    <SelectItem value="package_type">Package Type</SelectItem>
+                    <SelectItem value="amount">Amount</SelectItem>
+                    <SelectItem value="due_date">Due Date</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {bulkEditField === "status" && (
+                <div className="space-y-2">
+                  <Label>New Status</Label>
+                  <Select value={bulkEditValue} onValueChange={setBulkEditValue}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="failed">Failed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {bulkEditField === "package_type" && (
+                <div className="space-y-2">
+                  <Label>New Package Type</Label>
+                  <Select value={bulkEditValue} onValueChange={setBulkEditValue}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select package" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1x Weekly">1x Weekly</SelectItem>
+                      <SelectItem value="2x Weekly">2x Weekly</SelectItem>
+                      <SelectItem value="3x Weekly">3x Weekly</SelectItem>
+                      <SelectItem value="Custom">Custom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {bulkEditField === "amount" && (
+                <div className="space-y-2">
+                  <Label>New Amount (GH₵)</Label>
+                  <Input
+                    type="number"
+                    value={bulkEditAmount}
+                    onChange={(e) => setBulkEditAmount(e.target.value)}
+                    placeholder="0.00"
+                  />
+                </div>
+              )}
+
+              {bulkEditField === "due_date" && (
+                <div className="space-y-2">
+                  <Label>New Due Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !bulkEditDueDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {bulkEditDueDate ? format(bulkEditDueDate, "PPP") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={bulkEditDueDate}
+                        onSelect={setBulkEditDueDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setBulkEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={confirmBulkEdit}>Update Payments</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>;
 }
