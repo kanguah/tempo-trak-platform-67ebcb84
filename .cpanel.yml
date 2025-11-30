@@ -1,8 +1,20 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/flezqiyl/public_html/admin
-    - /bin/npm install
-    - /bin/npm run build
-    - /bin/rm -rf $DEPLOYPATH/*
-    - /bin/cp -r /home2/flezqiyl/repositories/tempo-trak-platform-67ebcb84/* $DEPLOYPATH/
+    # 1. Go to the project directory where cPanel cloned your Git repo
+    - export PROJECTPATH=/home/flezqiyl/app_source
+
+    # 2. Location to publish the built site
+    - export DEPLOYPATH=/home/flezqiyl/public_html
+
+    # 3. Install dependencies
+    - cd $PROJECTPATH && npm install
+
+    # 4. Build your Vite/React app
+    - cd $PROJECTPATH && npm run build
+
+    # 5. Clear public_html before copying new build
+    - /bin/rm -rf ${DEPLOYPATH}/*
+
+    # 6. Copy built files from dist/ to public_html
+    - /bin/cp -r ${PROJECTPATH}/dist/* ${DEPLOYPATH}/
