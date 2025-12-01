@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Filter, Download, CheckCircle, Clock, XCircle, CreditCard, Send, RefreshCw, X, Calendar as CalendarIcon, Trash2, Edit } from "lucide-react";
+import { Search, Filter, Download, CheckCircle, Clock, XCircle, CreditCard, Send, RefreshCw, X, Calendar as CalendarIcon, Trash2, Edit, FileText } from "lucide-react";
 import DataImport from "@/components/DataImport";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -55,6 +55,9 @@ export default function Payments() {
   // Bulk invoice states
   const [bulkInvoiceDialogOpen, setBulkInvoiceDialogOpen] = useState(false);
   const [invoiceChannel, setInvoiceChannel] = useState<"email" | "sms" | "both">("email");
+  
+  // Receipt download state
+  const [downloadingReceipt, setDownloadingReceipt] = useState<string | null>(null);
   
   // Filter states
   const [showFilters, setShowFilters] = useState(false);
@@ -401,6 +404,44 @@ export default function Payments() {
       toast.error(error.message || "Failed to send invoices");
     },
   });
+
+  // Download receipt handler
+  const handleDownloadReceipt = async (paymentId: string, studentName: string) => {
+    setDownloadingReceipt(paymentId);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-receipt', {
+        body: { paymentId }
+      });
+
+      if (error) throw error;
+
+      // Convert base64 to blob and download
+      const byteCharacters = atob(data.pdf);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/pdf' });
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = data.filename || `Receipt_${studentName}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Receipt downloaded successfully!");
+    } catch (error: any) {
+      console.error('Error downloading receipt:', error);
+      toast.error(error.message || "Failed to download receipt");
+    } finally {
+      setDownloadingReceipt(null);
+    }
+  };
 
   const openEditDialog = (payment: any) => {
     setEditingPayment(payment);
@@ -1134,6 +1175,18 @@ const monthsFromStartOfYear = Array.from(
                               <Button size="sm" title="Edit Payment" variant="outline" onClick={() => openEditDialog(payment)}>
                                 <Edit className="h-4 w-4 mr-1" />
                               </Button>
+                              {payment.status === "completed" && (
+                                <Button 
+                                  size="sm" 
+                                  title="Download Receipt" 
+                                  variant="outline"
+                                  onClick={() => handleDownloadReceipt(payment.id, payment.students?.name || 'Student')}
+                                  disabled={downloadingReceipt === payment.id}
+                                >
+                                  <FileText className="h-4 w-4 mr-1" />
+                                  {downloadingReceipt === payment.id ? "Downloading..." : "Receipt"}
+                                </Button>
+                              )}
                               {(payment.status === "pending" || payment.status === "failed") && <>
                                   {payment.status === "pending" && <Button title="Verify Payment" size="sm" onClick={() => openVerifyDialog(payment.id)}>
                                       <CreditCard className="h-4 w-4 mr-1" />
