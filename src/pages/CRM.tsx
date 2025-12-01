@@ -20,23 +20,23 @@ import DataImport from "@/components/DataImport";
 const stages = [{
   id: "new",
   label: "New Leads",
-  color: "bg-blue-500"
+  color: "bg-[hsl(340,60%,65%)]"
 }, {
   id: "contacted",
   label: "Contacted",
-  color: "bg-orange-500"
+  color: "bg-[hsl(15,95%,75%)]"
 }, {
   id: "qualified",
   label: "Qualified",
-  color: "bg-purple-500"
+  color: "bg-[hsl(265,65%,72%)]"
 }, {
   id: "converted",
   label: "Converted",
-  color: "bg-green-500"
+  color: "bg-[hsl(170,65%,55%)]"
 }, {
   id: "lost",
   label: "Lost",
-  color: "bg-slate-500"
+  color: "bg-[hsl(220,50%,72%)]"
 }];
 interface Lead {
   id: string;

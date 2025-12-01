@@ -447,7 +447,7 @@ export default function Students() {
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          name: e.target.value,
+                          name: e.target.value.toUpperCase(),
                         })
                       }
                     />

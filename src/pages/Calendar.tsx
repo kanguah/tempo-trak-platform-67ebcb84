@@ -82,7 +82,7 @@ export default function Calendar() {
     day: "",
     time: "",
     duration: "60",
-    room: "",
+    room: "Room 4",
     isRecurring: false,
     repeatPattern: "weekly",
     occurrences: "4"
@@ -215,12 +215,20 @@ export default function Calendar() {
         } else {
           // Recurring lessons for this slot
           const baseDay = parseInt(slot.day);
-          const occurrences = 4; // Fixed to 4 weeks for a month
           const weekIncrement = lesson.repeatPattern === "weekly" ? 1 : lesson.repeatPattern === "biweekly" ? 2 : 4;
           
           const currentDate = new Date();
           const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
           const firstLessonDate = addDays(weekStart, baseDay);
+          const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+          
+          // Calculate number of occurrences based on weeks until month end
+          let occurrences = 0;
+          let checkDate = firstLessonDate;
+          while (checkDate <= monthEnd) {
+            occurrences++;
+            checkDate = addDays(firstLessonDate, occurrences * weekIncrement * 7);
+          }
           
           for (let i = 0; i < occurrences; i++) {
             const specificLessonDate = addDays(firstLessonDate, i * weekIncrement * 7);
@@ -267,7 +275,7 @@ export default function Calendar() {
         day: "",
         time: "",
         duration: "60",
-        room: "",
+        room: "Room 4",
         isRecurring: false,
         repeatPattern: "weekly",
         occurrences: "4"
@@ -421,7 +429,7 @@ export default function Calendar() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Default Tutor (optional)</Label>
+                    <Label>Default Tutor</Label>
                     <Select value={newLesson.tutorId} onValueChange={value => setNewLesson({
                     ...newLesson,
                     tutorId: value

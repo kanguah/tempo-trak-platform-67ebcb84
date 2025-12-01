@@ -20,6 +20,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { format, set } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useSendMessage } from "@/hooks/useMessaging";
 //const COLORS = ["hsl(240 70% 55%)", "hsl(270 60% 60%)", "hsl(45 90% 60%)", "hsl(200 70% 55%)"];
 
 const COLORS = ["hsl(170 65% 60%)", "hsl(15 95% 68%)", "hsl(265 65% 65%)", "hsl(340 75% 65%)", "hsl(200 70% 60%)"];
@@ -82,6 +83,7 @@ export default function Payments() {
     user
   } = useAuth();
   const queryClient = useQueryClient();
+  const sendMessageMutation = useSendMessage();
   const {
     data: payments = [],
     isLoading
@@ -198,11 +200,63 @@ export default function Payments() {
         error
       } = await supabase.from('payments').update(updateData).eq('id', paymentId);
       if (error) throw error;
+
+      // Fetch the payment details to get student information
+      const { data: paymentData } = await supabase
+        .from('payments')
+        .select('*, students(name, email, phone)')
+        .eq('id', paymentId)
+        .single();
+
+      return paymentData;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (paymentData, variables) => {
       queryClient.invalidateQueries({
         queryKey: ['payments']
       });
+      
+      // Send notification messages
+      if (paymentData?.students) {
+        const student = paymentData.students;
+        const paymentStatus = variables.isFullPayment ? "fully paid" : "partially paid";
+        const messageBody = `Hi ${student.name}, your payment of GHS${variables.paidAmount.toFixed(2)} has been successfully received. Thank you for your payment!`;
+        
+        // Send via email if available
+        if (student.email) {
+          sendMessageMutation.mutate({
+            channel: 'email',
+            subject: `Payment Verification Confirmation`,
+            messageBody,
+            recipients: [
+              {
+                name: student.name,
+                contact: student.email,
+                type: 'student',
+                id: paymentData.student_id
+              }
+            ],
+            recipientType: 'student'
+          });
+        }
+
+        // Send via SMS if available
+        if (student.phone) {
+          sendMessageMutation.mutate({
+            channel: 'sms',
+            messageBody,
+            recipients: [
+              {
+                name: student.name,
+                contact: student.phone,
+                type: 'student',
+                id: paymentData.student_id
+              }
+            ],
+            recipientType: 'student'
+          });
+        }
+      }
+
       const message = variables.isFullPayment ? "Payment verified successfully!" : "Partial payment recorded successfully!";
       toast.success(message);
       setVerifyDialogOpen(false);
@@ -256,9 +310,63 @@ export default function Payments() {
           .eq('id', update.id);
         if (error) throw error;
       }
+
+      // Fetch all updated payments with student details for notifications
+      const { data: updatedPayments } = await supabase
+        .from('payments')
+        .select('*, students(name, email, phone)')
+        .in('id', paymentIds);
+
+      return updatedPayments;
     },
-    onSuccess: () => {
+    onSuccess: (updatedPayments) => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
+      
+      // Send notifications for each payment
+      if (updatedPayments) {
+        updatedPayments.forEach((payment) => {
+          if (payment?.students) {
+            const student = payment.students;
+            const messageBody = `Hi ${student.name}, your payment of GH₵${payment.amount.toFixed(2)} has been verified and marked as paid. Thank you!`;
+            
+            // Send via email if available
+            if (student.email) {
+              sendMessageMutation.mutate({
+                channel: 'email',
+                subject: `Payment Verification Confirmation`,
+                messageBody,
+                recipients: [
+                  {
+                    name: student.name,
+                    contact: student.email,
+                    type: 'student',
+                    id: payment.student_id
+                  }
+                ],
+                recipientType: 'student'
+              });
+            }
+
+            // Send via SMS if available
+            if (student.phone) {
+              sendMessageMutation.mutate({
+                channel: 'sms',
+                messageBody,
+                recipients: [
+                  {
+                    name: student.name,
+                    contact: student.phone,
+                    type: 'student',
+                    id: payment.student_id
+                  }
+                ],
+                recipientType: 'student'
+              });
+            }
+          }
+        });
+      }
+
       setSelectedPayments(new Set());
       setBulkMarkPaidDialogOpen(false);
       setBulkPaymentMethod("");

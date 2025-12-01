@@ -180,17 +180,17 @@ export default function Attendance() {
     switch (status) {
       case "present":
         return (
-          <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
+          <Badge className="bg-[hsl(170,65%,55%)]/10 text-[hsl(170,65%,45%)] border-[hsl(170,65%,55%)]/20">
             Present
           </Badge>
         );
       case "absent":
         return (
-          <Badge className="bg-red-500/10 text-red-600 border-red-500/20">Absent</Badge>
+          <Badge className="bg-[hsl(0,75%,55%)]/10 text-[hsl(0,75%,45%)] border-[hsl(0,75%,55%)]/20">Absent</Badge>
         );
       case "pending":
         return (
-          <Badge className="bg-orange-500/10 text-orange-600 border-orange-500/20">
+          <Badge className="bg-[hsl(15,95%,75%)]/10 text-[hsl(15,80%,50%)] border-[hsl(15,95%,75%)]/20">
             Pending
           </Badge>
         );
@@ -225,20 +225,20 @@ export default function Attendance() {
               <>
                 <Button 
                   variant="outline"
-                  className="bg-green-500/10 hover:bg-green-500/20 border-green-500/20"
+                  className="bg-[hsl(170,65%,55%)]/10 hover:bg-[hsl(170,65%,55%)]/20 border-[hsl(170,65%,55%)]/20"
                   onClick={() => markAllAttendanceMutation.mutate("present")}
                   disabled={markAllAttendanceMutation.isPending}
                 >
-                  <Check className="mr-2 h-5 w-5 text-green-600" />
+                  <Check className="mr-2 h-5 w-5 text-[hsl(170,65%,45%)]" />
                   Mark All Present
                 </Button>
                 <Button 
                   variant="outline"
-                  className="bg-red-500/10 hover:bg-red-500/20 border-red-500/20"
+                  className="bg-[hsl(0,75%,55%)]/10 hover:bg-[hsl(0,75%,55%)]/20 border-[hsl(0,75%,55%)]/20"
                   onClick={() => markAllAttendanceMutation.mutate("absent")}
                   disabled={markAllAttendanceMutation.isPending}
                 >
-                  <X className="mr-2 h-5 w-5 text-red-600" />
+                  <X className="mr-2 h-5 w-5 text-[hsl(0,75%,45%)]" />
                   Mark All Absent
                 </Button>
               </>
@@ -269,43 +269,43 @@ export default function Attendance() {
 
         {/* Summary Cards */}
         <div className="grid gap-6 md:grid-cols-3">
-          <Card className="shadow-card border-l-4 border-l-green-500">
+          <Card className="shadow-card border-l-4" style={{ borderLeftColor: "hsl(170, 65%, 55%)" }}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Present</p>
-                  <h3 className="text-3xl font-bold text-green-600">{presentCount}</h3>
+                  <h3 className="text-3xl font-bold" style={{ color: "hsl(170, 65%, 45%)" }}>{presentCount}</h3>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center">
-                  <Check className="h-6 w-6 text-green-600" />
+                <div className="h-12 w-12 rounded-full flex items-center justify-center" style={{ backgroundColor: "hsl(170, 65%, 55% / 0.1)" }}>
+                  <Check className="h-6 w-6" style={{ color: "hsl(170, 65%, 45%)" }} />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="shadow-card border-l-4 border-l-red-500">
+          <Card className="shadow-card border-l-4" style={{ borderLeftColor: "hsl(0, 75%, 55%)" }}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Absent</p>
-                  <h3 className="text-3xl font-bold text-red-600">{absentCount}</h3>
+                  <h3 className="text-3xl font-bold" style={{ color: "hsl(0, 75%, 45%)" }}>{absentCount}</h3>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center">
-                  <X className="h-6 w-6 text-red-600" />
+                <div className="h-12 w-12 rounded-full flex items-center justify-center" style={{ backgroundColor: "hsl(0, 75%, 55% / 0.1)" }}>
+                  <X className="h-6 w-6" style={{ color: "hsl(0, 75%, 45%)" }} />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="shadow-card border-l-4 border-l-orange-500">
+          <Card className="shadow-card border-l-4" style={{ borderLeftColor: "hsl(15, 95%, 75%)" }}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Pending</p>
-                  <h3 className="text-3xl font-bold text-orange-600">{pendingCount}</h3>
+                  <h3 className="text-3xl font-bold" style={{ color: "hsl(15, 80%, 50%)" }}>{pendingCount}</h3>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-orange-500/10 flex items-center justify-center">
-                  <MessageSquare className="h-6 w-6 text-orange-600" />
+                <div className="h-12 w-12 rounded-full flex items-center justify-center" style={{ backgroundColor: "hsl(15, 95%, 75% / 0.1)" }}>
+                  <MessageSquare className="h-6 w-6" style={{ color: "hsl(15, 80%, 50%)" }} />
                 </div>
               </div>
             </CardContent>
@@ -356,7 +356,8 @@ export default function Attendance() {
                           <Button
                             size="sm"
                             onClick={() => markAttendanceMutation.mutate({ id: record.id, status: "present" })}
-                            className="bg-green-500 hover:bg-green-600 text-white"
+                            style={{ backgroundColor: "hsl(170, 65%, 55%)", color: "white" }}
+                            className="hover:opacity-90"
                           >
                             <Check className="h-4 w-4 mr-1" />
                             Present
@@ -364,7 +365,8 @@ export default function Attendance() {
                           <Button
                             size="sm"
                             onClick={() => markAttendanceMutation.mutate({ id: record.id, status: "absent" })}
-                            variant="destructive"
+                            style={{ backgroundColor: "hsl(0, 75%, 55%)", color: "white" }}
+                            className="hover:opacity-90"
                           >
                             <X className="h-4 w-4 mr-1" />
                             Absent
