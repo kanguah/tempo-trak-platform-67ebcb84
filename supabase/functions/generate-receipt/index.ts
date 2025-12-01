@@ -92,7 +92,7 @@ serve(async (req) => {
     doc.setFont(undefined, 'bold');
     doc.text('Date:', rightMargin - 50, yPos);
     doc.setFont(undefined, 'normal');
-    doc.text(new Date(payment.payment_date || payment.created_at).toLocaleDateString(), rightMargin - 30, yPos, { align: 'right' });
+    doc.text(new Date(payment.payment_date || payment.created_at).toLocaleDateString(), rightMargin - 20, yPos, { align: 'right' });
     
     yPos += 8;
     doc.setFont(undefined, 'bold');
@@ -158,7 +158,7 @@ serve(async (req) => {
         doc.setFont(undefined, 'bold');
         doc.text('Phone:', leftMargin, yPos);
         doc.setFont(undefined, 'normal');
-        doc.text(payment.students.parent_phone, leftMargin + 25, yPos);
+        doc.text('0'+payment.students.parent_phone, leftMargin + 25, yPos);
       }
     }
 
@@ -191,7 +191,7 @@ serve(async (req) => {
       yPos += 7;
       doc.setTextColor(239, 68, 68);
       doc.text('Discount', leftMargin + 5, yPos);
-      doc.text(`-GH₵ ${Number(payment.discount_amount).toFixed(2)}`, rightMargin - 5, yPos, { align: 'right' });
+      doc.text(`-GHS ${Number(payment.discount_amount).toFixed(2)}`, rightMargin - 5, yPos, { align: 'right' });
       doc.setTextColor(0, 0, 0);
     }
 
@@ -204,7 +204,7 @@ serve(async (req) => {
     doc.setFontSize(14);
     doc.text('Total Paid:', leftMargin + 5, yPos);
     doc.setTextColor(16, 185, 129);
-    doc.text(`GH₵ ${Number(payment.paid_amount || payment.amount).toFixed(2)}`, rightMargin - 5, yPos, { align: 'right' });
+    doc.text(`GHS ${Number(payment.paid_amount || payment.amount).toFixed(2)}`, rightMargin - 5, yPos, { align: 'right' });
     doc.setTextColor(0, 0, 0);
 
     // Payment method

@@ -115,8 +115,9 @@ Best regards,
 49ice Music Academy`;
 
       // SMS content
-      const smsMessage = `Invoice: GHS${payment.amount} due ${dueDate} for ${studentName}. Package: ${payment.package_type}. Pay via bank/mobile money. Thank you!`;
-
+      //const smsMessage = `Invoice: GHS${payment.amount} due ${dueDate} for ${studentName}. Package: ${payment.package_type}. Pay via bank/mobile money. Thank you!`;
+      const smsMessage=`Dear ${studentName}, your invoice for ${new Date(dueDate).toLocaleString("en-US", { month: "long" })} has been generated. 
+      The total amount due is ${payment.amount}. Please make the payment before ${dueDate} using this link: `;
       try {
         // Send email
         if ((channel === "email" || channel === "both") && recipientEmail) {
