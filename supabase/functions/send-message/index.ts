@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import {sendMail} from "@/lib/mail.ts";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -82,33 +82,20 @@ serve(async (req) => {
 
         if (channel === "email") {
           // Send email using Resend API
-          /*
-          const emailResponse = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${RESEND_API_KEY}`,
-            },
-            body: JSON.stringify({
-              from: "Musical Academy <onboarding@resend.dev>",
-              to: [recipient.contact],
-              subject: subject || "Message from Musical Academy",
-              html: messageBody.replace(/\n/g, "<br>"),
-            }),
-          });
-*/
-          const emailResponse = await sendMail({
-            to: recipient.contact,
-            subject: subject || "Message from Musical Academy",
+          const resend = new Resend(RESEND_API_KEY);
+          
+          const { data: emailResult, error: emailError } = await resend.emails.send({
+            from: "49ice Music Academy <onboarding@resend.dev>",
+            to: [recipient.contact],
+            subject: subject || "Message from 49ice Music Academy",
             html: messageBody.replace(/\n/g, "<br>"),
           });
-          const emailResult = await emailResponse.json();
 
-          if (!emailResponse.ok) {
-            throw new Error(emailResult.message || "Email sending failed");
+          if (emailError) {
+            throw new Error(emailError.message || "Email sending failed");
           }
 
-          console.log(`Email sent to ${recipient.contact}:`, emailResult.id);
+          console.log(`Email sent to ${recipient.contact}:`, emailResult?.id);
         } else if (channel === "sms") {
           console.log(recipient);
           // Send SMS using SMS Online Ghana

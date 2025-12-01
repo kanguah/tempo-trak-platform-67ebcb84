@@ -52,6 +52,10 @@ export default function Payments() {
   const [bulkEditAmount, setBulkEditAmount] = useState("");
   const [bulkEditDueDate, setBulkEditDueDate] = useState<Date | undefined>(undefined);
   
+  // Bulk invoice states
+  const [bulkInvoiceDialogOpen, setBulkInvoiceDialogOpen] = useState(false);
+  const [invoiceChannel, setInvoiceChannel] = useState<"email" | "sms" | "both">("email");
+  
   // Filter states
   const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -376,6 +380,25 @@ export default function Payments() {
     },
     onError: () => {
       toast.error("Failed to update payments");
+    },
+  });
+
+  // Bulk invoice sending mutation
+  const bulkSendInvoiceMutation = useMutation({
+    mutationFn: async ({ paymentIds, channel }: { paymentIds: string[]; channel: "email" | "sms" | "both" }) => {
+      const { data, error } = await supabase.functions.invoke('send-invoice', {
+        body: { paymentIds, channel }
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      setSelectedPayments(new Set());
+      setBulkInvoiceDialogOpen(false);
+      toast.success(data.message || "Invoices sent successfully!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to send invoices");
     },
   });
 
@@ -1016,6 +1039,14 @@ const monthsFromStartOfYear = Array.from(
                   Bulk Edit ({selectedPayments.size})
                 </Button>
                 <Button
+                  onClick={() => setBulkInvoiceDialogOpen(true)}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Send Invoice ({selectedPayments.size})
+                </Button>
+                <Button
                   onClick={handleBulkMarkPaid}
                   variant="outline"
                   size="sm"
@@ -1171,6 +1202,55 @@ const monthsFromStartOfYear = Array.from(
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Bulk Invoice Dialog */}
+        <Dialog open={bulkInvoiceDialogOpen} onOpenChange={setBulkInvoiceDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Send Invoices to {selectedPayments.size} Students</DialogTitle>
+              <DialogDescription>Select how you want to send the payment invoices</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Delivery Channel</Label>
+                <Select value={invoiceChannel} onValueChange={(value: "email" | "sms" | "both") => setInvoiceChannel(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select channel" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="email">Email Only</SelectItem>
+                    <SelectItem value="sms">SMS Only</SelectItem>
+                    <SelectItem value="both">Both Email & SMS</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                <p className="text-sm font-medium">Invoice will include:</p>
+                <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                  <li>• Student name and package details</li>
+                  <li>• Amount due and due date</li>
+                  <li>• Payment instructions (Bank, Mobile Money, Cash)</li>
+                  <li>• Payment status</li>
+                </ul>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setBulkInvoiceDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => bulkSendInvoiceMutation.mutate({ 
+                  paymentIds: Array.from(selectedPayments), 
+                  channel: invoiceChannel 
+                })}
+                disabled={bulkSendInvoiceMutation.isPending}
+              >
+                <Send className="h-4 w-4 mr-2" />
+                {bulkSendInvoiceMutation.isPending ? "Sending..." : "Send Invoices"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Individual Edit Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
