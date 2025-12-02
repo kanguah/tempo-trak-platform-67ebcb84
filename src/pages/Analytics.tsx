@@ -4,6 +4,8 @@ import { MetricCard } from "@/components/MetricCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   LineChart,
   Line,
@@ -22,10 +24,11 @@ import {
   Area,
 } from "recharts";
 
-const COLORS = ["hsl(170 65% 60%)", "hsl(15 95% 68%)", "hsl(265 65% 65%)", "hsl(340 75% 65%)", "hsl(200 70% 60%)"];
+const COLORS = ["hsl(170 65% 60%)", "hsl(15 95% 68%)", "hsl(265 65% 65%)", "hsl(340 75% 65%)", "hsl(200 70% 60%)","hsl(45 90% 62%)"];
 
 export default function Analytics() {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
 
   const { data: payments = [] } = useQuery({
     queryKey: ['analytics-payments'],
@@ -295,15 +298,15 @@ const monthsFromStartOfYear = Array.from(
             </CardHeader>
             <CardContent>
               {expenseBreakdown.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
+                <ResponsiveContainer width="100%" height={isMobile ? 250 : 300}>
+                  <PieChart margin={{ top: isMobile ? 10 : 20, right: isMobile ? 10 : 20, bottom: isMobile ? 10 : 20, left: isMobile ? 10 : 20 }}>
                     <Pie
                       data={expenseBreakdown}
                       cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={90}
+                      cy={isMobile ? "45%" : "50%"}
+                      labelLine={!isMobile}
+                      label={isMobile ? undefined : ({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={isMobile ? 80 : 90}
                       fill="#8884d8"
                       dataKey="value"
                     >
@@ -311,11 +314,24 @@ const monthsFromStartOfYear = Array.from(
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip 
+                      formatter={(value: any) => `GH₵${Number(value).toLocaleString()}`}
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                        fontSize: isMobile ? "12px" : "14px"
+                      }}
+                    />
+                    <Legend 
+                      verticalAlign="bottom"
+                      height={isMobile ? 40 : 36}
+                      wrapperStyle={{ fontSize: isMobile ? "12px" : "14px", paddingTop: isMobile ? "15px" : "0" }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                <div className={`${isMobile ? 'h-[250px]' : 'h-[300px]'} flex items-center justify-center text-muted-foreground`}>
                   No expense data yet
                 </div>
               )}

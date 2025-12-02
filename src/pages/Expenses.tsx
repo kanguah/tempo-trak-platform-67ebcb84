@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, DollarSign, TrendingDown, Clock, CheckCircle, Trash2 } from "lucide-react";
 import DataImport from "@/components/DataImport";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const COLORS = ["hsl(170 65% 60%)", "hsl(15 95% 68%)", "hsl(265 65% 65%)", "hsl(340 75% 65%)", "hsl(200 70% 60%)", "hsl(45 90% 62%)"];
 
@@ -35,6 +36,7 @@ const PAYMENT_METHODS = [
 ];
 
 export default function Expenses() {
+  const isMobile = useIsMobile();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     category: "",
@@ -450,7 +452,7 @@ export default function Expenses() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs md:text-sm text-muted-foreground mb-1">Largest Category</p>
-                  <h3 className="text-lg md:text-2xl font-bold text-foreground truncate">
+                  <h3 className="text-lg md:text-2xl font-bold text-foreground">
                     {largestCategory}
                   </h3>
                 </div>
@@ -468,16 +470,16 @@ export default function Expenses() {
             <CardHeader>
               <CardTitle>Expense Breakdown by Category</CardTitle>
             </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
+            <CardContent className="p-4 md:p-6">
+              <ResponsiveContainer width="100%" height={isMobile ? 250 : 350}>
+                <PieChart margin={{ top: isMobile ? 10 : 20, right: isMobile ? 10 : 20, bottom: isMobile ? 10 : 20, left: isMobile ? 10 : 20 }}>
                   <Pie
                     data={chartData}
                     cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={90}
+                    cy={isMobile ? "45%" : "50%"}
+                    labelLine={!isMobile}
+                    label={isMobile ? undefined : ({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={isMobile ? 80 : 90}
                     fill="#8884d8"
                     dataKey="value"
                   >
@@ -485,8 +487,20 @@ export default function Expenses() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip />
-                  <Legend />
+                  <Tooltip 
+                    formatter={(value: any) => `GH₵${Number(value).toLocaleString()}`}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                      fontSize: isMobile ? "12px" : "14px"
+                    }}
+                  />
+                  <Legend 
+                    verticalAlign={isMobile ? "bottom" : "bottom"}
+                    height={isMobile ? 40 : 36}
+                    wrapperStyle={{ fontSize: isMobile ? "12px" : "14px", paddingTop: isMobile ? "15px" : "0" }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -598,32 +612,32 @@ export default function Expenses() {
                     className="border-2 animate-scale-in"
                     style={{ animationDelay: `${index * 0.05}s` }}
                   >
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2 flex-wrap">
-                            <h3 className="font-bold text-foreground">{expense.category}</h3>
-                            <Badge variant={expense.status === 'paid' ? 'default' : 'secondary'}>
+                    <CardContent className="p-3 md:p-4">
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <h3 className="font-bold text-foreground text-sm md:text-base">{expense.category}</h3>
+                            <Badge variant={expense.status === 'paid' ? 'default' : 'secondary'} className="text-xs">
                               {expense.status === 'paid' ? 'Paid' : 'Pending'}
                             </Badge>
                           </div>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 text-xs md:text-sm text-muted-foreground">
                             <div>
                               <p className="font-medium">Date</p>
-                              <p>{new Date(expense.expense_date).toLocaleDateString()}</p>
+                              <p className="truncate">{new Date(expense.expense_date).toLocaleDateString()}</p>
                             </div>
                             <div>
                               <p className="font-medium">Payment Method</p>
-                              <p>{expense.payment_method || "-"}</p>
+                              <p className="truncate">{expense.payment_method || "-"}</p>
                             </div>
-                            <div className="col-span-2">
+                            <div className="col-span-2 md:col-span-2">
                               <p className="font-medium">Description</p>
                               <p className="truncate">{expense.description || "-"}</p>
                             </div>
                           </div>
                         </div>
-                        <div className="text-right ml-4">
-                          <p className="text-2xl font-bold text-red-600">GH₵ {expense.amount}</p>
+                        <div className="text-right md:ml-4 flex-shrink-0">
+                          <p className="text-xl md:text-2xl font-bold text-red-600">GH₵ {Number(expense.amount).toLocaleString()}</p>
                         </div>
                       </div>
                     </CardContent>

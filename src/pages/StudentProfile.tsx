@@ -350,6 +350,7 @@ export default function StudentProfile() {
     try {
       const dataToValidate = {
         ...formData,
+        schedule: [],
         parent_name: hasParent ? formData.parent_name : "",
         parent_email: hasParent ? formData.parent_email : "",
         parent_phone: hasParent ? formData.parent_phone : "",

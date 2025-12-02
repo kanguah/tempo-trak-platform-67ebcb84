@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Filter, Download, CheckCircle, Clock, XCircle, CreditCard, Send, RefreshCw, X, Calendar as CalendarIcon, Trash2, Edit, FileText } from "lucide-react";
+import { Search, Filter, Download, CheckCircle, Clock, XCircle, CreditCard, Send, RefreshCw, X, Calendar as CalendarIcon, Trash2, Edit, FileText, Receipt, ReceiptText } from "lucide-react";
 import DataImport from "@/components/DataImport";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -56,6 +56,11 @@ export default function Payments() {
   // Bulk invoice states
   const [bulkInvoiceDialogOpen, setBulkInvoiceDialogOpen] = useState(false);
   const [invoiceChannel, setInvoiceChannel] = useState<"email" | "sms" | "both">("email");
+  
+  // Individual invoice states
+  const [individualInvoiceDialogOpen, setIndividualInvoiceDialogOpen] = useState(false);
+  const [selectedInvoicePaymentId, setSelectedInvoicePaymentId] = useState<string | null>(null);
+  const [selectedInvoiceChannel, setSelectedInvoiceChannel] = useState<"email" | "sms" | "both">("email");
   
   // Receipt download state
   const [downloadingReceipt, setDownloadingReceipt] = useState<string | null>(null);
@@ -554,6 +559,26 @@ export default function Payments() {
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to send invoices");
+    },
+  });
+
+  // Individual invoice sending mutation
+  const individualSendInvoiceMutation = useMutation({
+    mutationFn: async ({ paymentId, channel }: { paymentId: string; channel: "email" | "sms" | "both" }) => {
+      const { data, error } = await supabase.functions.invoke('send-invoice', {
+        body: { paymentIds: [paymentId], channel }
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      setIndividualInvoiceDialogOpen(false);
+      setSelectedInvoicePaymentId(null);
+      setSelectedInvoiceChannel("email");
+      toast.success(data.message || "Invoice sent successfully!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to send invoice");
     },
   });
 
@@ -1257,7 +1282,7 @@ const monthsFromStartOfYear = Array.from(
                     variant="outline"
                     size="sm"
                   >
-                    <Send className="h-4 w-4 mr-2" />
+                    <ReceiptText className="h-4 w-4 mr-2" />
                     Send Invoice ({selectedPayments.size})
                   </Button>
                   <Button
@@ -1382,6 +1407,15 @@ const monthsFromStartOfYear = Array.from(
                               <Button size="sm" title="Edit Payment" variant="outline" onClick={() => openEditDialog(payment)}>
                                 <Edit className="h-4 w-4 mr-1" />
                               </Button>
+                              {(payment.status === "pending" || payment.status === "failed") && (
+                                <Button size="sm" title="Send Invoice" variant="outline" onClick={() => {
+                                  setSelectedInvoicePaymentId(payment.id);
+                                  setSelectedInvoiceChannel("email");
+                                  setIndividualInvoiceDialogOpen(true);
+                                }}>
+                                  <ReceiptText className="h-4 w-4 mr-1" />
+                                </Button>
+                              )}
                               {payment.status === "completed" && (
                                 <Button 
                                   size="sm" 
@@ -1506,7 +1540,7 @@ const monthsFromStartOfYear = Array.from(
                 })}
                 disabled={bulkSendInvoiceMutation.isPending}
               >
-                <Send className="h-4 w-4 mr-2" />
+                <ReceiptText className="h-4 w-4 mr-2" />
                 {bulkSendInvoiceMutation.isPending ? "Sending..." : "Send Invoices"}
               </Button>
             </div>
@@ -1692,6 +1726,59 @@ const monthsFromStartOfYear = Array.from(
                 Cancel
               </Button>
               <Button onClick={confirmBulkEdit}>Update Payments</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Individual Invoice Dialog */}
+        <Dialog open={individualInvoiceDialogOpen} onOpenChange={setIndividualInvoiceDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Send Invoice</DialogTitle>
+              <DialogDescription>Select how you want to send the payment invoice</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Delivery Channel</Label>
+                <Select value={selectedInvoiceChannel} onValueChange={(value: "email" | "sms" | "both") => setSelectedInvoiceChannel(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select channel" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="email">Email Only</SelectItem>
+                    <SelectItem value="sms">SMS Only</SelectItem>
+                    <SelectItem value="both">Both Email & SMS</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                <p className="text-sm font-medium">Invoice will include:</p>
+                <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                  <li>• Student name and package details</li>
+                  <li>• Amount due and due date</li>
+                  <li>• Payment instructions (Bank, Mobile Money, Cash)</li>
+                  <li>• Payment status</li>
+                </ul>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setIndividualInvoiceDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (selectedInvoicePaymentId) {
+                    individualSendInvoiceMutation.mutate({ 
+                      paymentId: selectedInvoicePaymentId, 
+                      channel: selectedInvoiceChannel 
+                    });
+                  }
+                }}
+                disabled={individualSendInvoiceMutation.isPending}
+              >
+                <ReceiptText className="h-4 w-4 mr-2" />
+                {individualSendInvoiceMutation.isPending ? "Sending..." : "Send Invoice"}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
