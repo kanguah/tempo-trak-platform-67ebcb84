@@ -497,9 +497,9 @@ export default function Expenses() {
                     }}
                   />
                   <Legend 
-                    verticalAlign={isMobile ? "bottom" : "bottom"}
+                    verticalAlign="bottom"
                     height={isMobile ? 40 : 36}
-                    wrapperStyle={{ fontSize: isMobile ? "12px" : "14px", paddingTop: isMobile ? "15px" : "0" }}
+                    wrapperStyle={{ fontSize: isMobile ? "12px" : "14px" }}
                   />
                 </PieChart>
               </ResponsiveContainer>
