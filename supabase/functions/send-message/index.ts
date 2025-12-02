@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { Resend } from "https://esm.sh/resend@2.0.0";
+import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -81,12 +81,23 @@ serve(async (req) => {
         let deliveryError = null;
 
         if (channel === "email") {
-          // Send email using Resend API
-          const resend = new Resend(RESEND_API_KEY);
-          
-          const { data: emailResult, error: emailError } = await resend.emails.send({
-            from: "49ice Music Academy <onboarding@resend.dev>",
-            to: [recipient.contact],
+          // Send email using Gmail SMTP
+          if (!GMAIL_USER || !GMAIL_PASSWORD) {
+            throw new Error("Gmail credentials not configured");
+          }
+
+          const client = new SmtpClient();
+
+          await client.connect({
+            hostname: "smtp.gmail.com",
+            port: 465,
+            username: GMAIL_USER,
+            password: GMAIL_PASSWORD,
+          });
+
+          await client.send({
+            from: GMAIL_USER,
+            to: recipient.contact,
             subject: subject || "Message from 49ice Music Academy",
             html: messageBody.replace(/\n/g, "<br>"),
           });

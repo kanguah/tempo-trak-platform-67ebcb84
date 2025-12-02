@@ -1,13 +1,14 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { Resend } from "https://esm.sh/resend@2.0.0";
+import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const GMAIL_USER = Deno.env.get("EMAIL_USER");
+const GMAIL_PASSWORD = Deno.env.get("EMAIL_PASS");
 const SMSONLINEGH_API_KEY = Deno.env.get("SMSONLINEGH_API_KEY");
 const senderId = "49ice Music";
 
@@ -45,17 +46,13 @@ serve(async (req) => {
     }
 
     const jwt = authHeader.replace("Bearer ", "");
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${jwt}`,
-          },
+    const supabaseClient = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_ANON_KEY") ?? "", {
+      global: {
+        headers: {
+          Authorization: `Bearer ${jwt}`,
         },
-      }
-    );
+      },
+    });
 
     const {
       data: { user },
@@ -82,7 +79,6 @@ serve(async (req) => {
       throw paymentsError;
     }
 
-    const resend = new Resend(RESEND_API_KEY);
     let successCount = 0;
     let failCount = 0;
 
@@ -93,13 +89,10 @@ serve(async (req) => {
       const studentName = payment.students?.name;
 
       const dueDate = payment.due_date ? new Date(payment.due_date).toLocaleDateString() : "N/A";
-      
+
       // Email content
       const emailSubject = `Payment Invoice - 49ice Music Academy`;
-      const emailBody = `Dear ${recipientName},
-
-This is a payment invoice for 49ice Music Academy.
-
+      const emailBody = `Dear ${recipientName},This is a payment invoice for 49ice Music Academy.
 Payment Details:
 - Student: ${studentName}
 - Package: ${payment.package_type || "N/A"}
@@ -116,17 +109,32 @@ Best regards,
 
       // SMS content
       //const smsMessage = `Invoice: GHS${payment.amount} due ${dueDate} for ${studentName}. Package: ${payment.package_type}. Pay via bank/mobile money. Thank you!`;
-      const smsMessage=`Dear ${studentName}, your invoice for ${new Date(dueDate).toLocaleString("en-US", { month: "long" })} has been generated. 
-      The total amount due is ${payment.amount}. Please make the payment before ${dueDate} using this link: `;
+      const smsMessage = `Dear ${studentName}, your invoice for ${new Date(dueDate).toLocaleString("en-US", { month: "long" })} has been generated. The total amount due is GHS ${payment.amount}. Please make the payment before ${dueDate}.`;
       try {
         // Send email
         if ((channel === "email" || channel === "both") && recipientEmail) {
-          await resend.emails.send({
-            from: "49ice Music Academy <onboarding@resend.dev>",
-            to: [recipientEmail],
-            subject: emailSubject,
-            text: emailBody,
+          if (!GMAIL_USER || !GMAIL_PASSWORD) {
+            throw new Error("Gmail credentials not configured");
+          }
+
+          const client = new SmtpClient();
+
+          await client.connect({
+            hostname: "smtp.gmail.com",
+            port: 465,
+            username: GMAIL_USER,
+            password: GMAIL_PASSWORD,
           });
+
+          await client.send({
+            from: GMAIL_USER,
+            to: recipientEmail,
+            subject: emailSubject,
+            content: emailBody.replace(/\n/g, "\r\n"),
+            html: emailBody.replace(/\n/g, "<br>"),
+          });
+          await client.close();
+
           console.log(`Email sent to ${recipientEmail} for payment ${payment.id}`);
         }
 
@@ -167,11 +175,12 @@ Best regards,
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
-      }
+      },
     );
-  } catch (error: any) {
-    console.error("Error in send-invoice function:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error in send-invoice function:", errorMessage);
+    return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
