@@ -92,10 +92,7 @@ serve(async (req) => {
 
       // Email content
       const emailSubject = `Payment Invoice - 49ice Music Academy`;
-      const emailBody = `Dear ${recipientName},
-
-This is a payment invoice for 49ice Music Academy.
-
+      const emailBody = `Dear ${recipientName},/r/nThis is a payment invoice for 49ice Music Academy.
 Payment Details:
 - Student: ${studentName}
 - Package: ${payment.package_type || "N/A"}
