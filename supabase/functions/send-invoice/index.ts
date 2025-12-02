@@ -92,7 +92,7 @@ serve(async (req) => {
 
       // Email content
       const emailSubject = `Payment Invoice - 49ice Music Academy`;
-      const emailBody = `Dear ${recipientName},/r/nThis is a payment invoice for 49ice Music Academy.
+      const emailBody = `Dear ${recipientName},This is a payment invoice for 49ice Music Academy.
 Payment Details:
 - Student: ${studentName}
 - Package: ${payment.package_type || "N/A"}
@@ -130,7 +130,7 @@ Best regards,
             from: GMAIL_USER,
             to: recipientEmail,
             subject: emailSubject,
-            content: emailBody,
+            content: emailBody.replace(/\n/g, "\r\n"),
             html: emailBody.replace(/\n/g, "<br>"),
           });
           await client.close();
