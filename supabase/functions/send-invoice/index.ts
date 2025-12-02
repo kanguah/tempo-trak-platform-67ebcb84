@@ -46,17 +46,13 @@ serve(async (req) => {
     }
 
     const jwt = authHeader.replace("Bearer ", "");
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${jwt}`,
-          },
+    const supabaseClient = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_ANON_KEY") ?? "", {
+      global: {
+        headers: {
+          Authorization: `Bearer ${jwt}`,
         },
-      }
-    );
+      },
+    });
 
     const {
       data: { user },
@@ -93,7 +89,7 @@ serve(async (req) => {
       const studentName = payment.students?.name;
 
       const dueDate = payment.due_date ? new Date(payment.due_date).toLocaleDateString() : "N/A";
-      
+
       // Email content
       const emailSubject = `Payment Invoice - 49ice Music Academy`;
       const emailBody = `Dear ${recipientName},
@@ -116,8 +112,8 @@ Best regards,
 
       // SMS content
       //const smsMessage = `Invoice: GHS${payment.amount} due ${dueDate} for ${studentName}. Package: ${payment.package_type}. Pay via bank/mobile money. Thank you!`;
-      const smsMessage=`Dear ${studentName}, your invoice for ${new Date(dueDate).toLocaleString("en-US", { month: "long" })} has been generated. 
-      The total amount due is ${payment.amount}. Please make the payment before ${dueDate} using this link: `;
+      const smsMessage = `Dear ${studentName}, your invoice for ${new Date(dueDate).toLocaleString("en-US", { month: "long" })} has been generated. 
+      The total amount due is GHS ${payment.amount}. Please make the payment before ${dueDate}.`;
       try {
         // Send email
         if ((channel === "email" || channel === "both") && recipientEmail) {
@@ -183,7 +179,7 @@ Best regards,
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
-      }
+      },
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
