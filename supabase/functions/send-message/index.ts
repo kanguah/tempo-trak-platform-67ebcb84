@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { SMTPClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
+import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -79,24 +79,20 @@ serve(async (req) => {
     for (const recipient of recipients) {
       try {
         if (channel === "email") {
-          // Send email using Gmail SMTP with Nodemailer
+          // Send email using Gmail SMTP
           if (!GMAIL_USER || !GMAIL_PASSWORD) {
             throw new Error("Gmail credentials not configured");
           }
 
-          const client = new SMTPClient({
-            connection: {
-              hostname: "smtp.gmail.com",
-              port: 465,
-              tls: true,
-              auth: {
-                username: GMAIL_USER,
-                password: GMAIL_PASSWORD,
-              },
-            },
+          const client = new SmtpClient();
+
+          await client.connect({
+            hostname: "smtp.gmail.com",
+            port: 465,
+            username: GMAIL_USER,
+            password: GMAIL_PASSWORD,
           });
 
-          await client.connect();
           await client.send({
             from: GMAIL_USER,
             to: recipient.contact,
