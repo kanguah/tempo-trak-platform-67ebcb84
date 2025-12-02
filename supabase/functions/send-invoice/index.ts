@@ -112,8 +112,7 @@ Best regards,
 
       // SMS content
       //const smsMessage = `Invoice: GHS${payment.amount} due ${dueDate} for ${studentName}. Package: ${payment.package_type}. Pay via bank/mobile money. Thank you!`;
-      const smsMessage = `Dear ${studentName}, your invoice for ${new Date(dueDate).toLocaleString("en-US", { month: "long" })} has been generated. 
-      The total amount due is GHS ${payment.amount}. Please make the payment before ${dueDate}.`;
+      const smsMessage = `Dear ${studentName}, your invoice for ${new Date(dueDate).toLocaleString("en-US", { month: "long" })} has been generated. The total amount due is GHS ${payment.amount}. Please make the payment before ${dueDate}.`;
       try {
         // Send email
         if ((channel === "email" || channel === "both") && recipientEmail) {
