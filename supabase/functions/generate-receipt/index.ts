@@ -41,13 +41,6 @@ serve(async (req) => {
       throw new Error("Receipt can only be generated for completed payments");
     }
 
-    // Fetch user profile for logo/branding
-    const { data: profile } = await supabaseClient
-      .from("profiles")
-      .select("full_name, logo_url")
-      .eq("id", payment.user_id)
-      .single();
-
     // Create PDF
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -60,10 +53,6 @@ serve(async (req) => {
     doc.setFontSize(24);
     doc.setFont(undefined, "bold");
     doc.text("PAYMENT RECEIPT", pageWidth / 2, 20, { align: "center" });
-
-    doc.setFontSize(12);
-    doc.setFont(undefined, "normal");
-    doc.text(profile?.full_name || "Education Center", pageWidth / 2, 30, { align: "center" });
 
     // Receipt details
     doc.setTextColor(0, 0, 0);
