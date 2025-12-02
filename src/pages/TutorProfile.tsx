@@ -132,6 +132,33 @@ export default function TutorProfile() {
     enabled: !!id && !!user?.id
   });
 
+  // Fetch tutor's students
+  const {
+    data: tutorStudents = []
+  } = useQuery({
+    queryKey: ["tutor-students", id],
+    queryFn: async () => {
+      const {
+        data,
+        error
+      } = await supabase.from("lessons").select("student_id").eq("tutor_id", id).eq("user_id", user?.id);
+      if (error) throw error;
+      
+      // Get unique student IDs
+      const uniqueStudentIds = [...new Set(data.map(l => l.student_id))];
+      
+      // Fetch student details
+      const {
+        data: students,
+        error: studentsError
+      } = await supabase.from("students").select("*").in("id", uniqueStudentIds);
+      
+      if (studentsError) throw studentsError;
+      return students || [];
+    },
+    enabled: !!id && !!user?.id
+  });
+
   // Fetch documents
   const {
     data: documents = []
@@ -742,6 +769,7 @@ const nextWeekLessons = lessons.filter(l => {
           <TabsList className="bg-card">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
+            <TabsTrigger value="students">Students</TabsTrigger>
             <TabsTrigger value="feedback">Feedback</TabsTrigger>
             <TabsTrigger value="payroll">Payroll</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
@@ -841,6 +869,67 @@ const nextWeekLessons = lessons.filter(l => {
                           </div>)}
                       </div> : <p className="text-sm text-muted-foreground">No lessons scheduled</p>}
                   </div>)}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Students Tab */}
+          <TabsContent value="students" className="space-y-6">
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="h-5 w-5 text-primary" />
+                  Students ({tutorStudents.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {tutorStudents.length > 0 ? (
+                  <div className="space-y-3">
+                    {tutorStudents.map((student: any) => {
+                      const lessonCount = lessons.filter(l => l.student_id === student.id).length;
+                      const studentAttendance = attendance.filter(a => a.student_id === student.id);
+                      const attendanceRate = studentAttendance.length > 0 
+                        ? Math.round(studentAttendance.filter(a => a.status === "present").length / studentAttendance.length * 100)
+                        : 0;
+                      
+                      return (
+                        <div key={student.id} className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                          <div className="flex items-center gap-4 flex-1">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full gradient-primary text-white font-bold text-sm">
+                              {student.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-foreground">{student.name}</p>
+                              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                <span>{student.subjects?.join(", ") || "No subjects"}</span>
+                                <span>•</span>
+                                <span>{student.package_type || "No package"}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-6">
+                            <div className="text-right">
+                              <p className="text-sm font-semibold text-foreground">{lessonCount}</p>
+                              <p className="text-xs text-muted-foreground">Lessons</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-semibold text-foreground">{attendanceRate}%</p>
+                              <p className="text-xs text-muted-foreground">Attendance</p>
+                            </div>
+                            <Badge variant="outline" className="text-xs capitalize">
+                              {student.status || "Active"}
+                            </Badge>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Award className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                    <p className="text-muted-foreground">No students assigned yet</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

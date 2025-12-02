@@ -60,6 +60,12 @@ export default function Payments() {
   // Receipt download state
   const [downloadingReceipt, setDownloadingReceipt] = useState<string | null>(null);
   
+  // Long press state for checkbox visibility
+  const [isLongPressMode, setIsLongPressMode] = useState(false);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [longPressedPaymentId, setLongPressedPaymentId] = useState<string | null>(null);
+  const LONG_PRESS_DURATION = 250; // 500ms
+  
   // Filter states
   const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -418,6 +424,44 @@ export default function Payments() {
       newSelected.delete(paymentId);
     }
     setSelectedPayments(newSelected);
+    
+    // Exit selection mode if no payments are selected
+    if (newSelected.size === 0) {
+      setIsLongPressMode(false);
+    }
+  };
+
+  // Long press handlers for showing/hiding checkboxes
+  const handleCardMouseDown = (paymentId: string) => {
+    const timer = setTimeout(() => {
+      setIsLongPressMode(true);
+      setLongPressedPaymentId(paymentId);
+      handleSelectPayment(paymentId, true);
+    }, LONG_PRESS_DURATION);
+    setLongPressTimer(timer);
+  };
+
+  const handleCardMouseUp = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+  };
+
+  const handleCardTouchStart = (paymentId: string) => {
+    const timer = setTimeout(() => {
+      setIsLongPressMode(true);
+      setLongPressedPaymentId(paymentId);
+      handleSelectPayment(paymentId, true);
+    }, LONG_PRESS_DURATION);
+    setLongPressTimer(timer);
+  };
+
+  const handleCardTouchEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
   };
 
   const handleBulkMarkPaid = () => {
@@ -1176,43 +1220,65 @@ const monthsFromStartOfYear = Array.from(
         {/* Payments Table */}
         <Card className="shadow-card">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Recent Payments</CardTitle>
-            {selectedPayments.size > 0 && (
-              <div className="flex gap-2">
+            <div className="flex items-center gap-3">
+              <CardTitle>Recent Payments</CardTitle>
+              {isLongPressMode && (
+                <Badge variant="secondary" className="animate-pulse">
+                  Selection Mode
+                </Badge>
+              )}
+            </div>
+            <div className="flex gap-2">
+              {isLongPressMode && (
                 <Button
-                  onClick={handleBulkEdit}
-                  variant="outline"
+                  onClick={() => {
+                    setIsLongPressMode(false);
+                    setSelectedPayments(new Set());
+                  }}
+                  variant="ghost"
                   size="sm"
+                  title="Exit selection mode"
                 >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Bulk Edit ({selectedPayments.size})
+                  <X className="h-4 w-4" />
                 </Button>
-                <Button
-                  onClick={() => setBulkInvoiceDialogOpen(true)}
-                  variant="outline"
-                  size="sm"
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  Send Invoice ({selectedPayments.size})
-                </Button>
-                <Button
-                  onClick={handleBulkMarkPaid}
-                  variant="outline"
-                  size="sm"
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Mark Paid ({selectedPayments.size})
-                </Button>
-                <Button
-                  onClick={handleBulkDelete}
-                  variant="outline"
-                  size="sm"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete ({selectedPayments.size})
-                </Button>
-              </div>
-            )}
+              )}
+              {selectedPayments.size > 0 && (
+                <>
+                  <Button
+                    onClick={handleBulkEdit}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Bulk Edit ({selectedPayments.size})
+                  </Button>
+                  <Button
+                    onClick={() => setBulkInvoiceDialogOpen(true)}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    Send Invoice ({selectedPayments.size})
+                  </Button>
+                  <Button
+                    onClick={handleBulkMarkPaid}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Mark Paid ({selectedPayments.size})
+                  </Button>
+                  <Button
+                    onClick={handleBulkDelete}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete ({selectedPayments.size})
+                  </Button>
+                </>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {payments.length === 0 ? <div className="text-center py-8 text-muted-foreground max-h-[200px]">
@@ -1220,28 +1286,61 @@ const monthsFromStartOfYear = Array.from(
               </div> : filteredPayments.length === 0 ? <div className="text-center py-8 text-muted-foreground">
                   No payments match your filters. Try adjusting your search criteria.
                 </div> : <>
-                <div className="flex items-center gap-4 mb-4 p-4 bg-muted/30 rounded-lg">
-                  <Checkbox
-                    checked={selectedPayments.size === filteredPayments.length && filteredPayments.length > 0}
-                    onCheckedChange={(checked) => handleSelectAll(!!checked, filteredPayments)}
-                  />
-                  <span className="text-sm font-medium">
-                    {selectedPayments.size > 0 
-                      ? `${selectedPayments.size} of ${filteredPayments.length} selected`
-                      : "Select all"}
-                  </span>
-                </div>
+                {isLongPressMode && (
+                  <div className="mb-4 p-4 bg-primary/10 rounded-lg border-2 border-primary animate-in">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-primary">
+                        {selectedPayments.size > 0 
+                          ? `${selectedPayments.size} of ${filteredPayments.length} selected - Tap cards to toggle`
+                          : "Selection Mode Active - Tap cards to select"}
+                      </span>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setSelectedPayments(new Set(filteredPayments.map(p => p.id)))}
+                          className="text-xs"
+                        >
+                          Select All
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedPayments(new Set());
+                            setIsLongPressMode(false);
+                          }}
+                          className="text-xs"
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                {filteredPayments.map((payment, index) => <Card key={payment.id} className="border-2 animate-scale-in" style={{
-              animationDelay: `${index * 0.05}s`
-            }}>
+                {filteredPayments.map((payment, index) => {
+                  const isSelected = selectedPayments.has(payment.id);
+                  return <Card 
+                  key={payment.id} 
+                  className={`border-2 animate-scale-in cursor-pointer transition-all ${
+                    isSelected 
+                      ? "border-primary bg-primary/5 ring-2 ring-primary/50" 
+                      : "hover:shadow-lg"
+                  }`}
+                  style={{
+                    animationDelay: `${index * 0.05}s`
+                  }}
+                  onMouseDown={() => handleCardMouseDown(payment.id)}
+                  onMouseUp={handleCardMouseUp}
+                  onMouseLeave={handleCardMouseUp}
+                  onTouchStart={() => handleCardTouchStart(payment.id)}
+                  onTouchEnd={handleCardTouchEnd}
+                  onClick={() => isLongPressMode && handleSelectPayment(payment.id, !isSelected)}
+                >
                       <CardContent className="p-4">
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                           <div className="flex items-center gap-3 flex-1">
-                            <Checkbox
-                              checked={selectedPayments.has(payment.id)}
-                              onCheckedChange={(checked) => handleSelectPayment(payment.id, !!checked)}
-                            />
                             <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2 flex-wrap">
                               <h3 className="font-bold text-foreground">
@@ -1292,7 +1391,7 @@ const monthsFromStartOfYear = Array.from(
                                   disabled={downloadingReceipt === payment.id}
                                 >
                                   <FileText className="h-4 w-4 mr-1" />
-                                  {downloadingReceipt === payment.id ? "Downloading..." : "Receipt"}
+                                  {downloadingReceipt === payment.id ? "Downloading..." : ""}
                                 </Button>
                               )}
                               {(payment.status === "pending" || payment.status === "failed") && <>
@@ -1311,7 +1410,8 @@ const monthsFromStartOfYear = Array.from(
                           </div>
                         </div>
                       </CardContent>
-                    </Card>)}
+                    </Card>;
+                })}
               </div></>}
           </CardContent>
         </Card>

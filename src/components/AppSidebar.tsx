@@ -208,15 +208,15 @@ export function AppSidebar() {
             onChange={handleFileChange}
             className="hidden"
           />
-          <div className="flex items-center gap-3">
+          <div className={`flex items-center ${showExpanded ? 'gap-3' : 'justify-center'}`}>
             <button
               onClick={handleLogoClick}
               disabled={uploading}
-              className={`h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center text-primary font-bold transition-all hover:bg-primary/20 cursor-pointer ${showExpanded ? '' : 'mx-auto'} ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`${showExpanded ? 'h-10 w-10' : 'h-8 w-8'} rounded-md bg-primary/10 flex items-center justify-center text-primary font-bold transition-all hover:bg-primary/20 cursor-pointer flex-shrink-0 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
               title="Click to upload logo"
             >
               {logoUrl ? (
-                <img src={logoUrl} alt="Logo" className="h-full w-full rounded-md object-cover" />
+                <img src={logoUrl} alt="Logo" className="h-full w-full rounded-md object-contain" />
               ) : (
                 'SM'
               )}

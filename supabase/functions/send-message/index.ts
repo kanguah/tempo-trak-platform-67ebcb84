@@ -1,14 +1,13 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { SMTPClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const GMAIL_USER = Deno.env.get("EMAIL_USER");
-const GMAIL_PASSWORD = Deno.env.get("EMAIL_PASS");
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SMSONLINEGH_API_KEY = Deno.env.get("SMSONLINEGH_API_KEY");
 const senderId = "49ice Music";
 
@@ -78,35 +77,25 @@ serve(async (req) => {
     // Process each recipient
     for (const recipient of recipients) {
       try {
+        let deliveryStatus = "sent";
+        let deliveryError = null;
+
         if (channel === "email") {
-          // Send email using Gmail SMTP with Nodemailer
-          if (!GMAIL_USER || !GMAIL_PASSWORD) {
-            throw new Error("Gmail credentials not configured");
-          }
-
-          const client = new SMTPClient({
-            connection: {
-              hostname: "smtp.gmail.com",
-              port: 465,
-              tls: true,
-              auth: {
-                username: GMAIL_USER,
-                password: GMAIL_PASSWORD,
-              },
-            },
-          });
-
-          await client.connect();
-          await client.send({
-            from: GMAIL_USER,
-            to: recipient.contact,
+          // Send email using Resend API
+          const resend = new Resend(RESEND_API_KEY);
+          
+          const { data: emailResult, error: emailError } = await resend.emails.send({
+            from: "49ice Music Academy <onboarding@resend.dev>",
+            to: [recipient.contact],
             subject: subject || "Message from 49ice Music Academy",
-            content: messageBody,
             html: messageBody.replace(/\n/g, "<br>"),
           });
-          await client.close();
 
-          console.log(`Email sent to ${recipient.contact} via Gmail SMTP`);
+          if (emailError) {
+            throw new Error(emailError.message || "Email sending failed");
+          }
+
+          console.log(`Email sent to ${recipient.contact}:`, emailResult?.id);
         } else if (channel === "sms") {
           console.log(recipient);
           // Send SMS using SMS Online Ghana
@@ -142,7 +131,7 @@ serve(async (req) => {
           recipient_id: recipient.recipientId,
           recipient_name: recipient.name,
           recipient_contact: recipient.contact,
-          delivery_status: "sent",
+          delivery_status: deliveryStatus,
           sent_at: new Date().toISOString(),
         });
 
@@ -162,9 +151,8 @@ serve(async (req) => {
             event_data: { channel, timestamp: new Date().toISOString() },
           });
         }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
-        console.error(`Failed to send to ${recipient.contact}:`, errorMessage);
+      } catch (error: any) {
+        console.error(`Failed to send to ${recipient.contact}:`, error);
         failCount++;
 
         // Insert failed recipient record
@@ -175,7 +163,7 @@ serve(async (req) => {
           recipient_name: recipient.name,
           recipient_contact: recipient.contact,
           delivery_status: "failed",
-          delivery_error: errorMessage,
+          delivery_error: error?.message || "Unknown error",
           sent_at: new Date().toISOString(),
         });
 
@@ -192,7 +180,7 @@ serve(async (req) => {
             message_id: messageId,
             recipient_id: recipientData.id,
             event_type: "failed",
-            event_data: { channel, error: errorMessage, timestamp: new Date().toISOString() },
+            event_data: { channel, error: error?.message || "Unknown error", timestamp: new Date().toISOString() },
           });
         }
       }
@@ -216,10 +204,9 @@ serve(async (req) => {
         status: 200,
       },
     );
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error("Error in send-message function:", errorMessage);
-    return new Response(JSON.stringify({ error: errorMessage }), {
+  } catch (error: any) {
+    console.error("Error in send-message function:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
