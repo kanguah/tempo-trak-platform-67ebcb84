@@ -126,6 +126,26 @@ export default function Calendar() {
     enabled: !!user?.id
   });
 
+  // Generate lesson instances for the current month if needed
+  const generateInstancesMutation = useMutation({
+    mutationFn: async ({ year, month }: { year: number; month: number }) => {
+      const { data, error } = await supabase.functions.invoke("generate-lesson-instances", {
+        body: { year, month },
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      console.log(`Generated ${data.generated} lesson instances`);
+      queryClient.invalidateQueries({ queryKey: ["lessons"] });
+    },
+    onError: (error) => {
+      console.error("Error generating lesson instances:", error);
+      toast.error("Failed to generate lesson instances");
+    },
+  });
+
   // Fetch lessons
   const {
     data: lessonsData = [],
@@ -136,6 +156,16 @@ export default function Calendar() {
       // Get first and last day of the current month
       const firstDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
       const lastDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
+      
+      // First, try to generate instances for this month
+      try {
+        await generateInstancesMutation.mutateAsync({
+          year: selectedDate.getFullYear(),
+          month: selectedDate.getMonth() + 1,
+        });
+      } catch (error) {
+        console.error("Error generating instances:", error);
+      }
       
       const {
         data,
@@ -193,14 +223,13 @@ export default function Calendar() {
   // Add lesson mutation
   const addLessonMutation = useMutation({
     mutationFn: async (lesson: typeof newLesson) => {
-      const lessonsToInsert = [];
-      
-      // Process each lesson slot
-      for (const slot of lessonSlots) {
-        if (!slot.day || !slot.time) continue; // Skip incomplete slots
+      if (!lesson.isRecurring) {
+        // For single lessons, create instances directly
+        const lessonsToInsert = [];
         
-        if (!lesson.isRecurring) {
-          // Single lesson for this slot
+        for (const slot of lessonSlots) {
+          if (!slot.day || !slot.time) continue;
+          
           lessonsToInsert.push({
             user_id: user?.id,
             student_id: lesson.studentId,
@@ -212,60 +241,71 @@ export default function Calendar() {
             room: slot.room || lesson.room || null,
             status: "scheduled"
           });
-        } else {
-          // Recurring lessons for this slot
-          const baseDay = parseInt(slot.day);
-          const weekIncrement = lesson.repeatPattern === "weekly" ? 1 : lesson.repeatPattern === "biweekly" ? 2 : 4;
-          
-          const currentDate = new Date();
-          const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
-          const firstLessonDate = addDays(weekStart, baseDay);
-          const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-          
-          // Calculate number of occurrences based on weeks until month end
-          let occurrences = 0;
-          let checkDate = firstLessonDate;
-          while (checkDate <= monthEnd) {
-            occurrences++;
-            checkDate = addDays(firstLessonDate, occurrences * weekIncrement * 7);
-          }
-          
-          for (let i = 0; i < occurrences; i++) {
-            const specificLessonDate = addDays(firstLessonDate, i * weekIncrement * 7);
-            
-            lessonsToInsert.push({
-              user_id: user?.id,
-              student_id: lesson.studentId,
-              tutor_id: slot.tutorId || lesson.tutorId,
-              subject: lesson.subject,
-              day_of_week: baseDay,
-              lesson_date: format(specificLessonDate, 'yyyy-MM-dd'),
-              start_time: slot.time + ":00",
-              duration: parseInt(lesson.duration),
-              room: slot.room || lesson.room || null,
-              status: "scheduled"
-            });
-          }
         }
+        
+        if (lessonsToInsert.length === 0) {
+          throw new Error("Please complete at least one lesson slot");
+        }
+        
+        const { data, error } = await supabase
+          .from("lessons")
+          .insert(lessonsToInsert)
+          .select();
+        
+        if (error) throw error;
+        return { type: 'lessons', data };
+      } else {
+        // For recurring lessons, create recurrence rules only
+        const rulesToInsert = [];
+        const currentDate = new Date();
+        
+        for (const slot of lessonSlots) {
+          if (!slot.day || !slot.time) continue;
+          
+          rulesToInsert.push({
+            user_id: user?.id,
+            student_id: lesson.studentId,
+            tutor_id: slot.tutorId || lesson.tutorId,
+            subject: lesson.subject,
+            day_of_week: parseInt(slot.day),
+            start_time: slot.time + ":00",
+            duration: parseInt(lesson.duration),
+            room: slot.room || lesson.room || null,
+            recurrence_type: lesson.repeatPattern,
+            start_date: format(currentDate, 'yyyy-MM-dd'),
+            status: "active"
+          });
+        }
+        
+        if (rulesToInsert.length === 0) {
+          throw new Error("Please complete at least one lesson slot");
+        }
+        
+        const { data, error } = await supabase
+          .from("lesson_recurrence_rules")
+          .insert(rulesToInsert)
+          .select();
+        
+        if (error) throw error;
+        
+        // Generate instances for the current month
+        await generateInstancesMutation.mutateAsync({
+          year: currentDate.getFullYear(),
+          month: currentDate.getMonth() + 1,
+        });
+        
+        return { type: 'rules', data };
       }
-      
-      if (lessonsToInsert.length === 0) {
-        throw new Error("Please complete at least one lesson slot");
-      }
-      
-      const { data, error } = await supabase
-        .from("lessons")
-        .insert(lessonsToInsert)
-        .select();
-      
-      if (error) throw error;
-      return data;
     },
-    onSuccess: data => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({
         queryKey: ["lessons"]
       });
-      const message = `${Array.isArray(data) ? data.length : 1} lesson(s) scheduled successfully!`;
+      
+      const message = result.type === 'rules' 
+        ? `Recurring lesson schedule created! Instances will be generated automatically each month.`
+        : `${Array.isArray(result.data) ? result.data.length : 1} lesson(s) scheduled successfully!`;
+      
       toast.success(message);
       setAddDialogOpen(false);
       setNewLesson({
@@ -643,7 +683,7 @@ export default function Calendar() {
                     }
                   >
                     {newLesson.isRecurring 
-                      ? `Schedule ${lessonSlots.length * 4} Lessons (Monthly)` 
+                      ? `Create Recurring Schedule` 
                       : `Schedule ${lessonSlots.length} Lesson${lessonSlots.length > 1 ? 's' : ''}`}
                   </Button>
                 </div>

@@ -227,6 +227,75 @@ export type Database = {
         }
         Relationships: []
       }
+      lesson_recurrence_rules: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          duration: number
+          end_date: string | null
+          id: string
+          recurrence_type: string
+          room: string | null
+          start_date: string
+          start_time: string
+          status: string
+          student_id: string | null
+          subject: string
+          tutor_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          duration?: number
+          end_date?: string | null
+          id?: string
+          recurrence_type?: string
+          room?: string | null
+          start_date: string
+          start_time: string
+          status?: string
+          student_id?: string | null
+          subject: string
+          tutor_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          duration?: number
+          end_date?: string | null
+          id?: string
+          recurrence_type?: string
+          room?: string | null
+          start_date?: string
+          start_time?: string
+          status?: string
+          student_id?: string | null
+          subject?: string
+          tutor_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_recurrence_rules_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_recurrence_rules_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lessons: {
         Row: {
           created_at: string
@@ -235,6 +304,7 @@ export type Database = {
           id: string
           lesson_date: string | null
           notes: string | null
+          recurrence_rule_id: string | null
           room: string | null
           start_time: string
           status: string
@@ -251,6 +321,7 @@ export type Database = {
           id?: string
           lesson_date?: string | null
           notes?: string | null
+          recurrence_rule_id?: string | null
           room?: string | null
           start_time: string
           status?: string
@@ -267,6 +338,7 @@ export type Database = {
           id?: string
           lesson_date?: string | null
           notes?: string | null
+          recurrence_rule_id?: string | null
           room?: string | null
           start_time?: string
           status?: string
@@ -277,6 +349,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lessons_recurrence_rule_id_fkey"
+            columns: ["recurrence_rule_id"]
+            isOneToOne: false
+            referencedRelation: "lesson_recurrence_rules"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lessons_student_id_fkey"
             columns: ["student_id"]
