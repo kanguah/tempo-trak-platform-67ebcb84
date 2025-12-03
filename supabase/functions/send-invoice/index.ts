@@ -167,7 +167,7 @@ serve(async (req) => {
       const dueDate = payment.due_date ? new Date(payment.due_date).toLocaleDateString() : "N/A";
 
       // Generate Flutterwave payment link
-      const paymentLink = await generateFlutterwavePaymentLink(
+      /*const paymentLink = await generateFlutterwavePaymentLink(
         payment.amount,
         recipientEmail || "",
         recipientName || studentName || "Customer",
@@ -175,7 +175,8 @@ serve(async (req) => {
         payment.id,
         payment.package_type || "Monthly Fee",
       );
-
+*/
+      const paymentLink=https://tinyurl.com/4juvre5x;
       const paymentLinkSection = paymentLink
         ? `\n\nPAY ONLINE:\nClick here to pay securely online: ${paymentLink}\n`
         : "";
