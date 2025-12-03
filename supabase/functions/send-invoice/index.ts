@@ -232,7 +232,7 @@ serve(async (req) => {
 
       // SMS content with payment link
       const smsPaymentLink = paymentLink ? ` Pay online: ${paymentLink}` : "";
-      const smsMessage = `Dear ${studentName}, your invoice for ${new Date(dueDate).toLocaleString("en-US", { month: "long" })} has been generated. Amount: GHS ${payment.amount}. Due: ${dueDate}.${smsPaymentLink}`;
+      const smsMessage = `Dear ${studentName}, your invoice for ${new Date(dueDate).toLocaleString("en-US", { month: "long" })} has been generated. Amount: GHS ${payment.amount}. Kindly pay before ${dueDate}.${smsPaymentLink}`;
 
       try {
         // Send email using Resend
