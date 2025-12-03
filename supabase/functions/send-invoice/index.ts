@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
+import nodemailer from "https://esm.sh/nodemailer@6.9.10";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -209,23 +209,21 @@ Best regards,
             throw new Error("Gmail credentials not configured");
           }
 
-          const client = new SmtpClient();
-
-          await client.connect({
-            hostname: "smtp.gmail.com",
-            port: 465,
-            username: GMAIL_USER,
-            password: GMAIL_PASSWORD,
+          const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+              user: GMAIL_USER,
+              pass: GMAIL_PASSWORD,
+            },
           });
 
-          await client.send({
+          await transporter.sendMail({
             from: GMAIL_USER,
             to: recipientEmail,
             subject: emailSubject,
-            content: emailBody.replace(/\n/g, "\r\n"),
+            text: emailBody,
             html: emailBody.replace(/\n/g, "<br>"),
           });
-          await client.close();
 
           console.log(`Email sent to ${recipientEmail} for payment ${payment.id}`);
         }
