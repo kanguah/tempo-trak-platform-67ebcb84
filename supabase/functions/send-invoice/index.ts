@@ -49,7 +49,7 @@ async function generateFlutterwavePaymentLink(
   customerName: string,
   studentName: string,
   paymentId: string,
-  packageType: string
+  packageType: string,
 ): Promise<string | null> {
   if (!FLUTTERWAVE_SECRET_KEY) {
     console.error("Flutterwave secret key not configured");
@@ -58,11 +58,11 @@ async function generateFlutterwavePaymentLink(
 
   try {
     const txRef = `INV-${paymentId}-${Date.now()}`;
-    
+
     const response = await fetch("https://api.flutterwave.com/v3/payments", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${FLUTTERWAVE_SECRET_KEY}`,
+        Authorization: `Bearer ${FLUTTERWAVE_SECRET_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -93,12 +93,12 @@ async function generateFlutterwavePaymentLink(
     }
 
     const data: FlutterwavePaymentLinkResponse = await response.json();
-    
+
     if (data.status === "success" && data.data?.link) {
       console.log(`Payment link generated: ${data.data.link}`);
       return data.data.link;
     }
-    
+
     console.error("Flutterwave response error:", data);
     return null;
   } catch (error) {
@@ -173,10 +173,10 @@ serve(async (req) => {
         recipientName || studentName || "Customer",
         studentName || "Student",
         payment.id,
-        payment.package_type || "Monthly Fee"
+        payment.package_type || "Monthly Fee",
       );
 
-      const paymentLinkSection = paymentLink 
+      const paymentLinkSection = paymentLink
         ? `\n\nPAY ONLINE:\nClick here to pay securely online: ${paymentLink}\n`
         : "";
 
@@ -197,13 +197,17 @@ serve(async (req) => {
             <p><strong>Status:</strong> ${payment.status}</p>
           </div>
           
-          ${paymentLink ? `
+          ${
+            paymentLink
+              ? `
           <div style="background: #4CAF50; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
             <a href="${paymentLink}" style="color: white; text-decoration: none; font-weight: bold; font-size: 16px;">
               💳 Pay Online Now
             </a>
           </div>
-          ` : ''}
+          `
+              : ""
+          }
           
           <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <h3 style="margin-top: 0;">Other Payment Methods:</h3>
@@ -229,7 +233,7 @@ serve(async (req) => {
       // SMS content with payment link
       const smsPaymentLink = paymentLink ? ` Pay online: ${paymentLink}` : "";
       const smsMessage = `Dear ${studentName}, your invoice for ${new Date(dueDate).toLocaleString("en-US", { month: "long" })} has been generated. Amount: GHS ${payment.amount}. Due: ${dueDate}.${smsPaymentLink}`;
-      
+
       try {
         // Send email using Resend
         if ((channel === "email" || channel === "both") && recipientEmail) {
@@ -238,7 +242,7 @@ serve(async (req) => {
           }
 
           const emailResponse = await resend.emails.send({
-            from: "49ice Music Academy <noreply@49icemusic.com>",
+            from: "49ice Music Academy <noreply@49iceacademy.org>",
             to: [recipientEmail],
             subject: emailSubject,
             html: emailHtml,

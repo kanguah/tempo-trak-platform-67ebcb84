@@ -89,7 +89,7 @@ serve(async (req) => {
           const emailHtml = messageBody.replace(/\n/g, "<br>");
 
           const emailResponse = await resend.emails.send({
-            from: "49ice Music Academy <noreply@49icemusic.com>",
+            from: "49ice Music Academy <noreply@49iceacademy.org>",
             to: [recipient.contact],
             subject: subject || "Message from 49ice Music Academy",
             html: emailHtml,
