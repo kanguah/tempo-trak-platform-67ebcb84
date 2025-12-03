@@ -10,6 +10,7 @@ const corsHeaders = {
 const GMAIL_USER = Deno.env.get("EMAIL_USER");
 const GMAIL_PASSWORD = Deno.env.get("EMAIL_PASS");
 const SMSONLINEGH_API_KEY = Deno.env.get("SMSONLINEGH_API_KEY");
+const FLUTTERWAVE_SECRET_KEY = Deno.env.get("FLUTTERWAVE_SECRET_KEY");
 const senderId = "49ice Music";
 
 const PAYMENT_INSTRUCTIONS = `
@@ -32,6 +33,79 @@ Visit our facility at 49ice Music Academy
 interface SendInvoiceRequest {
   paymentIds: string[];
   channel: "email" | "sms" | "both";
+}
+
+interface FlutterwavePaymentLinkResponse {
+  status: string;
+  message: string;
+  data: {
+    link: string;
+    code: string;
+  };
+}
+
+async function generateFlutterwavePaymentLink(
+  amount: number,
+  customerEmail: string,
+  customerName: string,
+  studentName: string,
+  paymentId: string,
+  packageType: string
+): Promise<string | null> {
+  if (!FLUTTERWAVE_SECRET_KEY) {
+    console.error("Flutterwave secret key not configured");
+    return null;
+  }
+
+  try {
+    const txRef = `INV-${paymentId}-${Date.now()}`;
+    
+    const response = await fetch("https://api.flutterwave.com/v3/payments", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${FLUTTERWAVE_SECRET_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        tx_ref: txRef,
+        amount: amount,
+        currency: "GHS",
+        redirect_url: "https://49ice-music-academy.lovable.app/payments",
+        customer: {
+          email: customerEmail || "customer@49ice.com",
+          name: customerName,
+        },
+        customizations: {
+          title: "49ice Music Academy",
+          description: `Payment for ${studentName} - ${packageType || "Monthly Fee"}`,
+          logo: "https://49ice-music-academy.lovable.app/favicon.ico",
+        },
+        meta: {
+          payment_id: paymentId,
+          student_name: studentName,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Flutterwave API error:", errorText);
+      return null;
+    }
+
+    const data: FlutterwavePaymentLinkResponse = await response.json();
+    
+    if (data.status === "success" && data.data?.link) {
+      console.log(`Payment link generated: ${data.data.link}`);
+      return data.data.link;
+    }
+    
+    console.error("Flutterwave response error:", data);
+    return null;
+  } catch (error) {
+    console.error("Error generating Flutterwave payment link:", error);
+    return null;
+  }
 }
 
 serve(async (req) => {
@@ -90,9 +164,25 @@ serve(async (req) => {
 
       const dueDate = payment.due_date ? new Date(payment.due_date).toLocaleDateString() : "N/A";
 
+      // Generate Flutterwave payment link
+      const paymentLink = await generateFlutterwavePaymentLink(
+        payment.amount,
+        recipientEmail || "",
+        recipientName || studentName || "Customer",
+        studentName || "Student",
+        payment.id,
+        payment.package_type || "Monthly Fee"
+      );
+
+      const paymentLinkSection = paymentLink 
+        ? `\n\nPAY ONLINE:\nClick here to pay securely online: ${paymentLink}\n`
+        : "";
+
       // Email content
       const emailSubject = `Payment Invoice - 49ice Music Academy`;
-      const emailBody = `Dear ${recipientName},This is a payment invoice for 49ice Music Academy.
+      const emailBody = `Dear ${recipientName},
+
+This is a payment invoice for 49ice Music Academy.
 
 Payment Details:
 - Student: ${studentName}
@@ -100,7 +190,7 @@ Payment Details:
 - Amount Due: GHS${payment.amount}
 - Due Date: ${dueDate}
 - Status: ${payment.status}
-
+${paymentLinkSection}
 ${PAYMENT_INSTRUCTIONS}
 
 Thank you for your continued support!
@@ -108,9 +198,10 @@ Thank you for your continued support!
 Best regards,
 49ice Music Academy`;
 
-      // SMS content
-      //const smsMessage = `Invoice: GHS${payment.amount} due ${dueDate} for ${studentName}. Package: ${payment.package_type}. Pay via bank/mobile money. Thank you!`;
-      const smsMessage = `Dear ${studentName}, your invoice for ${new Date(dueDate).toLocaleString("en-US", { month: "long" })} has been generated. The total amount due is GHS ${payment.amount}. Please make the payment before ${dueDate}.`;
+      // SMS content with payment link
+      const smsPaymentLink = paymentLink ? ` Pay online: ${paymentLink}` : "";
+      const smsMessage = `Dear ${studentName}, your invoice for ${new Date(dueDate).toLocaleString("en-US", { month: "long" })} has been generated. Amount: GHS ${payment.amount}. Due: ${dueDate}.${smsPaymentLink}`;
+      
       try {
         // Send email
         if ((channel === "email" || channel === "both") && recipientEmail) {

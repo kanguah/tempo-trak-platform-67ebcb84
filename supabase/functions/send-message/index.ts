@@ -7,7 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const GMAIL_USER = Deno.env.get("EMAIL_USER");
+const GMAIL_PASSWORD = Deno.env.get("EMAIL_PASS");
 const SMSONLINEGH_API_KEY = Deno.env.get("SMSONLINEGH_API_KEY");
 const senderId = "49ice Music";
 
@@ -38,7 +39,6 @@ serve(async (req) => {
       throw new Error("No authorization header");
     }
 
-    // Extract JWT token from "Bearer <token>"
     const jwt = authHeader.replace("Bearer ", "");
 
     const supabaseClient = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_ANON_KEY") ?? "", {
@@ -49,7 +49,6 @@ serve(async (req) => {
       },
     });
 
-    // Pass JWT directly to getUser
     const {
       data: { user },
       error: authError,
@@ -78,7 +77,6 @@ serve(async (req) => {
     for (const recipient of recipients) {
       try {
         let deliveryStatus = "sent";
-        let deliveryError = null;
 
         if (channel === "email") {
           // Send email using Gmail SMTP
@@ -99,14 +97,13 @@ serve(async (req) => {
             from: GMAIL_USER,
             to: recipient.contact,
             subject: subject || "Message from 49ice Music Academy",
+            content: messageBody.replace(/\n/g, "\r\n"),
             html: messageBody.replace(/\n/g, "<br>"),
           });
 
-          if (emailError) {
-            throw new Error(emailError.message || "Email sending failed");
-          }
+          await client.close();
 
-          console.log(`Email sent to ${recipient.contact}:`, emailResult?.id);
+          console.log(`Email sent to ${recipient.contact}`);
         } else if (channel === "sms") {
           console.log(recipient);
           // Send SMS using SMS Online Ghana
@@ -129,7 +126,6 @@ serve(async (req) => {
           if (!smsResponse.ok || smsResult.status === "error") {
             throw new Error(smsResult.message || "SMS sending failed");
           }
-          console.log(`in that shit ${messageBody}`);
           console.log(`SMS sent to ${recipient.contact}:`, smsResult);
         }
 
