@@ -24,6 +24,37 @@ import { useSendMessage } from "@/hooks/useMessaging";
 //const COLORS = ["hsl(240 70% 55%)", "hsl(270 60% 60%)", "hsl(45 90% 60%)", "hsl(200 70% 55%)"];
 
 const COLORS = ["hsl(170 65% 60%)", "hsl(15 95% 68%)", "hsl(265 65% 65%)", "hsl(340 75% 65%)", "hsl(200 70% 60%)"];
+
+async function getFlutterwaveToken() {
+  try {
+    const cached = localStorage.getItem("flutterwave_oauth_token");
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed?.access_token && parsed?.expires_at && Date.now() < parsed.expires_at) {
+        return parsed.access_token as string;
+      }
+    }
+
+    const res = await fetch("http://localhost:3001/api/flutterwave/token", { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = (data?.error as string) || res.statusText || "Token generation failed";
+      throw new Error(String(msg));
+    }
+
+    const accessToken = data?.access_token as string | undefined;
+    const expiresIn = Number(data?.expires_in ?? 300);
+    if (!accessToken) {
+      throw new Error("Token response missing access_token");
+    }
+
+    const expiresAt = Date.now() + Math.max(0, (expiresIn - 30)) * 1000;
+    localStorage.setItem("flutterwave_oauth_token", JSON.stringify({ access_token: accessToken, expires_at: expiresAt }));
+    return accessToken;
+  } catch (e: any) {
+    throw new Error(String(e?.message || e || "Failed to get token"));
+  }
+}
 export default function Payments() {
   const [searchQuery, setSearchQuery] = useState("");
   const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
@@ -61,9 +92,16 @@ export default function Payments() {
   const [individualInvoiceDialogOpen, setIndividualInvoiceDialogOpen] = useState(false);
   const [selectedInvoicePaymentId, setSelectedInvoicePaymentId] = useState<string | null>(null);
   const [selectedInvoiceChannel, setSelectedInvoiceChannel] = useState<"email" | "sms" | "both">("email");
-  
+
   // Receipt download state
   const [downloadingReceipt, setDownloadingReceipt] = useState<string | null>(null);
+
+  // Payment initiation dialog state
+  const [initPaymentDialogOpen, setInitPaymentDialogOpen] = useState(false);
+  const [initPhoneNumber, setInitPhoneNumber] = useState("");
+    const [initMobileNetwork, setInitMobileNetwork] = useState("");
+  const [initAmount, setInitAmount] = useState("");
+  const [lastChargeId, setLastChargeId] = useState<string | null>(null);
   
   // Long press state for checkbox visibility
   const [isLongPressMode, setIsLongPressMode] = useState(false);
@@ -77,6 +115,13 @@ export default function Payments() {
   const [packageTypeFilter, setPackageTypeFilter] = useState<string>("all");
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("all");
   const [dateRangeFilter, setDateRangeFilter] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({
+    from: undefined,
+    to: undefined
+  });
+  const [createdAtRangeFilter, setCreatedAtRangeFilter] = useState<{
     from: Date | undefined;
     to: Date | undefined;
   }>({
@@ -160,6 +205,79 @@ export default function Payments() {
     onError: () => {
       toast.error("Failed to send reminders");
     }
+  });
+
+  // Initiate payment mutation
+  const initiatePaymentMutation = useMutation({
+    mutationFn: async () => {
+      const amountNum = Number(initAmount);
+      if (!initPhoneNumber || !initMobileNetwork || !amountNum || amountNum <= 0) {
+        throw new Error("Enter a valid phone number, mobile network, and amount");
+      }
+
+      const reference = Math.random().toString(36).slice(2, 10);
+
+      const body = {
+        currency: "GHS",
+        customer: {
+          email: user?.email || "49iceacademy@gmail.com",
+        },
+        payment_method: {
+          mobile_money: {
+            network: initMobileNetwork,
+            country_code: "233",
+            phone_number: initPhoneNumber,
+          },
+          type: "mobile_money",
+        },
+        amount: amountNum,
+        reference,
+      };
+
+      const res = await fetch("http://localhost:3001/api/flutterwave/direct-charges", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = (data?.error as string) || res.statusText || "Payment initiation failed";
+        throw new Error(msg);
+      }
+      return data;
+    },
+    onSuccess: (resp) => {
+      toast.success("Payment initiation sent");
+      try {
+        const id = resp?.data?.id || resp?.data?.charge_id || resp?.charge_id || resp?.id || null;
+        if (id && typeof id === "string") setLastChargeId(id);
+      } catch {}
+    },
+    onError: (error: any) => {
+      toast.error(String(error?.message || "Failed to initiate payment"));
+    },
+  });
+
+  const verifyChargeMutation = useMutation({
+    mutationFn: async () => {
+      if (!lastChargeId) throw new Error("No charge to verify");
+      const res = await fetch(`http://localhost:3001/api/flutterwave/charges/${lastChargeId}`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = (data?.error as string) || res.statusText || "Verification failed";
+        throw new Error(msg);
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      const status = data?.status || data?.data?.status || data?.data?.lifecycle_status || "unknown";
+      toast.success(`Payment verification ${status}`);
+      setInitPaymentDialogOpen(false);
+    },
+    onError: (error: any) => {
+      toast.error(String(error?.message || "Failed to verify charge"));
+    },
   });
   const sendSingleReminderMutation = useMutation({
     mutationFn: async (paymentId: string) => {
@@ -772,7 +890,10 @@ export default function Payments() {
     const matchesStatus = statusFilter === 'all' || payment.status === statusFilter;
 
     // Date range filter (due_date)
-    const matchesDateRange = (!dateRangeFilter.from || payment.due_date && new Date(payment.due_date) >= dateRangeFilter.from) && (!dateRangeFilter.to || payment.due_date && new Date(payment.due_date) <= dateRangeFilter.to);
+    const matchesDateRange = (!dateRangeFilter.from || (payment.due_date && new Date(payment.due_date) >= dateRangeFilter.from)) && (!dateRangeFilter.to || (payment.due_date && new Date(payment.due_date) <= dateRangeFilter.to));
+
+    // Created at range filter
+    const matchesCreatedAtRange = (!createdAtRangeFilter.from || (payment.created_at && new Date(payment.created_at) >= createdAtRangeFilter.from)) && (!createdAtRangeFilter.to || (payment.created_at && new Date(payment.created_at) <= createdAtRangeFilter.to));
 
     // Amount range filter
     const amount = Number(payment.amount);
@@ -783,7 +904,7 @@ export default function Payments() {
 
     // Payment method filter
     const matchesPaymentMethod = paymentMethodFilter === 'all' || payment.description === paymentMethodFilter;
-    return matchesSearch && matchesStatus && matchesDateRange && matchesAmountRange && matchesPackageType && matchesPaymentMethod;
+    return matchesSearch && matchesStatus && matchesDateRange && matchesCreatedAtRange && matchesAmountRange && matchesPackageType && matchesPaymentMethod;
   });
 
   // Calculate metrics
@@ -851,7 +972,17 @@ const monthsFromStartOfYear = Array.from(
 
   
   // Count active filters
-  const activeFilterCount = [statusFilter !== 'all', packageTypeFilter !== 'all', paymentMethodFilter !== 'all', dateRangeFilter.from !== undefined, dateRangeFilter.to !== undefined, amountRangeFilter.min !== '', amountRangeFilter.max !== ''].filter(Boolean).length;
+  const activeFilterCount = [
+    statusFilter !== 'all',
+    packageTypeFilter !== 'all',
+    paymentMethodFilter !== 'all',
+    dateRangeFilter.from !== undefined,
+    dateRangeFilter.to !== undefined,
+    createdAtRangeFilter.from !== undefined,
+    createdAtRangeFilter.to !== undefined,
+    amountRangeFilter.min !== '',
+    amountRangeFilter.max !== ''
+  ].filter(Boolean).length;
 
   // Clear all filters
   const clearFilters = () => {
@@ -859,6 +990,10 @@ const monthsFromStartOfYear = Array.from(
     setPackageTypeFilter('all');
     setPaymentMethodFilter('all');
     setDateRangeFilter({
+      from: undefined,
+      to: undefined
+    });
+    setCreatedAtRangeFilter({
       from: undefined,
       to: undefined
     });
@@ -890,6 +1025,10 @@ const monthsFromStartOfYear = Array.from(
               Send Reminders
             </Button>
             <DataImport type="payments" onSuccess={() => queryClient.invalidateQueries({ queryKey: ['payments'] })} />
+            <Button variant="outline" onClick={() => setInitPaymentDialogOpen(true)}>
+              <CreditCard className="mr-2 h-4 w-4" />
+              Initiate Payment
+            </Button>
           </div>
         </div>
 
@@ -1201,6 +1340,44 @@ const monthsFromStartOfYear = Array.from(
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar mode="single" selected={dateRangeFilter.to} onSelect={date => setDateRangeFilter(prev => ({
+                        ...prev,
+                        to: date
+                      }))} initialFocus className="pointer-events-auto" />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* Created At - From */}
+                  <div className="space-y-2">
+                    <Label>Created At From</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !createdAtRangeFilter.from && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {createdAtRangeFilter.from ? format(createdAtRangeFilter.from, "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={createdAtRangeFilter.from} onSelect={date => setCreatedAtRangeFilter(prev => ({
+                        ...prev,
+                        from: date
+                      }))} initialFocus className="pointer-events-auto" />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* Created At - To */}
+                  <div className="space-y-2">
+                    <Label>Created At To</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !createdAtRangeFilter.to && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {createdAtRangeFilter.to ? format(createdAtRangeFilter.to, "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={createdAtRangeFilter.to} onSelect={date => setCreatedAtRangeFilter(prev => ({
                         ...prev,
                         to: date
                       }))} initialFocus className="pointer-events-auto" />
@@ -1543,6 +1720,55 @@ const monthsFromStartOfYear = Array.from(
                 <ReceiptText className="h-4 w-4 mr-2" />
                 {bulkSendInvoiceMutation.isPending ? "Sending..." : "Send Invoices"}
               </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Initiate Payment Dialog */}
+        <Dialog open={initPaymentDialogOpen} onOpenChange={setInitPaymentDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Initiate Mobile Money Payment</DialogTitle>
+              <DialogDescription>Enter the recipient mobile number and amount to charge</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Mobile Number</Label>
+                <Input
+                  placeholder="e.g. 0241234567"
+                  value={initPhoneNumber}
+                  onChange={e => setInitPhoneNumber(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Mobile Network</Label>
+                <Input
+                  placeholder="e.g. MTN, VODAFONE or AIRTELTIGO"
+                  value={initMobileNetwork}
+                  onChange={e => setInitMobileNetwork(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Amount (GH₵)</Label>
+                <Input
+                  type="number"
+                  placeholder="0.00"
+                  value={initAmount}
+                  onChange={e => setInitAmount(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setInitPaymentDialogOpen(false)}>Cancel</Button>
+              <Button onClick={() => initiatePaymentMutation.mutate()} disabled={initiatePaymentMutation.isPending}>
+                <CreditCard className="h-4 w-4 mr-2" />
+                {initiatePaymentMutation.isPending ? "Submitting..." : "Submit"}
+              </Button>
+              {lastChargeId && (
+                <Button onClick={() => verifyChargeMutation.mutate()} disabled={verifyChargeMutation.isPending}>
+                  {verifyChargeMutation.isPending ? "Verifying..." : "Verify Payment"}
+                </Button>
+              )}
             </div>
           </DialogContent>
         </Dialog>
