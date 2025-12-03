@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import nodemailer from "https://esm.sh/nodemailer@6.9.10";
+import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -79,26 +79,29 @@ serve(async (req) => {
         let deliveryStatus = "sent";
 
         if (channel === "email") {
-          // Send email using Gmail SMTP with nodemailer
+          // Send email using Gmail SMTP
           if (!GMAIL_USER || !GMAIL_PASSWORD) {
             throw new Error("Gmail credentials not configured");
           }
 
-          const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-              user: GMAIL_USER,
-              pass: GMAIL_PASSWORD,
-            },
+          const client = new SmtpClient();
+
+          await client.connect({
+            hostname: "smtp.gmail.com",
+            port: 465,
+            username: GMAIL_USER,
+            password: GMAIL_PASSWORD,
           });
 
-          await transporter.sendMail({
+          await client.send({
             from: GMAIL_USER,
             to: recipient.contact,
             subject: subject || "Message from 49ice Music Academy",
-            text: messageBody,
+            content: messageBody.replace(/\n/g, "\r\n"),
             html: messageBody.replace(/\n/g, "<br>"),
           });
+
+          await client.close();
 
           console.log(`Email sent to ${recipient.contact}`);
         } else if (channel === "sms") {
