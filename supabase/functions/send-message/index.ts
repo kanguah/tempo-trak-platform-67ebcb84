@@ -1,14 +1,13 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const GMAIL_USER = Deno.env.get("EMAIL_USER");
-const GMAIL_PASSWORD = Deno.env.get("EMAIL_PASS");
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SMSONLINEGH_API_KEY = Deno.env.get("SMSONLINEGH_API_KEY");
 const senderId = "49ice Music";
 
@@ -73,37 +72,30 @@ serve(async (req) => {
     let successCount = 0;
     let failCount = 0;
 
+    // Initialize Resend for email
+    const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+
     // Process each recipient
     for (const recipient of recipients) {
       try {
         let deliveryStatus = "sent";
 
         if (channel === "email") {
-          // Send email using Gmail SMTP
-          if (!GMAIL_USER || !GMAIL_PASSWORD) {
-            throw new Error("Gmail credentials not configured");
+          // Send email using Resend
+          if (!resend) {
+            throw new Error("Resend API key not configured");
           }
 
-          const client = new SmtpClient();
+          const emailHtml = messageBody.replace(/\n/g, "<br>");
 
-          await client.connect({
-            hostname: "smtp.gmail.com",
-            port: 465,
-            username: GMAIL_USER,
-            password: GMAIL_PASSWORD,
-          });
-
-          await client.send({
-            from: GMAIL_USER,
-            to: recipient.contact,
+          const emailResponse = await resend.emails.send({
+            from: "49ice Music Academy <noreply@49icemusic.com>",
+            to: [recipient.contact],
             subject: subject || "Message from 49ice Music Academy",
-            content: messageBody.replace(/\n/g, "\r\n"),
-            html: messageBody.replace(/\n/g, "<br>"),
+            html: emailHtml,
           });
 
-          await client.close();
-
-          console.log(`Email sent to ${recipient.contact}`);
+          console.log(`Email sent to ${recipient.contact}:`, emailResponse);
         } else if (channel === "sms") {
           console.log(recipient);
           // Send SMS using SMS Online Ghana

@@ -1,14 +1,13 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const GMAIL_USER = Deno.env.get("EMAIL_USER");
-const GMAIL_PASSWORD = Deno.env.get("EMAIL_PASS");
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SMSONLINEGH_API_KEY = Deno.env.get("SMSONLINEGH_API_KEY");
 const FLUTTERWAVE_SECRET_KEY = Deno.env.get("FLUTTERWAVE_SECRET_KEY");
 const senderId = "49ice Music";
@@ -156,6 +155,9 @@ serve(async (req) => {
     let successCount = 0;
     let failCount = 0;
 
+    // Initialize Resend
+    const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+
     for (const payment of payments) {
       const recipientEmail = payment.students?.parent_email || payment.students?.email;
       const recipientPhone = payment.students?.parent_phone || payment.students?.phone;
@@ -180,54 +182,69 @@ serve(async (req) => {
 
       // Email content
       const emailSubject = `Payment Invoice - 49ice Music Academy`;
-      const emailBody = `Dear ${recipientName},
-
-This is a payment invoice for 49ice Music Academy.
-
-Payment Details:
-- Student: ${studentName}
-- Package: ${payment.package_type || "N/A"}
-- Amount Due: GHS${payment.amount}
-- Due Date: ${dueDate}
-- Status: ${payment.status}
-${paymentLinkSection}
-${PAYMENT_INSTRUCTIONS}
-
-Thank you for your continued support!
-
-Best regards,
-49ice Music Academy`;
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Payment Invoice</h2>
+          <p>Dear ${recipientName},</p>
+          <p>This is a payment invoice for 49ice Music Academy.</p>
+          
+          <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">Payment Details:</h3>
+            <p><strong>Student:</strong> ${studentName}</p>
+            <p><strong>Package:</strong> ${payment.package_type || "N/A"}</p>
+            <p><strong>Amount Due:</strong> GHS ${payment.amount}</p>
+            <p><strong>Due Date:</strong> ${dueDate}</p>
+            <p><strong>Status:</strong> ${payment.status}</p>
+          </div>
+          
+          ${paymentLink ? `
+          <div style="background: #4CAF50; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
+            <a href="${paymentLink}" style="color: white; text-decoration: none; font-weight: bold; font-size: 16px;">
+              💳 Pay Online Now
+            </a>
+          </div>
+          ` : ''}
+          
+          <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">Other Payment Methods:</h3>
+            <p><strong>BANK TRANSFER:</strong><br>
+            Bank Name: GTBANK<br>
+            Account Name: K.N.ANGUAH ENTERPRISE<br>
+            Account No: 452135138140<br>
+            Branch: KASOA</p>
+            
+            <p><strong>MOBILE MONEY:</strong><br>
+            Account Name: K.N.ANGUAH ENTERPRISE-KWEKU NYANKOM ANGUAH<br>
+            Account Number: 0598614685</p>
+            
+            <p><strong>CASH PAYMENT:</strong><br>
+            Visit our facility at 49ice Music Academy</p>
+          </div>
+          
+          <p>Thank you for your continued support!</p>
+          <p>Best regards,<br>49ice Music Academy</p>
+        </div>
+      `;
 
       // SMS content with payment link
       const smsPaymentLink = paymentLink ? ` Pay online: ${paymentLink}` : "";
       const smsMessage = `Dear ${studentName}, your invoice for ${new Date(dueDate).toLocaleString("en-US", { month: "long" })} has been generated. Amount: GHS ${payment.amount}. Due: ${dueDate}.${smsPaymentLink}`;
       
       try {
-        // Send email
+        // Send email using Resend
         if ((channel === "email" || channel === "both") && recipientEmail) {
-          if (!GMAIL_USER || !GMAIL_PASSWORD) {
-            throw new Error("Gmail credentials not configured");
+          if (!resend) {
+            throw new Error("Resend API key not configured");
           }
 
-          const client = new SmtpClient();
-
-          await client.connect({
-            hostname: "smtp.gmail.com",
-            port: 465,
-            username: GMAIL_USER,
-            password: GMAIL_PASSWORD,
-          });
-
-          await client.send({
-            from: GMAIL_USER,
-            to: recipientEmail,
+          const emailResponse = await resend.emails.send({
+            from: "49ice Music Academy <noreply@49icemusic.com>",
+            to: [recipientEmail],
             subject: emailSubject,
-            content: emailBody.replace(/\n/g, "\r\n"),
-            html: emailBody.replace(/\n/g, "<br>"),
+            html: emailHtml,
           });
-          await client.close();
 
-          console.log(`Email sent to ${recipientEmail} for payment ${payment.id}`);
+          console.log(`Email sent to ${recipientEmail} for payment ${payment.id}:`, emailResponse);
         }
 
         // Send SMS
