@@ -206,6 +206,15 @@ serve(async (req) => {
       doc.text(payment.description, leftMargin + 45, yPos);
     }
 
+    if (payment.payment_reference) {
+      yPos += payment.description ? 7 : 10;
+      doc.setFontSize(10);
+      doc.setFont(undefined, "bold");
+      doc.text("Payment Reference:", leftMargin + 5, yPos);
+      doc.setFont(undefined, "normal");
+      doc.text(String(payment.payment_reference), leftMargin + 65, yPos);
+    }
+
     // Footer
     yPos = doc.internal.pageSize.getHeight() - 30;
     doc.setFontSize(9);

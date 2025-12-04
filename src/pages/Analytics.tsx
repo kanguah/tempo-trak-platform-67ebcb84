@@ -305,7 +305,7 @@ const monthsFromStartOfYear = Array.from(
                       cx="50%"
                       cy={isMobile ? "45%" : "50%"}
                       labelLine={!isMobile}
-                      label={isMobile ? undefined : ({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={isMobile ? undefined : ({ percent }) => ` ${(percent * 100).toFixed(0)}%`}
                       outerRadius={isMobile ? 80 : 90}
                       fill="#8884d8"
                       dataKey="value"
