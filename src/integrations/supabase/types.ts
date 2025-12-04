@@ -630,6 +630,7 @@ export type Database = {
           package_type: string | null
           paid_amount: number | null
           payment_date: string | null
+          payment_reference: string | null
           reminder_sent: Json | null
           status: Database["public"]["Enums"]["payment_status"]
           student_id: string | null
@@ -646,6 +647,7 @@ export type Database = {
           package_type?: string | null
           paid_amount?: number | null
           payment_date?: string | null
+          payment_reference?: string | null
           reminder_sent?: Json | null
           status?: Database["public"]["Enums"]["payment_status"]
           student_id?: string | null
@@ -662,6 +664,7 @@ export type Database = {
           package_type?: string | null
           paid_amount?: number | null
           payment_date?: string | null
+          payment_reference?: string | null
           reminder_sent?: Json | null
           status?: Database["public"]["Enums"]["payment_status"]
           student_id?: string | null

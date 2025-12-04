@@ -309,17 +309,20 @@ export default function Payments() {
       paymentId,
       method,
       paidAmount,
-      isFullPayment
+      isFullPayment,
+      paymentReference
     }: {
       paymentId: string;
       method: string;
       paidAmount: number;
       isFullPayment: boolean;
+      paymentReference?: string;
     }) => {
       const updateData: any = {
         payment_date: new Date().toISOString(),
         description: method,
-        paid_amount: paidAmount
+        paid_amount: paidAmount,
+        payment_reference: paymentReference?.trim() || null
       };
 
       // Only mark as completed if it's a full payment
@@ -853,15 +856,12 @@ export default function Payments() {
     : Number(partialAmount);
     const totalPaidAmount = previouslyPaid + newPayment;
     const willBeFullyPaid = totalPaidAmount >= Number(payment.amount);
-    // Include payment reference in the method description
-    const methodWithRef = paymentReference.trim() 
-      ? `${paymentMethod} - Ref: ${paymentReference.trim()}`
-      : paymentMethod;
     verifyPaymentMutation.mutate({
       paymentId: selectedPayment,
-      method: methodWithRef,
+      method: paymentMethod,
       paidAmount: totalPaidAmount,
-      isFullPayment: willBeFullyPaid
+      isFullPayment: willBeFullyPaid,
+      paymentReference: paymentReference
     });
   };
   const getStatusBadge = (status: string) => {
