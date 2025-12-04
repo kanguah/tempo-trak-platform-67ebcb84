@@ -60,6 +60,7 @@ export default function Payments() {
   const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState("");
+  const [paymentReference, setPaymentReference] = useState("");
   const [paymentType, setPaymentType] = useState<"full" | "part">("full");
   const [partialAmount, setPartialAmount] = useState<string>("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -391,6 +392,7 @@ export default function Payments() {
       setVerifyDialogOpen(false);
       setSelectedPayment(null);
       setPaymentMethod("");
+      setPaymentReference("");
       setPaymentType("full");
       setPartialAmount("");
     },
@@ -813,6 +815,7 @@ export default function Payments() {
   const openVerifyDialog = (paymentId: string) => {
     setSelectedPayment(paymentId);
     setPaymentMethod("");
+    setPaymentReference("");
     setPaymentType("full");
     setPartialAmount("");
     setVerifyDialogOpen(true);
@@ -820,6 +823,11 @@ export default function Payments() {
   const handleVerifyPayment = () => {
     if (!paymentMethod) {
       toast.error("Please select a payment method");
+      return;
+    }
+    // Payment reference is required for non-cash payments
+    if (paymentMethod !== "CASH" && !paymentReference.trim()) {
+      toast.error("Please enter a payment reference for non-cash payments");
       return;
     }
     if (paymentType === "part") {
@@ -845,9 +853,13 @@ export default function Payments() {
     : Number(partialAmount);
     const totalPaidAmount = previouslyPaid + newPayment;
     const willBeFullyPaid = totalPaidAmount >= Number(payment.amount);
+    // Include payment reference in the method description
+    const methodWithRef = paymentReference.trim() 
+      ? `${paymentMethod} - Ref: ${paymentReference.trim()}`
+      : paymentMethod;
     verifyPaymentMutation.mutate({
       paymentId: selectedPayment,
-      method: paymentMethod,
+      method: methodWithRef,
       paidAmount: totalPaidAmount,
       isFullPayment: willBeFullyPaid
     });
@@ -1152,6 +1164,23 @@ const monthsFromStartOfYear = Array.from(
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="payment-reference">
+                  Payment Reference {paymentMethod !== "CASH" && <span className="text-destructive">*</span>}
+                </Label>
+                <Input
+                  id="payment-reference"
+                  placeholder={paymentMethod === "CASH" ? "Optional for cash payments" : "Enter transaction/reference ID"}
+                  value={paymentReference}
+                  onChange={(e) => setPaymentReference(e.target.value)}
+                />
+                {paymentMethod && paymentMethod !== "CASH" && (
+                  <p className="text-xs text-muted-foreground">
+                    Required for {paymentMethod.toLowerCase()} payments
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="payment-type">Payment Type</Label>
                 <Select value={paymentType} onValueChange={(value: "full" | "part") => {
                 setPaymentType(value);
@@ -1197,6 +1226,7 @@ const monthsFromStartOfYear = Array.from(
                 setVerifyDialogOpen(false);
                 setSelectedPayment(null);
                 setPaymentMethod("");
+                setPaymentReference("");
               }}>
                   Cancel
                 </Button>
