@@ -103,7 +103,7 @@ serve(async (req) => {
         payment.package_type || "Monthly Fee",
       );
 */
-      const paymentLink=https://tinyurl.com/4juvre5x;
+      const paymentLink = "https://tinyurl.com/4juvre5x";
       const paymentLinkSection = paymentLink
         ? `\n\nPAY ONLINE:\nClick here to pay securely online: ${paymentLink}\n`
         : "";
