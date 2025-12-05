@@ -64,13 +64,12 @@ export default function StaffProfile() {
         .from("staff")
         .select("*")
         .eq("id", id)
-        .eq("user_id", user?.id)
         .single();
       
       if (error) throw error;
       return data;
     },
-    enabled: !!id && !!user?.id && isAdmin,
+    enabled: !!id && !!user && isAdmin,
   });
 
   // Fetch payroll history
@@ -81,13 +80,12 @@ export default function StaffProfile() {
         .from("staff_payroll")
         .select("*")
         .eq("staff_id", id)
-        .eq("user_id", user?.id)
         .order("created_at", { ascending: false });
       
       if (error) throw error;
       return data;
     },
-    enabled: !!id && !!user?.id && isAdmin,
+    enabled: !!id && !!user && isAdmin,
   });
 
   const [formData, setFormData] = useState({
@@ -121,8 +119,7 @@ export default function StaffProfile() {
       const { error } = await supabase
         .from("staff")
         .update(data)
-        .eq("id", id)
-        .eq("user_id", user?.id);
+        .eq("id", id);
       
       if (error) throw error;
     },

@@ -150,7 +150,7 @@ export default function Payments() {
       const {
         data,
         error
-      } = await supabase.from('payments').select('*, students(name)').eq('user_id', user?.id).order('created_at', {
+      } = await supabase.from('payments').select('*, students(name)').order('created_at', {
         ascending: false
       });
       if (error) throw error;
@@ -166,7 +166,7 @@ export default function Payments() {
       const {
         data,
         error
-      } = await supabase.from('expenses').select('amount, expense_date').eq('user_id', user?.id);
+      } = await supabase.from('expenses').select('amount, expense_date');
       if (error) throw error;
       return data;
     },

@@ -62,7 +62,6 @@ export default function IndividualRecipientSelector({
           const { data: students } = await supabase
             .from("students")
             .select("id, name, email, phone")
-            .eq("user_id", user?.id)
             .eq("status", "active");
           
           recipients = (students || []).map(s => ({
@@ -77,7 +76,6 @@ export default function IndividualRecipientSelector({
           const { data: parents } = await supabase
             .from("students")
             .select("id, parent_name, parent_email, parent_phone")
-            .eq("user_id", user?.id)
             .eq("status", "active")
             .not("parent_name", "is", null);
           
@@ -93,7 +91,6 @@ export default function IndividualRecipientSelector({
           const { data: tutors } = await supabase
             .from("tutors")
             .select("id, name, email, phone")
-            .eq("user_id", user?.id)
             .eq("status", "active");
           
           recipients = (tutors || []).map(t => ({
@@ -108,7 +105,6 @@ export default function IndividualRecipientSelector({
           const { data: staff } = await supabase
             .from("staff")
             .select("id, name, email, phone")
-            .eq("user_id", user?.id)
             .eq("status", "active");
           
           recipients = (staff || []).map(s => ({

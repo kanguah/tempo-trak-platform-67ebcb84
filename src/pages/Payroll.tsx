@@ -38,7 +38,7 @@ export default function Payroll() {
 
   // Fetch tutor payroll
   const { data: tutorPayroll = [], isLoading: tutorLoading } = useQuery({
-    queryKey: ['payroll', 'tutor', selectedMonth, user?.id],
+    queryKey: ['payroll', 'tutor', selectedMonth],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tutor_payroll')
@@ -46,19 +46,18 @@ export default function Payroll() {
           *,
           tutors (name, email)
         `)
-        .eq('user_id', user?.id)
         .eq('month', selectedMonth)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.id && isAdmin,
+    enabled: !!user && isAdmin,
   });
 
   // Fetch staff payroll
   const { data: staffPayroll = [], isLoading: staffLoading } = useQuery({
-    queryKey: ['payroll', 'staff', selectedMonth, user?.id],
+    queryKey: ['payroll', 'staff', selectedMonth],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('staff_payroll')
@@ -66,14 +65,13 @@ export default function Payroll() {
           *,
           staff (name, email, position)
         `)
-        .eq('user_id', user?.id)
         .eq('month', selectedMonth)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.id && isAdmin,
+    enabled: !!user && isAdmin,
   });
 
   const addExpenseMutation = useMutation({

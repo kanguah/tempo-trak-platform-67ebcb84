@@ -75,7 +75,7 @@ export default function Tutors() {
   const { data: tutors = [], isLoading } = useQuery({
     queryKey: ["tutors"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("tutors").select("*").eq("user_id", user?.id).order("created_at", {
+      const { data, error } = await supabase.from("tutors").select("*").order("created_at", {
         ascending: false,
       });
       if (error) throw error;

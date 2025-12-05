@@ -103,7 +103,7 @@ export default function Students() {
   const { data: students = [], isLoading } = useQuery({
     queryKey: ["students"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("students").select("*").eq("user_id", user?.id).order("created_at", {
+      const { data, error } = await supabase.from("students").select("*").order("created_at", {
         ascending: false,
       });
       if (error) throw error;
@@ -113,17 +113,16 @@ export default function Students() {
   });
 
   const { data: tutors = [] } = useQuery({
-    queryKey: ["tutors", user?.id],
+    queryKey: ["tutors"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tutors")
         .select("*")
-        .eq("user_id", user?.id)
         .eq("status", "active");
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user?.id,
+    enabled: !!user,
   });
   const addStudentMutation = useMutation({
     mutationFn: async (newStudent: any) => {

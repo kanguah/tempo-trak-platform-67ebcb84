@@ -265,7 +265,7 @@ export default function CRM() {
       const {
         data,
         error
-      } = await supabase.from('crm_leads').select('*').eq('user_id', user?.id).in('stage', ['new', 'contacted', 'qualified', 'converted', 'lost']).order('created_at', {
+      } = await supabase.from('crm_leads').select('*').in('stage', ['new', 'contacted', 'qualified', 'converted', 'lost']).order('created_at', {
         ascending: false
       });
       if (error) throw error;
