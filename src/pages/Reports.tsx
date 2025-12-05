@@ -71,29 +71,27 @@ export default function Reports() {
 
   // Fetch attendance data
   const { data: attendanceData } = useQuery({
-    queryKey: ["attendance", user?.id, dateFilter],
+    queryKey: ["attendance", dateFilter],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("attendance")
         .select("*, student_id, tutor_id, students(name), tutors(name)")
-        .eq("user_id", user?.id!)
         .gte("lesson_date", format(dateFilter.start, "yyyy-MM-dd"))
         .lte("lesson_date", format(dateFilter.end, "yyyy-MM-dd"));
       
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!user,
   });
 
   // Fetch financial data
   const { data: paymentsData } = useQuery({
-    queryKey: ["payments", user?.id, dateFilter],
+    queryKey: ["payments", dateFilter],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payments")
         .select("*, students(name)")
-        .eq("user_id", user?.id!)
         .gte("due_date", dateFilter.start.toISOString())
         .lte("due_date", dateFilter.end.toISOString());
       

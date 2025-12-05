@@ -21,7 +21,7 @@ export default function Dashboard() {
       const {
         data,
         error
-      } = await supabase.from("students").select("*").eq("user_id", user?.id);
+      } = await supabase.from("students").select("*");
       if (error) throw error;
       return data;
     },
@@ -35,7 +35,7 @@ export default function Dashboard() {
       const {
         data,
         error
-      } = await supabase.from("tutors").select("*").eq("user_id", user?.id);
+      } = await supabase.from("tutors").select("*");
       if (error) throw error;
       return data;
     },
@@ -49,7 +49,7 @@ export default function Dashboard() {
       const {
         data,
         error
-      } = await supabase.from("payments").select("*, students(name)").eq("user_id", user?.id).order("created_at", {
+      } = await supabase.from("payments").select("*, students(name)").order("created_at", {
         ascending: false
       });
       if (error) throw error;
@@ -65,7 +65,7 @@ export default function Dashboard() {
       const {
         data,
         error
-      } = await supabase.from("crm_leads").select("*").eq("user_id", user?.id).order("created_at", {
+      } = await supabase.from("crm_leads").select("*").order("created_at", {
         ascending: false
       });
       if (error) throw error;
@@ -81,7 +81,7 @@ export default function Dashboard() {
       const {
         data,
         error
-      } = await supabase.from("notifications").select("*").eq("user_id", user?.id).order("created_at", {
+      } = await supabase.from("notifications").select("*").order("created_at", {
         ascending: false
       }).limit(5);
       if (error) throw error;

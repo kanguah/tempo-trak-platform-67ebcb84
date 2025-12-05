@@ -33,7 +33,6 @@ export default function Notifications() {
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
-        .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -48,8 +47,7 @@ export default function Notifications() {
       const { data, error } = await supabase
         .from('notification_preferences')
         .select('*')
-        .eq('user_id', user?.id)
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
       return data;

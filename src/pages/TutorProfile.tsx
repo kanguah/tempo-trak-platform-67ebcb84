@@ -67,11 +67,11 @@ export default function TutorProfile() {
       const {
         data,
         error
-      } = await supabase.from("tutors").select("*").eq("id", id).eq("user_id", user?.id).single();
+      } = await supabase.from("tutors").select("*").eq("id", id).single();
       if (error) throw error;
       return data;
     },
-    enabled: !!id && !!user?.id
+    enabled: !!id && !!user
   });
 
   // Fetch lessons for schedule
@@ -86,11 +86,11 @@ export default function TutorProfile() {
       } = await supabase.from("lessons").select(`
           *,
           students (name)
-        `).eq("tutor_id", id).eq("user_id", user?.id);
+        `).eq("tutor_id", id);
       if (error) throw error;
       return data;
     },
-    enabled: !!id && !!user?.id
+    enabled: !!id && !!user
   });
 
   // Fetch attendance for metrics and feedback
@@ -105,13 +105,13 @@ export default function TutorProfile() {
       } = await supabase.from("attendance").select(`
           *,
           students (name)
-        `).eq("tutor_id", id).eq("user_id", user?.id).order("lesson_date", {
+        `).eq("tutor_id", id).order("lesson_date", {
         ascending: false
       });
       if (error) throw error;
       return data;
     },
-    enabled: !!id && !!user?.id
+    enabled: !!id && !!user
   });
 
   // Fetch payroll history
@@ -123,13 +123,13 @@ export default function TutorProfile() {
       const {
         data,
         error
-      } = await supabase.from("tutor_payroll").select("*").eq("tutor_id", id).eq("user_id", user?.id).order("created_at", {
+      } = await supabase.from("tutor_payroll").select("*").eq("tutor_id", id).order("created_at", {
         ascending: false
       });
       if (error) throw error;
       return data;
     },
-    enabled: !!id && !!user?.id
+    enabled: !!id && !!user
   });
 
   // Fetch tutor's students
@@ -141,7 +141,7 @@ export default function TutorProfile() {
       const {
         data,
         error
-      } = await supabase.from("lessons").select("student_id").eq("tutor_id", id).eq("user_id", user?.id);
+      } = await supabase.from("lessons").select("student_id").eq("tutor_id", id);
       if (error) throw error;
       
       // Get unique student IDs

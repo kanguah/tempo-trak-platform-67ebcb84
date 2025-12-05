@@ -108,7 +108,7 @@ export default function StudentProfile() {
   const { data: student, isLoading: studentLoading } = useQuery({
     queryKey: ["student", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("students").select("*").eq("id", id).eq("user_id", user?.id).single();
+      const { data, error } = await supabase.from("students").select("*").eq("id", id).single();
       if (error) throw error;
       return data;
     },
@@ -123,7 +123,6 @@ export default function StudentProfile() {
         .from("attendance")
         .select("*")
         .eq("student_id", id)
-        .eq("user_id", user?.id)
         .order("lesson_date", { ascending: false });
 
       if (dateRange.start) {
@@ -148,7 +147,6 @@ export default function StudentProfile() {
         .from("payments")
         .select("*")
         .eq("student_id", id)
-        .eq("user_id", user?.id)
         .order("created_at", { ascending: false });
 
       if (dateRange.start) {
@@ -178,7 +176,6 @@ export default function StudentProfile() {
         .from("lessons")
         .select("*")
         .eq("student_id", id)
-        .eq("user_id", user?.id)
         .eq("status", "scheduled")
         .gte("lesson_date", firstDay.toISOString().split("T")[0])
         .lte("lesson_date", lastDay.toISOString().split("T")[0])
@@ -195,7 +192,7 @@ export default function StudentProfile() {
   const { data: tutors = [] } = useQuery({
     queryKey: ["tutors"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("tutors").select("*").eq("user_id", user?.id).order("name");
+      const { data, error } = await supabase.from("tutors").select("*").order("name");
       if (error) throw error;
       return data;
     },
@@ -309,7 +306,6 @@ export default function StudentProfile() {
           schedule: schedule || [],
         })
         .eq("id", id)
-        .eq("user_id", user?.id)
         .select()
         .single();
       if (error) throw error;
@@ -332,7 +328,7 @@ export default function StudentProfile() {
   });
   const deleteStudentMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("students").delete().eq("id", id).eq("user_id", user?.id);
+      const { error } = await supabase.from("students").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

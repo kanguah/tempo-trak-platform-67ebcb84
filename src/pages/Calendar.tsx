@@ -98,32 +98,32 @@ export default function Calendar() {
   const {
     data: students = []
   } = useQuery({
-    queryKey: ["students", user?.id],
+    queryKey: ["students"],
     queryFn: async () => {
       const {
         data,
         error
-      } = await supabase.from("students").select("*").eq("user_id", user?.id).eq("status", "active");
+      } = await supabase.from("students").select("*").eq("status", "active");
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user?.id
+    enabled: !!user
   });
 
   // Fetch tutors
   const {
     data: tutors = []
   } = useQuery({
-    queryKey: ["tutors", user?.id],
+    queryKey: ["tutors"],
     queryFn: async () => {
       const {
         data,
         error
-      } = await supabase.from("tutors").select("*").eq("user_id", user?.id).eq("status", "active");
+      } = await supabase.from("tutors").select("*").eq("status", "active");
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user?.id
+    enabled: !!user
   });
 
   // Generate lesson instances for the current month if needed
@@ -151,7 +151,7 @@ export default function Calendar() {
     data: lessonsData = [],
     isLoading
   } = useQuery({
-    queryKey: ["lessons", user?.id, selectedDate.getMonth(), selectedDate.getFullYear()],
+    queryKey: ["lessons", selectedDate.getMonth(), selectedDate.getFullYear()],
     queryFn: async () => {
       // Get first and last day of the current month
       const firstDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
@@ -174,14 +174,14 @@ export default function Calendar() {
           *,
           students (name, subjects),
           tutors (name)
-        `).eq("user_id", user?.id)
+        `)
         .eq("status", "scheduled")
         .gte("lesson_date", firstDay.toISOString().split('T')[0])
         .lte("lesson_date", lastDay.toISOString().split('T')[0]);
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user?.id
+    enabled: !!user
   });
 
   // Transform database lessons to UI format with actual dates

@@ -24,7 +24,7 @@ export default function Attendance() {
 
   // Fetch attendance records for the selected date
   const { data: attendanceRecords = [], isLoading } = useQuery({
-    queryKey: ["attendance", user?.id, formattedDate],
+    queryKey: ["attendance", formattedDate],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("attendance")
@@ -33,13 +33,12 @@ export default function Attendance() {
           students (name),
           tutors (name)
         `)
-        .eq("user_id", user?.id)
         .eq("lesson_date", formattedDate)
         .order("start_time");
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user?.id,
+    enabled: !!user,
   });
 
   // Fetch scheduled lessons for the selected date and create attendance records if they don't exist

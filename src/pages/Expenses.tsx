@@ -70,7 +70,6 @@ export default function Expenses() {
       const { data, error } = await supabase
         .from('expenses')
         .select('*')
-        .eq('user_id', user?.id)
         .order('expense_date', { ascending: false });
       
       if (error) throw error;

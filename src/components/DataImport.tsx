@@ -249,8 +249,7 @@ export default function DataImport({
 
         const { data: existingRecords, error: fetchError } = await supabase
           .from(tableName)
-          .select("email, name, phone")
-          .eq("user_id", user?.id);
+          .select("email, name, phone");
         
         if (fetchError) {
           console.error("Error fetching existing records:", fetchError);
