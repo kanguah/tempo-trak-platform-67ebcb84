@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdmin } from "@/hooks/useAdmin";
 import { useQuery } from "@tanstack/react-query";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 const COLORS = ["hsl(170 65% 60%)", "hsl(15 95% 68%)", "hsl(265 65% 65%)", "hsl(340 75% 65%)", "hsl(200 70% 60%)"];
@@ -11,6 +12,7 @@ export default function Dashboard() {
   const {
     user
   } = useAuth();
+  const { isAdmin } = useAdmin();
 
   // Fetch all data
   const {
@@ -183,7 +185,7 @@ export default function Dashboard() {
         </div>
 
         {/* Metrics Grid */}
-        <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <div className={`grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 ${isAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
           <MetricCard title="Active Students" value={activeStudents} icon={Users} trend={{
           value: `${students.length} total`,
           isPositive: true
@@ -192,10 +194,12 @@ export default function Dashboard() {
           value: `${tutors.length} total`,
           isPositive: true
         }} />
-          <MetricCard title="Total Revenue" value={`GH₵ ${totalRevenue.toLocaleString()}`} icon={DollarSign} trend={{
-          value: `${pendingPayments} pending`,
-          isPositive: pendingPayments === 0
-        }} variant="accent" />
+          {isAdmin && (
+            <MetricCard title="Total Revenue" value={`GH₵ ${totalRevenue.toLocaleString()}`} icon={DollarSign} trend={{
+            value: `${pendingPayments} pending`,
+            isPositive: pendingPayments === 0
+          }} variant="accent" />
+          )}
           <MetricCard title="New Leads" value={recentLeads} icon={UserPlus} trend={{
           value: `${leads.length} total leads`,
           isPositive: true
@@ -203,36 +207,38 @@ export default function Dashboard() {
         </div>
 
         {/* Charts Row */}
-        <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-2">
-          {/* Revenue Chart */}
-          <Card className="shadow-card animate-slide-up">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-                <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-primary" />
-                Revenue Trend (Last 6 Months)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {revenueData.some(d => d.revenue > 0) ? <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={revenueData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                    <Tooltip contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px"
-                }} />
-                    <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={3} dot={{
-                  fill: "hsl(var(--primary))",
-                  r: 5
-                }} />
-                  </LineChart>
-                </ResponsiveContainer> : <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                  No revenue data yet
-                </div>}
-            </CardContent>
-          </Card>
+        <div className={`grid gap-4 md:gap-6 grid-cols-1 ${isAdmin ? 'lg:grid-cols-2' : ''}`}>
+          {/* Revenue Chart - Admin Only */}
+          {isAdmin && (
+            <Card className="shadow-card animate-slide-up">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                  <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+                  Revenue Trend (Last 6 Months)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {revenueData.some(d => d.revenue > 0) ? <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={revenueData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                      <Tooltip contentStyle={{
+                    backgroundColor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px"
+                  }} />
+                      <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={3} dot={{
+                    fill: "hsl(var(--primary))",
+                    r: 5
+                  }} />
+                    </LineChart>
+                  </ResponsiveContainer> : <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    No revenue data yet
+                  </div>}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Student Growth Chart */}
           <Card className="shadow-card animate-slide-up" style={{

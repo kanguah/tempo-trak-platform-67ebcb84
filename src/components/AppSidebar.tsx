@@ -192,7 +192,9 @@ export function AppSidebar() {
 
   // Filter director items based on admin status
   const filteredDirectorItems = directorItems.filter(item => {
-    if (item.title === "Payroll" || item.title === "Staff") {
+    // Admin-only pages: Payroll, Staff, Analytics, Reports, Expenses
+    const adminOnlyPages = ["Payroll", "Staff", "Business Analytics", "Reports", "Expenses"];
+    if (adminOnlyPages.includes(item.title)) {
       return user && !isLoading && isAdmin;
     }
     return true;

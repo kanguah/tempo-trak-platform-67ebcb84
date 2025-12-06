@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdmin } from "@/hooks/useAdmin";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { format, set } from "date-fns";
@@ -139,6 +140,7 @@ export default function Payments() {
   const {
     user
   } = useAuth();
+  const { isAdmin } = useAdmin();
   const queryClient = useQueryClient();
   const sendMessageMutation = useSendMessage();
   const {
@@ -1044,19 +1046,21 @@ const monthsFromStartOfYear = Array.from(
           </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          <Card className="gradient-primary text-primary-foreground shadow-primary">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs md:text-sm opacity-90 mb-1">Total Revenue</p>
-                  <h3 className="text-2xl md:text-3xl font-bold">GH₵ {totalRevenue.toLocaleString()}</h3>
+        {/* Summary Cards - Revenue card only for admins */}
+        <div className={`grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 ${isAdmin ? 'lg:grid-cols-3' : ''}`}>
+          {isAdmin && (
+            <Card className="gradient-primary text-primary-foreground shadow-primary">
+              <CardContent className="p-4 md:p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs md:text-sm opacity-90 mb-1">Total Revenue</p>
+                    <h3 className="text-2xl md:text-3xl font-bold">GH₵ {totalRevenue.toLocaleString()}</h3>
+                  </div>
+                  
                 </div>
-                
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="shadow-card">
             <CardContent className="p-4 md:p-6">
@@ -1086,58 +1090,60 @@ const monthsFromStartOfYear = Array.from(
           </Card>
         </div>
 
-        {/* Charts Row */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Revenue vs Expenses Chart */}
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                
-                Revenue vs Expenses
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {revenueData.some(d => d.revenue > 0 || d.expenses > 0) ? <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={revenueData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
-                    <YAxis stroke="hsl(var(--muted-foreground))" />
-                    <Tooltip contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px"
-                }} />
-                    <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="expenses" fill="hsl(var(--accent))" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer> : <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                  No revenue data yet
-                </div>}
-            </CardContent>
-          </Card>
+        {/* Charts Row - Admin Only */}
+        {isAdmin && (
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Revenue vs Expenses Chart */}
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  
+                  Revenue vs Expenses
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {revenueData.some(d => d.revenue > 0 || d.expenses > 0) ? <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={revenueData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                      <YAxis stroke="hsl(var(--muted-foreground))" />
+                      <Tooltip contentStyle={{
+                    backgroundColor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px"
+                  }} />
+                      <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="expenses" fill="hsl(var(--accent))" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer> : <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    No revenue data yet
+                  </div>}
+              </CardContent>
+            </Card>
 
-          {/* Payment Method Breakdown */}
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle>Payment Method Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {methodChartData.length > 0 ? <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie data={methodChartData} cx="50%" cy="50%" labelLine={false} label={({
-                  name,
-                  percent
-                }) => `${name} ${(percent * 100).toFixed(0)}%`} outerRadius={90} fill="#8884d8" dataKey="value">
-                      {methodChartData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer> : <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                  No payment method data yet
-                </div>}
-            </CardContent>
-          </Card>
-        </div>
+            {/* Payment Method Breakdown */}
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle>Payment Method Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {methodChartData.length > 0 ? <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie data={methodChartData} cx="50%" cy="50%" labelLine={false} label={({
+                    name,
+                    percent
+                  }) => `${name} ${(percent * 100).toFixed(0)}%`} outerRadius={90} fill="#8884d8" dataKey="value">
+                        {methodChartData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer> : <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    No payment method data yet
+                  </div>}
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Verify Payment Dialog */}
         <Dialog open={verifyDialogOpen} onOpenChange={setVerifyDialogOpen}>
