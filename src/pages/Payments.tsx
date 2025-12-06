@@ -105,12 +105,6 @@ export default function Payments() {
   const [initAmount, setInitAmount] = useState("");
   const [lastChargeId, setLastChargeId] = useState<string | null>(null);
   
-  // Long press state for checkbox visibility
-  const [isLongPressMode, setIsLongPressMode] = useState(false);
-  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
-  const [longPressedPaymentId, setLongPressedPaymentId] = useState<string | null>(null);
-  const LONG_PRESS_DURATION = 250; // 500ms
-  
   // Filter states
   const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -554,44 +548,6 @@ export default function Payments() {
       newSelected.delete(paymentId);
     }
     setSelectedPayments(newSelected);
-    
-    // Exit selection mode if no payments are selected
-    if (newSelected.size === 0) {
-      setIsLongPressMode(false);
-    }
-  };
-
-  // Long press handlers for showing/hiding checkboxes
-  const handleCardMouseDown = (paymentId: string) => {
-    const timer = setTimeout(() => {
-      setIsLongPressMode(true);
-      setLongPressedPaymentId(paymentId);
-      handleSelectPayment(paymentId, true);
-    }, LONG_PRESS_DURATION);
-    setLongPressTimer(timer);
-  };
-
-  const handleCardMouseUp = () => {
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      setLongPressTimer(null);
-    }
-  };
-
-  const handleCardTouchStart = (paymentId: string) => {
-    const timer = setTimeout(() => {
-      setIsLongPressMode(true);
-      setLongPressedPaymentId(paymentId);
-      handleSelectPayment(paymentId, true);
-    }, LONG_PRESS_DURATION);
-    setLongPressTimer(timer);
-  };
-
-  const handleCardTouchEnd = () => {
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      setLongPressTimer(null);
-    }
   };
 
   const handleBulkMarkPaid = () => {
@@ -1049,33 +1005,29 @@ const monthsFromStartOfYear = Array.from(
         {/* Summary Cards - Revenue card only for admins */}
         <div className={`grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 ${isAdmin ? 'lg:grid-cols-3' : ''}`}>
           {isAdmin && (
-            <Card className="gradient-primary text-primary-foreground shadow-primary">
-              <CardContent className="p-4 md:p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs md:text-sm opacity-90 mb-1">Total Revenue</p>
-                    <h3 className="text-2xl md:text-3xl font-bold">GH₵ {totalRevenue.toLocaleString()}</h3>
-                  </div>
-                  
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <Card className="shadow-card">
+            <><Card className="gradient-primary text-primary-foreground shadow-primary">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs md:text-sm text-muted-foreground mb-1">Pending/Overdue</p>
-                  <h3 className="text-2xl md:text-3xl font-bold text-orange-600">
-                    GH₵ {pendingAmount.toLocaleString()}
-                  </h3>
+                  <p className="text-xs md:text-sm opacity-90 mb-1">Total Revenue</p>
+                  <h3 className="text-2xl md:text-3xl font-bold">GH₵ {totalRevenue.toLocaleString()}</h3>
                 </div>
-                
+
               </div>
             </CardContent>
-          </Card>
+          </Card><Card className="shadow-card">
+              <CardContent className="p-4 md:p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs md:text-sm text-muted-foreground mb-1">Pending/Overdue</p>
+                    <h3 className="text-2xl md:text-3xl font-bold text-orange-600">
+                      GH₵ {pendingAmount.toLocaleString()}
+                    </h3>
+                  </div>
 
+                </div>
+              </CardContent>
+            </Card>
           <Card className="shadow-card">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
@@ -1087,7 +1039,8 @@ const monthsFromStartOfYear = Array.from(
                 
               </div>
             </CardContent>
-          </Card>
+          </Card></>
+)}
         </div>
 
         {/* Charts Row - Admin Only */}
@@ -1460,26 +1413,8 @@ const monthsFromStartOfYear = Array.from(
           <CardHeader className="flex flex-row items-center justify-between">
             <div className="flex items-center gap-3">
               <CardTitle>Recent Payments</CardTitle>
-              {isLongPressMode && (
-                <Badge variant="secondary" className="animate-pulse">
-                  Selection Mode
-                </Badge>
-              )}
             </div>
             <div className="flex gap-2">
-              {isLongPressMode && (
-                <Button
-                  onClick={() => {
-                    setIsLongPressMode(false);
-                    setSelectedPayments(new Set());
-                  }}
-                  variant="ghost"
-                  size="sm"
-                  title="Exit selection mode"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
               {selectedPayments.size > 0 && (
                 <>
                   <Button
@@ -1524,19 +1459,17 @@ const monthsFromStartOfYear = Array.from(
               </div> : filteredPayments.length === 0 ? <div className="text-center py-8 text-muted-foreground">
                   No payments match your filters. Try adjusting your search criteria.
                 </div> : <>
-                {isLongPressMode && (
+                {selectedPayments.size > 0 && (
                   <div className="mb-4 p-4 bg-primary/10 rounded-lg border-2 border-primary animate-in">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-primary">
-                        {selectedPayments.size > 0 
-                          ? `${selectedPayments.size} of ${filteredPayments.length} selected - Tap cards to toggle`
-                          : "Selection Mode Active - Tap cards to select"}
+                        {selectedPayments.size} of {filteredPayments.length} selected
                       </span>
                       <div className="flex gap-2">
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => setSelectedPayments(new Set(filteredPayments.map(p => p.id)))}
+                          onClick={() => handleSelectAll(true, filteredPayments)}
                           className="text-xs"
                         >
                           Select All
@@ -1544,10 +1477,7 @@ const monthsFromStartOfYear = Array.from(
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
-                            setSelectedPayments(new Set());
-                            setIsLongPressMode(false);
-                          }}
+                          onClick={() => setSelectedPayments(new Set())}
                           className="text-xs"
                         >
                           Clear
@@ -1561,25 +1491,24 @@ const monthsFromStartOfYear = Array.from(
                   const isSelected = selectedPayments.has(payment.id);
                   return <Card 
                   key={payment.id} 
-                  className={`border-2 animate-scale-in cursor-pointer transition-all ${
+                  className={`border-2 animate-scale-in transition-all ${
                     isSelected 
-                      ? "border-primary bg-primary/5 ring-2 ring-primary/50" 
+                      ? "border-primary bg-primary/5" 
                       : "hover:shadow-lg"
                   }`}
                   style={{
                     animationDelay: `${index * 0.05}s`
                   }}
-                  onMouseDown={() => handleCardMouseDown(payment.id)}
-                  onMouseUp={handleCardMouseUp}
-                  onMouseLeave={handleCardMouseUp}
-                  onTouchStart={() => handleCardTouchStart(payment.id)}
-                  onTouchEnd={handleCardTouchEnd}
-                  onClick={() => isLongPressMode && handleSelectPayment(payment.id, !isSelected)}
                 >
                       <CardContent className="p-4">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                          <div className="flex items-center gap-3 flex-1">
-                            <div className="flex-1">
+                        <div className="flex gap-3 flex-col md:flex-row md:items-start md:justify-between">
+                          <div className="flex gap-3 flex-1">
+                            <Checkbox 
+                              checked={isSelected}
+                              onCheckedChange={(checked) => handleSelectPayment(payment.id, checked as boolean)}
+                              className="mt-1 h-5 w-5 flex-shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-2 flex-wrap">
                               <h3 className="font-bold text-foreground">
                                 {payment.students?.name || "Unknown Student"}

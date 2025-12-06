@@ -324,50 +324,49 @@ export default function Attendance() {
                   No lessons scheduled for this date
                 </div>
               ) : (
-                attendanceRecords.map((record: any, index) => (
+                <div className="grid gap-3 md:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                {attendanceRecords.map((record: any, index) => (
                 <Card
                   key={record.id}
                   className="border-2 animate-scale-in"
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-bold text-foreground">{record.students?.name}</h3>
-                          {getStatusBadge(record.status)}
+                  <CardContent className="p-3 md:p-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-bold text-foreground text-sm md:text-base truncate">{record.students?.name}</h3>
+                        {getStatusBadge(record.status)}
+                      </div>
+                      <div className="space-y-1 text-xs md:text-sm text-muted-foreground">
+                        <div>
+                          <span className="font-medium">Time:</span> {record.start_time.substring(0, 5)}
                         </div>
-                        <div className="space-y-1 text-sm text-muted-foreground">
-                          <p>
-                            <span className="font-medium">Time:</span> {record.start_time.substring(0, 5)}
-                          </p>
-                          <p>
-                            <span className="font-medium">Subject:</span> {record.subject}
-                          </p>
-                          <p>
-                            <span className="font-medium">Tutor:</span> {record.tutors?.name}
-                          </p>
+                        <div className="truncate">
+                          <span className="font-medium">Subject:</span> {record.subject}
+                        </div>
+                        <div className="truncate">
+                          <span className="font-medium">Tutor:</span> {record.tutors?.name}
                         </div>
                       </div>
 
                       {record.status === "pending" && (
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 pt-2">
                           <Button
                             size="sm"
                             onClick={() => markAttendanceMutation.mutate({ id: record.id, status: "present" })}
                             style={{ backgroundColor: "hsl(170, 65%, 55%)", color: "white" }}
-                            className="hover:opacity-90"
+                            className="hover:opacity-90 text-xs flex-1"
                           >
-                            <Check className="h-4 w-4 mr-1" />
+                            <Check className="h-3 w-3 mr-1" />
                             Present
                           </Button>
                           <Button
                             size="sm"
                             onClick={() => markAttendanceMutation.mutate({ id: record.id, status: "absent" })}
                             style={{ backgroundColor: "hsl(0, 75%, 55%)", color: "white" }}
-                            className="hover:opacity-90"
+                            className="hover:opacity-90 text-xs flex-1"
                           >
-                            <X className="h-4 w-4 mr-1" />
+                            <X className="h-3 w-3 mr-1" />
                             Absent
                           </Button>
                         </div>
@@ -375,9 +374,9 @@ export default function Attendance() {
                     </div>
 
                     {record.status === "present" && (
-                      <div className="mt-4 pt-4 border-t border-border">
-                        <label className="text-sm font-medium text-foreground mb-2 block">
-                          Lesson Feedback
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <label className="text-xs md:text-sm font-medium text-foreground mb-2 block">
+                          Feedback
                         </label>
                         {editingFeedback === record.id ? (
                           <div className="space-y-2">
@@ -434,6 +433,8 @@ export default function Attendance() {
                   </CardContent>
                 </Card>
                 ))
+                }
+                </div>
               )}
             </div>
           </CardContent>
