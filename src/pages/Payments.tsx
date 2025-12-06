@@ -1047,8 +1047,8 @@ const monthsFromStartOfYear = Array.from(
         </div>
 
         {/* Summary Cards - Revenue card only for admins */}
-        <div className={`grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 ${isAdmin ? 'lg:grid-cols-3' : ''}`}>
-          {isAdmin && (
+        {isAdmin && (
+          <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             <Card className="gradient-primary text-primary-foreground shadow-primary">
               <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-between">
@@ -1060,35 +1060,35 @@ const monthsFromStartOfYear = Array.from(
                 </div>
               </CardContent>
             </Card>
-          )}
 
-          <Card className="shadow-card">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs md:text-sm text-muted-foreground mb-1">Pending/Overdue</p>
-                  <h3 className="text-2xl md:text-3xl font-bold text-orange-600">
-                    GH₵ {pendingAmount.toLocaleString()}
-                  </h3>
-                </div>
-                
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-card">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div className="w-full">
-                  <p className="text-xs md:text-sm text-muted-foreground mb-1">Payments Received</p>
-                  <h3 className="text-2xl md:text-3xl font-bold text-green-600">{paidCount}</h3>
+            <Card className="shadow-card">
+              <CardContent className="p-4 md:p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs md:text-sm text-muted-foreground mb-1">Pending/Overdue</p>
+                    <h3 className="text-2xl md:text-3xl font-bold text-orange-600">
+                      GH₵ {pendingAmount.toLocaleString()}
+                    </h3>
+                  </div>
                   
                 </div>
-                
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-card">
+              <CardContent className="p-4 md:p-6">
+                <div className="flex items-center justify-between">
+                  <div className="w-full">
+                    <p className="text-xs md:text-sm text-muted-foreground mb-1">Payments Received</p>
+                    <h3 className="text-2xl md:text-3xl font-bold text-green-600">{paidCount}</h3>
+                    
+                  </div>
+                  
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Charts Row - Admin Only */}
         {isAdmin && (
