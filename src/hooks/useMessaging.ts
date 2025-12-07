@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { createNotification } from "@/hooks/useNotifications";
 
 export interface MessageTemplate {
   id: string;
@@ -257,12 +258,23 @@ export function useSendMessage() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ["messages"] });
       toast({ 
         title: "Messages sent", 
         description: data.message 
       });
+      
+      // Create notification for sent messages
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) {
+        createNotification(
+          user.id, 
+          "message_sent", 
+          "Messages Sent", 
+          `${data.sent || 0} message(s) have been sent successfully.`
+        );
+      }
     },
     onError: (error: Error) => {
       toast({ 

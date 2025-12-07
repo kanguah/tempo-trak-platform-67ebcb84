@@ -1089,6 +1089,11 @@ export type Database = {
         | "schedule_change"
         | "new_enrollment"
         | "marketing"
+        | "lead_update"
+        | "attendance_update"
+        | "expense_update"
+        | "message_sent"
+        | "lesson_update"
       payment_status: "pending" | "completed" | "failed" | "refunded"
     }
     CompositeTypes: {
@@ -1224,6 +1229,11 @@ export const Constants = {
         "schedule_change",
         "new_enrollment",
         "marketing",
+        "lead_update",
+        "attendance_update",
+        "expense_update",
+        "message_sent",
+        "lesson_update",
       ],
       payment_status: ["pending", "completed", "failed", "refunded"],
     },

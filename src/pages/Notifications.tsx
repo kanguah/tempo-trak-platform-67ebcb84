@@ -14,6 +14,11 @@ const iconMap: Record<string, any> = {
   schedule_change: Clock,
   new_enrollment: CheckCircle,
   marketing: AlertCircle,
+  lead_update: AlertCircle,
+  attendance_update: CheckCircle,
+  expense_update: AlertCircle,
+  message_sent: Mail,
+  lesson_update: Clock,
 };
 
 const colorMap: Record<string, string> = {
@@ -21,6 +26,11 @@ const colorMap: Record<string, string> = {
   schedule_change: "text-orange-600",
   new_enrollment: "text-blue-600",
   marketing: "text-primary",
+  lead_update: "text-purple-600",
+  attendance_update: "text-teal-600",
+  expense_update: "text-red-600",
+  message_sent: "text-blue-500",
+  lesson_update: "text-yellow-600",
 };
 
 export default function Notifications() {

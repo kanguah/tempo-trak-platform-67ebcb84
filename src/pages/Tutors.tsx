@@ -37,6 +37,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { createNotification } from "@/hooks/useNotifications";
 const addTutorSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters").optional().or(z.literal("")),
@@ -100,11 +101,17 @@ export default function Tutors() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: ["tutors"],
       });
       setDialogOpen(false);
+      
+      // Create notification
+      if (user?.id) {
+        createNotification(user.id, "new_enrollment", "New Tutor Added", `${data.name} has joined the teaching staff.`);
+      }
+      
       setFormData({
         name: "",
         email: "",
