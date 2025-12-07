@@ -287,15 +287,22 @@ export default function Notifications() {
                               >
                                 <X className="h-3 w-3 mr-1" />
                                 Delete
-                              </Button>
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              {notifications.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No notifications yet</p>
+                  <p className="text-sm">You'll see updates about payments, schedules, and enrollments here</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

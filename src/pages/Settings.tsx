@@ -1,4 +1,4 @@
-import { Settings as SettingsIcon, User, Bell, Lock, Database, Palette } from "lucide-react";
+import { Settings as SettingsIcon, User, Bell, Lock, Database, Palette, Download, Upload, Shield } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,17 +7,130 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function Settings() {
   const { theme, setTheme } = useTheme();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [zapierWebhook, setZapierWebhook] = useState("");
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  
+  // Profile form state
+  const [academyName, setAcademyName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [location, setLocation] = useState("");
+  
+  // Password form state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Fetch profile data
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  // Initialize form with profile data
+  useEffect(() => {
+    if (profile) {
+      setAcademyName(profile.full_name || "");
+      setContactEmail(profile.email || "");
+    }
+  }, [profile]);
 
   useEffect(() => {
     const saved = localStorage.getItem("zapier-webhook-url");
     if (saved) setZapierWebhook(saved);
+    
+    // Load additional settings from localStorage
+    const savedPhone = localStorage.getItem("academy-phone");
+    const savedLocation = localStorage.getItem("academy-location");
+    if (savedPhone) setPhone(savedPhone);
+    if (savedLocation) setLocation(savedLocation);
   }, []);
+
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: { full_name: string }) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: data.full_name, updated_at: new Date().toISOString() })
+        .eq('id', user?.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      toast.success("Profile updated successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update profile");
+    },
+  });
+
+  const handleSaveProfile = () => {
+    // Save profile to database
+    updateProfileMutation.mutate({ full_name: academyName });
+    
+    // Save additional settings to localStorage (these could be moved to a settings table later)
+    localStorage.setItem("academy-phone", phone);
+    localStorage.setItem("academy-location", location);
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error("Please fill in all password fields");
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      toast.error("New passwords don't match");
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Password updated successfully");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update password");
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
 
   const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme);
@@ -40,6 +153,63 @@ export default function Settings() {
     toast.success("Zapier webhook configured successfully");
   };
 
+  const handleExportData = async (type: 'students' | 'tutors' | 'payments' | 'all') => {
+    setIsExporting(true);
+    
+    try {
+      let data: any = {};
+      
+      if (type === 'students' || type === 'all') {
+        const { data: students } = await supabase.from('students').select('*');
+        data.students = students;
+      }
+      
+      if (type === 'tutors' || type === 'all') {
+        const { data: tutors } = await supabase.from('tutors').select('*');
+        data.tutors = tutors;
+      }
+      
+      if (type === 'payments' || type === 'all') {
+        const { data: payments } = await supabase.from('payments').select('*');
+        data.payments = payments;
+      }
+      
+      if (type === 'all') {
+        const { data: lessons } = await supabase.from('lessons').select('*');
+        const { data: attendance } = await supabase.from('attendance').select('*');
+        const { data: expenses } = await supabase.from('expenses').select('*');
+        data.lessons = lessons;
+        data.attendance = attendance;
+        data.expenses = expenses;
+      }
+      
+      // Convert to CSV format
+      const csvContent = Object.entries(data).map(([key, values]: [string, any]) => {
+        if (!values || values.length === 0) return '';
+        const headers = Object.keys(values[0]).join(',');
+        const rows = values.map((row: any) => 
+          Object.values(row).map((v: any) => 
+            typeof v === 'string' ? `"${v.replace(/"/g, '""')}"` : v
+          ).join(',')
+        ).join('\n');
+        return `=== ${key.toUpperCase()} ===\n${headers}\n${rows}`;
+      }).filter(Boolean).join('\n\n');
+      
+      // Download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `academy-export-${type}-${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      
+      toast.success(`${type === 'all' ? 'All data' : type} exported successfully`);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to export data");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleSyncNow = async () => {
     const webhookUrl = localStorage.getItem("zapier-webhook-url");
     
@@ -52,44 +222,42 @@ export default function Settings() {
     setIsSyncing(true);
 
     try {
-      // Gather data from localStorage
-      const students = JSON.parse(localStorage.getItem("students") || "[]");
-      const tutors = JSON.parse(localStorage.getItem("tutors") || "[]");
-      const leads = JSON.parse(localStorage.getItem("crm-leads") || "[]");
+      // Fetch data from database
+      const { data: students } = await supabase.from('students').select('*');
+      const { data: tutors } = await supabase.from('tutors').select('*');
+      const { data: leads } = await supabase.from('crm_leads').select('*');
       
       const syncData = {
         timestamp: new Date().toISOString(),
-        academy: "49ice Academy of Music",
+        academy: academyName || "Academy",
         data: {
-          students: students.map((s: any) => ({
+          students: (students || []).map((s: any) => ({
             id: s.id,
             name: s.name,
-            instrument: s.instrument,
-            level: s.level,
+            subjects: s.subjects,
+            grade: s.grade,
             status: s.status,
             email: s.email,
           })),
-          tutors: tutors.map((t: any) => ({
+          tutors: (tutors || []).map((t: any) => ({
             id: t.id,
             name: t.name,
-            instrument: t.instrument,
-            students: t.students,
+            subjects: t.subjects,
             email: t.email,
           })),
-          leads: leads.filter((l: any) => !l.archived).map((l: any) => ({
+          leads: (leads || []).filter((l: any) => l.stage !== 'lost').map((l: any) => ({
             id: l.id,
             name: l.name,
             email: l.email,
             phone: l.phone,
             stage: l.stage,
-            instrument: l.instrument,
             source: l.source,
           })),
         },
         stats: {
-          total_students: students.length,
-          total_tutors: tutors.length,
-          total_leads: leads.filter((l: any) => !l.archived).length,
+          total_students: students?.length || 0,
+          total_tutors: tutors?.length || 0,
+          total_leads: leads?.filter((l: any) => l.stage !== 'lost').length || 0,
         },
       };
 
@@ -132,22 +300,50 @@ export default function Settings() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="academy-name">Academy Name</Label>
-                <Input id="academy-name" defaultValue="49ice Academy of Music" />
+                <Input 
+                  id="academy-name" 
+                  value={academyName}
+                  onChange={(e) => setAcademyName(e.target.value)}
+                  placeholder="Enter academy name"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Contact Email</Label>
-                <Input id="email" type="email" defaultValue="info@49ice.com" />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  value={contactEmail}
+                  disabled
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground">Email cannot be changed</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" defaultValue="+233 24 000 0000" />
+                <Input 
+                  id="phone" 
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+233 24 000 0000"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="location">Location</Label>
-                <Input id="location" defaultValue="Accra, Ghana" />
+                <Input 
+                  id="location" 
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Enter location"
+                />
               </div>
             </div>
-            <Button className="gradient-primary text-primary-foreground">Save Changes</Button>
+            <Button 
+              className="gradient-primary text-primary-foreground"
+              onClick={handleSaveProfile}
+              disabled={updateProfileMutation.isPending}
+            >
+              {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
           </CardContent>
         </Card>
 
@@ -162,48 +358,40 @@ export default function Settings() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="current-password">Current Password</Label>
-              <Input id="current-password" type="password" />
+              <Input 
+                id="current-password" 
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter current password"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="new-password">New Password</Label>
-              <Input id="new-password" type="password" />
+              <Input 
+                id="new-password" 
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm-password">Confirm New Password</Label>
-              <Input id="confirm-password" type="password" />
+              <Input 
+                id="confirm-password" 
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+              />
             </div>
-            <Button>Update Password</Button>
-          </CardContent>
-        </Card>
-
-        {/* Notification Settings */}
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5 text-primary" />
-              Notification Channels
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="sms-provider">SMS Provider</Label>
-                <Input id="sms-provider" defaultValue="Twilio" disabled />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email-provider">Email Provider</Label>
-                <Input id="email-provider" defaultValue="SendGrid" disabled />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="whatsapp">WhatsApp Business API</Label>
-                <Input id="whatsapp" defaultValue="Connected" disabled />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="payment-gateway">Payment Gateway</Label>
-                <Input id="payment-gateway" defaultValue="MTN MoMo, Paystack" disabled />
-              </div>
-            </div>
-            <Button variant="outline">Manage Integrations</Button>
+            <Button 
+              onClick={handleChangePassword}
+              disabled={isChangingPassword}
+            >
+              {isChangingPassword ? "Updating..." : "Update Password"}
+            </Button>
           </CardContent>
         </Card>
 
@@ -219,24 +407,54 @@ export default function Settings() {
             <div className="grid gap-4 md:grid-cols-2">
               <Card className="border-2">
                 <CardContent className="p-4">
-                  <h3 className="font-semibold mb-2">Backup Data</h3>
+                  <h3 className="font-semibold mb-2">Export Students</h3>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Create a backup of all academy data
+                    Download student data as CSV
                   </p>
-                  <Button variant="outline" className="w-full">
-                    Create Backup
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => handleExportData('students')}
+                    disabled={isExporting}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Students
                   </Button>
                 </CardContent>
               </Card>
 
               <Card className="border-2">
                 <CardContent className="p-4">
-                  <h3 className="font-semibold mb-2">Export Data</h3>
+                  <h3 className="font-semibold mb-2">Export Tutors</h3>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Export data to CSV or Excel format
+                    Download tutor data as CSV
                   </p>
-                  <Button variant="outline" className="w-full">
-                    Export All Data
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => handleExportData('tutors')}
+                    disabled={isExporting}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Tutors
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="border-2">
+                <CardContent className="p-4">
+                  <h3 className="font-semibold mb-2">Export All Data</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Download complete academy data
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => handleExportData('all')}
+                    disabled={isExporting}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    {isExporting ? "Exporting..." : "Export All Data"}
                   </Button>
                 </CardContent>
               </Card>
@@ -253,7 +471,7 @@ export default function Settings() {
                       className="flex-1"
                       onClick={() => setSyncDialogOpen(true)}
                     >
-                      Configure Sync
+                      Configure
                     </Button>
                     <Button 
                       variant="outline"
@@ -263,18 +481,6 @@ export default function Settings() {
                       {isSyncing ? "Syncing..." : "Sync Now"}
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-2">
-                <CardContent className="p-4">
-                  <h3 className="font-semibold mb-2">Audit Logs</h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    View system activity logs
-                  </p>
-                  <Button variant="outline" className="w-full">
-                    View Logs
-                  </Button>
                 </CardContent>
               </Card>
             </div>
@@ -321,8 +527,8 @@ export default function Settings() {
                 <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg text-sm">
                   <h4 className="font-semibold mb-2">What data gets synced?</h4>
                   <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                    <li>Student records (name, instrument, level, status)</li>
-                    <li>Tutor information (name, instrument, student count)</li>
+                    <li>Student records (name, subjects, grade, status)</li>
+                    <li>Tutor information (name, subjects, email)</li>
                     <li>Active leads (name, contact info, stage)</li>
                     <li>Summary statistics</li>
                   </ul>
