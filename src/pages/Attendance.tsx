@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format, parseISO, addDays, subDays } from "date-fns";
+import { createNotification } from "@/hooks/useNotifications";
 
 export default function Attendance() {
   const { user } = useAuth();
@@ -107,9 +108,14 @@ export default function Attendance() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["attendance"] });
       toast.success("Attendance marked successfully!");
+      if (user?.id) {
+        const record = attendanceRecords.find((r: any) => r.id === variables.id);
+        const studentName = record?.students?.name || "Student";
+        createNotification(user.id, "attendance_update", "Attendance Marked", `${studentName} marked as ${variables.status} for ${formattedDate}.`);
+      }
     },
     onError: (error) => {
       toast.error("Failed to mark attendance");

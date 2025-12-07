@@ -22,6 +22,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { format, set } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useSendMessage } from "@/hooks/useMessaging";
+import { createNotification } from "@/hooks/useNotifications";
 //const COLORS = ["hsl(240 70% 55%)", "hsl(270 60% 60%)", "hsl(45 90% 60%)", "hsl(200 70% 55%)"];
 
 const COLORS = ["hsl(170 65% 60%)", "hsl(15 95% 68%)", "hsl(265 65% 65%)", "hsl(340 75% 65%)", "hsl(200 70% 60%)"];
@@ -384,6 +385,16 @@ export default function Payments() {
             recipientType: 'student'
           });
         }
+      }
+
+      // Create notification
+      if (user?.id && paymentData?.students) {
+        createNotification(
+          user.id, 
+          "payment_reminder", 
+          "Payment Verified", 
+          `${paymentData.students.name}'s payment of GH₵${variables.paidAmount.toFixed(2)} has been verified.`
+        );
       }
 
       const message = variables.isFullPayment ? "Payment verified successfully!" : "Partial payment recorded successfully!";

@@ -37,6 +37,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { createNotification } from "@/hooks/useNotifications";
 const studentSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
@@ -224,9 +225,20 @@ export default function Students() {
       
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["students"] });
       setDialogOpen(false);
+      
+      // Create notification for new enrollment
+      if (user?.id) {
+        createNotification(
+          user.id, 
+          "new_enrollment", 
+          "New Student Enrolled", 
+          `${data.name} has been enrolled in the academy.`
+        );
+      }
+      
       setFormData({
         name: "",
         email: "",

@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { DndContext, DragEndEvent, DragOverlay, useDraggable, useDroppable, DragStartEvent } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import DataImport from "@/components/DataImport";
+import { createNotification } from "@/hooks/useNotifications";
 
 const stages = [{
   id: "new",
@@ -484,11 +485,14 @@ export default function CRM() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: ['crm-leads']
       });
       toast.success("Lead added successfully!");
+      if (user?.id) {
+        createNotification(user.id, "lead_update", "New Lead Added", `${data.name} has been added to your CRM pipeline.`);
+      }
     }
   });
   const handleAddLead = () => {
@@ -538,6 +542,9 @@ export default function CRM() {
         queryKey: ['crm-leads']
       });
       toast.success("Lead updated successfully!");
+      if (user?.id && editingLead) {
+        createNotification(user.id, "lead_update", "Lead Updated", `${editingLead.name} has been updated.`);
+      }
     }
   });
   const handleSaveEdit = () => {
@@ -578,10 +585,18 @@ export default function CRM() {
       }).eq('id', leadId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: ['crm-leads']
       });
+      
+      // Create notification for stage changes, especially conversions
+      if (user?.id && variables.newStage === 'converted') {
+        const lead = leads.find(l => l.id === variables.leadId);
+        if (lead) {
+          createNotification(user.id, "lead_update", "Lead Converted", `${lead.name} has been converted to a student!`);
+        }
+      }
     }
   });
   const handleDragEnd = (event: DragEndEvent) => {

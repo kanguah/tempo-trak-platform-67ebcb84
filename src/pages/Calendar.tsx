@@ -15,6 +15,7 @@ import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { format, addDays, startOfWeek, isSameDay, parseISO } from "date-fns";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { createNotification } from "@/hooks/useNotifications";
 const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const timeSlots = Array.from({
   length: 22
@@ -305,6 +306,17 @@ export default function Calendar() {
       const message = result.type === 'rules' 
         ? `Recurring lesson schedule created! Instances will be generated automatically each month.`
         : `${Array.isArray(result.data) ? result.data.length : 1} lesson(s) scheduled successfully!`;
+      
+      // Create notification
+      if (user?.id) {
+        const studentName = students.find(s => s.id === newLesson.studentId)?.name || "Student";
+        createNotification(
+          user.id, 
+          "lesson_update", 
+          "Lesson Scheduled", 
+          `${newLesson.subject} lesson for ${studentName} has been scheduled.`
+        );
+      }
       
       toast.success(message);
       setAddDialogOpen(false);

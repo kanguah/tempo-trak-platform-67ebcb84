@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { createNotification } from "@/hooks/useNotifications";
 
 const COLORS = ["hsl(170 65% 60%)", "hsl(15 95% 68%)", "hsl(265 65% 65%)", "hsl(340 75% 65%)", "hsl(200 70% 60%)", "hsl(45 90% 62%)"];
 
@@ -94,6 +95,10 @@ export default function Expenses() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       setDialogOpen(false);
+      const expenseAmount = parseFloat(formData.amount);
+      if (user?.id) {
+        createNotification(user.id, "expense_update", "Expense Added", `New ${formData.category} expense of GH₵${expenseAmount.toFixed(2)} has been recorded.`);
+      }
       setFormData({
         category: "",
         amount: "",
