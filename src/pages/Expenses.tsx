@@ -297,8 +297,8 @@ export default function Expenses() {
             <DataImport type="expenses" onSuccess={() => queryClient.invalidateQueries({ queryKey: ['expenses'] })} />
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="gradient-primary text-primary-foreground shadow-primary">
-                  <Plus className="mr-2 h-4 w-4 md:h-5 md:w-5" />
+                <Button className="gradient-primary text-primary-foreground shadow-primary w-full">
+                  <Plus className="mr-2 h-4 w-4 md:h-5 md:w-5 hidden sm:inline" />
                   Add Expense
                 </Button>
               </DialogTrigger>
@@ -471,21 +471,23 @@ export default function Expenses() {
         {/* Category Breakdown Chart */}
         {chartData.length > 0 && (
           <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle>Expense Breakdown by Category</CardTitle>
+            <CardHeader className="p-3 md:p-4 lg:p-6">
+              <CardTitle className="text-md text-center md:text-base lg:text-lg">Expense Breakdown by Category</CardTitle>
             </CardHeader>
-            <CardContent className="p-4 md:p-6">
-              <ResponsiveContainer width="100%" height={isMobile ? 250 : 350}>
-                <PieChart margin={{ top: isMobile ? 10 : 20, right: isMobile ? 10 : 20, bottom: isMobile ? 10 : 20, left: isMobile ? 10 : 20 }}>
+            <CardContent className="p-3 md:p-4 lg:p-6">
+              <ResponsiveContainer width="100%" height={isMobile ? 300 : 360}>
+                <PieChart margin={{ top: 30, right: 5, bottom: 5, left: 5 }}>
                   <Pie
                     data={chartData}
                     cx="50%"
-                    cy={isMobile ? "45%" : "50%"}
-                    labelLine={!isMobile}
-                    label={isMobile ? undefined : ({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={isMobile ? 80 : 90}
+                    cy={isMobile ? "38%" : "42%"}
+                    labelLine={false}
+                    label={false}
+                    outerRadius={100}
+                    innerRadius={55}
                     fill="#8884d8"
                     dataKey="value"
+                    paddingAngle={2}
                   >
                     {chartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -497,13 +499,30 @@ export default function Expenses() {
                       backgroundColor: "hsl(var(--card))",
                       border: "1px solid hsl(var(--border))",
                       borderRadius: "8px",
-                      fontSize: isMobile ? "12px" : "14px"
+                      fontSize: isMobile ? "11px" : "13px",
+                      padding: isMobile ? "6px 8px" : "8px 12px"
+                    }}
+                    labelStyle={{
+                      fontSize: isMobile ? "11px" : "13px",
+                      fontWeight: 600
                     }}
                   />
                   <Legend 
                     verticalAlign="bottom"
-                    height={isMobile ? 40 : 36}
-                    wrapperStyle={{ fontSize: isMobile ? "12px" : "14px" }}
+                    height={isMobile ? 80 : 70}
+                    wrapperStyle={{ 
+                      fontSize: "12px",
+                      paddingTop: isMobile ? "12px" : "18px",
+                      lineHeight: isMobile ? "1.5" : "1.7"
+                    }}
+                    iconSize={isMobile ? 8 : 10}
+                    iconType="circle"
+                    formatter={(value: string, entry: any) => {
+                      const total = chartData.reduce((sum, item) => sum + item.value, 0);
+                      const percentage = ((entry.payload.value / total) * 100).toFixed(1);
+                      const amount = `GH₵${Number(entry.payload.value).toLocaleString()}`;
+                      return isMobile ? `${value} (${percentage}%)` : `${value}: ${amount} (${percentage}%)`;
+                    }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -518,21 +537,21 @@ export default function Expenses() {
           </CardHeader>
           <CardContent>
             {/* Search and Filters */}
-            <div className="space-y-4 mb-6">
-              <div className="flex flex-col md:flex-row gap-3">
+            <div className="space-y-3 md:space-y-4 mb-6">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <Input
                   placeholder="Search expenses..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="md:flex-1"
+                  className="flex-1"
                 />
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   {selectedExpenses.size > 0 && (
                     <>
-                      <Button variant="outline" size="sm" onClick={handleBulkStatusChange}>
+                      <Button variant="outline" size="sm" onClick={handleBulkStatusChange} className="flex-1 sm:flex-none">
                         Change Status ({selectedExpenses.size})
                       </Button>
-                      <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
+                      <Button variant="destructive" size="sm" onClick={handleBulkDelete} className="flex-1 sm:flex-none">
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete ({selectedExpenses.size})
                       </Button>
@@ -541,8 +560,9 @@ export default function Expenses() {
                   {hasActiveFilters && (
                     <Button
                       variant="outline"
+                      size="sm"
                       onClick={clearFilters}
-                      className="md:w-auto"
+                      className="w-full sm:w-auto"
                     >
                       Clear Filters
                     </Button>
@@ -550,7 +570,7 @@ export default function Expenses() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <Select value={filterCategory} onValueChange={setFilterCategory}>
                   <SelectTrigger>
                     <SelectValue placeholder="Category" />
@@ -585,21 +605,29 @@ export default function Expenses() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="filterDateFrom" className="text-xs text-muted-foreground">From Date</Label>
                   <Input
+                    id="filterDateFrom"
                     type="date"
-                    placeholder="From"
                     value={filterDateFrom}
                     onChange={(e) => setFilterDateFrom(e.target.value)}
                   />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="filterDateTo" className="text-xs text-muted-foreground">To Date</Label>
                   <Input
+                    id="filterDateTo"
                     type="date"
-                    placeholder="To"
                     value={filterDateTo}
                     onChange={(e) => setFilterDateTo(e.target.value)}
                   />
                 </div>
               </div>
+            </div>
             {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">Loading...</div>
             ) : expenses.length === 0 ? (
@@ -625,7 +653,7 @@ export default function Expenses() {
                               {expense.status === 'paid' ? 'Paid' : 'Pending'}
                             </Badge>
                           </div>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 text-xs md:text-sm text-muted-foreground">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 text-sm text-muted-foreground">
                             <div>
                               <p className="font-medium">Date</p>
                               <p className="truncate">{new Date(expense.expense_date).toLocaleDateString()}</p>

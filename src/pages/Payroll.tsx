@@ -141,14 +141,14 @@ export default function Payroll() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto p-3 md:p-4 lg:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Payroll Management</h1>
-          <p className="text-muted-foreground">Manage monthly payroll for tutors and staff</p>
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">Payroll Management</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Manage monthly payroll for tutors and staff</p>
         </div>
         <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-full sm:w-48 text-xs md:text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -161,185 +161,354 @@ export default function Payroll() {
         </Select>
       </div>
 
-      <Tabs defaultValue="tutors" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="tutors">Tutor Payroll</TabsTrigger>
-          <TabsTrigger value="staff">Staff Payroll</TabsTrigger>
+      <Tabs defaultValue="tutors" className="space-y-3 md:space-y-4">
+        <TabsList className="w-full grid grid-cols-2">
+          <TabsTrigger value="tutors" className="text-xs md:text-sm">Tutor Payroll</TabsTrigger>
+          <TabsTrigger value="staff" className="text-xs md:text-sm">Staff Payroll</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="tutors" className="space-y-4">
+        <TabsContent value="tutors" className="space-y-3 md:space-y-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Tutor Payroll - {format(new Date(selectedMonth), 'MMMM yyyy')}</CardTitle>
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 md:p-4 lg:p-6">
+              <CardTitle className="text-sm md:text-base lg:text-lg">Tutor Payroll - {format(new Date(selectedMonth), 'MMMM yyyy')}</CardTitle>
               <Button 
                 onClick={() => {
                   setGenerateType('tutor');
                   setGenerateDialogOpen(true);
                 }}
+                className="text-xs md:text-sm w-full sm:w-auto"
               >
-                <DollarSign className="mr-2 h-4 w-4" />
-                Generate Payroll
+                Generate
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 md:p-4 lg:p-6">
               {tutorLoading ? (
-                <div className="text-center py-8">Loading...</div>
+                <div className="text-center py-6 md:py-8 text-xs md:text-sm">Loading...</div>
               ) : tutorPayroll.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-6 md:py-8 text-xs md:text-sm text-muted-foreground">
                   No payroll records for this month. Generate payroll to get started.
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Tutor Name</TableHead>
-                      <TableHead>Base Salary</TableHead>
-                      <TableHead>Lessons</TableHead>
-                      <TableHead>Students</TableHead>
-                      <TableHead>Bonuses</TableHead>
-                      <TableHead>Deductions</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <>
+                  {/* Desktop Table */}
+                  <div className="hidden lg:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Tutor Name</TableHead>
+                          <TableHead>Base Salary</TableHead>
+                          <TableHead>Lessons</TableHead>
+                          <TableHead>Students</TableHead>
+                          <TableHead>Bonuses</TableHead>
+                          <TableHead>Deductions</TableHead>
+                          <TableHead>Total</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {tutorPayroll.map((record: any) => (
+                          <TableRow key={record.id}>
+                            <TableCell className="font-medium">{record.tutors?.name}</TableCell>
+                            <TableCell>GHS {record.base_salary}</TableCell>
+                            <TableCell>{record.lessons_taught}</TableCell>
+                            <TableCell>{record.active_students}</TableCell>
+                            <TableCell>GHS {(record.lesson_bonus || 0) + (record.student_bonus || 0)}</TableCell>
+                            <TableCell>GHS {record.deductions || 0}</TableCell>
+                            <TableCell className="font-bold">GHS {record.total_amount}</TableCell>
+                            <TableCell>
+                              <PayrollStatusBadge status={record.status} />
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setEditRecord(record);
+                                    setEditType('tutor');
+                                    setEditDialogOpen(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                {record.status === 'pending' && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => updateStatus.mutate({ id: record.id, status: 'approved', type: 'tutor' })}
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                {record.status === 'approved' && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => updateStatus.mutate({ id: record.id, status: 'paid', type: 'tutor' })}
+                                  >
+                                    Mark Paid
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile/Tablet Cards */}
+                  <div className="lg:hidden space-y-3">
                     {tutorPayroll.map((record: any) => (
-                      <TableRow key={record.id}>
-                        <TableCell className="font-medium">{record.tutors?.name}</TableCell>
-                        <TableCell>GHS {record.base_salary}</TableCell>
-                        <TableCell>{record.lessons_taught}</TableCell>
-                        <TableCell>{record.active_students}</TableCell>
-                        <TableCell>GHS {(record.lesson_bonus || 0) + (record.student_bonus || 0)}</TableCell>
-                        <TableCell>GHS {record.deductions || 0}</TableCell>
-                        <TableCell className="font-bold">GHS {record.total_amount}</TableCell>
-                        <TableCell>
-                          <PayrollStatusBadge status={record.status} />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setEditRecord(record);
-                                setEditType('tutor');
-                                setEditDialogOpen(true);
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            {record.status === 'pending' && (
+                      <Card key={record.id} className="border-2">
+                        <CardContent className="p-3">
+                          <div className="flex flex-col gap-2">
+                            {/* Row 1: Name + Status */}
+                            <div className="flex items-center justify-between gap-2">
+                              <h3 className="font-bold text-sm md:text-base truncate flex-1">{record.tutors?.name}</h3>
+                              <PayrollStatusBadge status={record.status} />
+                            </div>
+
+                            {/* Row 2: Details Grid */}
+                            <div className="grid grid-cols-2 gap-2 bg-muted/30 p-2 rounded-md text-xs">
+                              <div>
+                                <p className="text-muted-foreground">Base Salary</p>
+                                <p className="font-medium">GHS {record.base_salary}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Lessons</p>
+                                <p className="font-medium">{record.lessons_taught}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Students</p>
+                                <p className="font-medium">{record.active_students}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Bonuses</p>
+                                <p className="font-medium">GHS {(record.lesson_bonus || 0) + (record.student_bonus || 0)}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Deductions</p>
+                                <p className="font-medium">GHS {record.deductions || 0}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Total</p>
+                                <p className="font-bold text-sm">GHS {record.total_amount}</p>
+                              </div>
+                            </div>
+
+                            {/* Row 3: Actions */}
+                            <div className="flex flex-wrap gap-2">
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => updateStatus.mutate({ id: record.id, status: 'approved', type: 'tutor' })}
+                                onClick={() => {
+                                  setEditRecord(record);
+                                  setEditType('tutor');
+                                  setEditDialogOpen(true);
+                                }}
+                                className="flex-1 text-xs h-8"
                               >
-                                <Check className="h-4 w-4" />
+                                <Edit className="h-3 w-3 mr-1" />
+                                Edit
                               </Button>
-                            )}
-                            {record.status === 'approved' && (
-                              <Button
-                                size="sm"
-                                onClick={() => updateStatus.mutate({ id: record.id, status: 'paid', type: 'tutor' })}
-                              >
-                                Mark Paid
-                              </Button>
-                            )}
+                              {record.status === 'pending' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => updateStatus.mutate({ id: record.id, status: 'approved', type: 'tutor' })}
+                                  className="flex-1 text-xs h-8"
+                                >
+                                  <Check className="h-3 w-3 mr-1" />
+                                  Approve
+                                </Button>
+                              )}
+                              {record.status === 'approved' && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => updateStatus.mutate({ id: record.id, status: 'paid', type: 'tutor' })}
+                                  className="flex-1 text-xs h-8"
+                                >
+                                  Mark Paid
+                                </Button>
+                              )}
+                            </div>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                        </CardContent>
+                      </Card>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="staff" className="space-y-4">
+        <TabsContent value="staff" className="space-y-3 md:space-y-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Staff Payroll - {format(new Date(selectedMonth), 'MMMM yyyy')}</CardTitle>
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 md:p-4 lg:p-6">
+              <CardTitle className="text-sm md:text-base lg:text-lg">Staff Payroll - {format(new Date(selectedMonth), 'MMMM yyyy')}</CardTitle>
               <Button 
                 onClick={() => {
                   setGenerateType('staff');
                   setGenerateDialogOpen(true);
                 }}
+                className="w-full sm:w-auto text-xs md:text-sm"
               >
-                <DollarSign className="mr-2 h-4 w-4" />
-                Generate Payroll
+                Generate
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 md:p-4 lg:p-6">
               {staffLoading ? (
-                <div className="text-center py-8">Loading...</div>
+                <div className="text-center py-6 md:py-8 text-xs md:text-sm">Loading...</div>
               ) : staffPayroll.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-6 md:py-8 text-xs md:text-sm text-muted-foreground">
                   No payroll records for this month. Generate payroll to get started.
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Staff Name</TableHead>
-                      <TableHead>Position</TableHead>
-                      <TableHead>Base Salary</TableHead>
-                      <TableHead>Bonuses</TableHead>
-                      <TableHead>Deductions</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <>
+                  {/* Desktop Table */}
+                  <div className="hidden lg:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Staff Name</TableHead>
+                          <TableHead>Position</TableHead>
+                          <TableHead>Base Salary</TableHead>
+                          <TableHead>Bonuses</TableHead>
+                          <TableHead>Deductions</TableHead>
+                          <TableHead>Total</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {staffPayroll.map((record: any) => (
+                          <TableRow key={record.id}>
+                            <TableCell className="font-medium">{record.staff?.name}</TableCell>
+                            <TableCell>{record.staff?.position}</TableCell>
+                            <TableCell>GHS {record.base_salary}</TableCell>
+                            <TableCell>GHS {record.bonuses || 0}</TableCell>
+                            <TableCell>GHS {record.deductions || 0}</TableCell>
+                            <TableCell className="font-bold">GHS {record.total_amount}</TableCell>
+                            <TableCell>
+                              <PayrollStatusBadge status={record.status} />
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setEditRecord(record);
+                                    setEditType('staff');
+                                    setEditDialogOpen(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                {record.status === 'pending' && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => updateStatus.mutate({ id: record.id, status: 'approved', type: 'staff' })}
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                {record.status === 'approved' && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => updateStatus.mutate({ id: record.id, status: 'paid', type: 'staff' })}
+                                  >
+                                    Mark Paid
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile Cards */}
+                  <div className="lg:hidden space-y-3">
                     {staffPayroll.map((record: any) => (
-                      <TableRow key={record.id}>
-                        <TableCell className="font-medium">{record.staff?.name}</TableCell>
-                        <TableCell>{record.staff?.position}</TableCell>
-                        <TableCell>GHS {record.base_salary}</TableCell>
-                        <TableCell>GHS {record.bonuses || 0}</TableCell>
-                        <TableCell>GHS {record.deductions || 0}</TableCell>
-                        <TableCell className="font-bold">GHS {record.total_amount}</TableCell>
-                        <TableCell>
-                          <PayrollStatusBadge status={record.status} />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setEditRecord(record);
-                                setEditType('staff');
-                                setEditDialogOpen(true);
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            {record.status === 'pending' && (
+                      <Card key={record.id} className="border-2">
+                        <CardContent className="p-3">
+                          <div className="space-y-3">
+                            {/* Row 1: Name, Position & Status */}
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold text-sm truncate">{record.staff?.name}</h3>
+                                <p className="text-xs text-muted-foreground">{record.staff?.position}</p>
+                              </div>
+                              <PayrollStatusBadge status={record.status} />
+                            </div>
+
+                            {/* Row 2: Details Grid */}
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="bg-muted/30 p-2 rounded-md">
+                                <div className="text-xs text-muted-foreground">Base Salary</div>
+                                <div className="text-xs font-medium">GHS {record.base_salary}</div>
+                              </div>
+                              <div className="bg-muted/30 p-2 rounded-md">
+                                <div className="text-xs text-muted-foreground">Bonuses</div>
+                                <div className="text-xs font-medium">GHS {record.bonuses || 0}</div>
+                              </div>
+                              <div className="bg-muted/30 p-2 rounded-md">
+                                <div className="text-xs text-muted-foreground">Deductions</div>
+                                <div className="text-xs font-medium">GHS {record.deductions || 0}</div>
+                              </div>
+                              <div className="bg-muted/30 p-2 rounded-md">
+                                <div className="text-xs text-muted-foreground">Total</div>
+                                <div className="text-xs font-bold">GHS {record.total_amount}</div>
+                              </div>
+                            </div>
+
+                            {/* Row 3: Actions */}
+                            <div className="flex flex-wrap gap-2">
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => updateStatus.mutate({ id: record.id, status: 'approved', type: 'staff' })}
+                                onClick={() => {
+                                  setEditRecord(record);
+                                  setEditType('staff');
+                                  setEditDialogOpen(true);
+                                }}
+                                className="flex-1 text-xs h-8"
                               >
-                                <Check className="h-4 w-4" />
+                                <Edit className="mr-1 h-3 w-3" />
+                                Edit
                               </Button>
-                            )}
-                            {record.status === 'approved' && (
-                              <Button
-                                size="sm"
-                                onClick={() => updateStatus.mutate({ id: record.id, status: 'paid', type: 'staff' })}
-                              >
-                                Mark Paid
-                              </Button>
-                            )}
+                              {record.status === 'pending' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => updateStatus.mutate({ id: record.id, status: 'approved', type: 'staff' })}
+                                  className="flex-1 text-xs h-8"
+                                >
+                                  <Check className="mr-1 h-3 w-3" />
+                                  Approve
+                                </Button>
+                              )}
+                              {record.status === 'approved' && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => updateStatus.mutate({ id: record.id, status: 'paid', type: 'staff' })}
+                                  className="flex-1 text-xs h-8"
+                                >
+                                  Mark Paid
+                                </Button>
+                              )}
+                            </div>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                        </CardContent>
+                      </Card>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

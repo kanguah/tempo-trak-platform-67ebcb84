@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Filter, Download, CheckCircle, Clock, XCircle, CreditCard, Send, RefreshCw, X, Calendar as CalendarIcon, Trash2, Edit, FileText, Receipt, ReceiptText } from "lucide-react";
+import { Search, Filter, Download, CheckCircle, Clock, XCircle, CreditCard, Send, RefreshCw, X, Calendar as CalendarIcon, Trash2, Edit, FileText, Receipt, ReceiptText, DollarSign } from "lucide-react";
 import DataImport from "@/components/DataImport";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -989,7 +989,7 @@ const monthsFromStartOfYear = Array.from(
   
 
   return <div className="min-h-screen bg-background">
-      <div className="p-4 md:p-8 space-y-6 md:space-y-8 animate-fade-in">
+      <div className="md:p-8 space-y-6 md:space-y-8 animate-fade-in">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
@@ -997,57 +997,65 @@ const monthsFromStartOfYear = Array.from(
             <p className="text-muted-foreground">Track payments, invoices, and revenue</p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" onClick={() => generatePaymentsMutation.mutate()} disabled={generatePaymentsMutation.isPending}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Generate Payments
+            <Button variant="outline" onClick={() => generatePaymentsMutation.mutate()} disabled={generatePaymentsMutation.isPending} className="text-xs md:text-sm">
+              <RefreshCw className="h-3 md:h-4 w-3 md:w-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">Generate Payments</span>
+              <span className="sm:hidden">Generate</span>
             </Button>
-            <Button variant="outline" onClick={() => sendRemindersMutation.mutate()} disabled={sendRemindersMutation.isPending}>
-              <Send className="mr-2 h-4 w-4" />
-              Send Reminders
+            <Button variant="outline" onClick={() => sendRemindersMutation.mutate()} disabled={sendRemindersMutation.isPending} className="text-xs md:text-sm">
+              <Send className="h-3 md:h-4 w-3 md:w-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">Send Reminders</span>
+              <span className="sm:hidden">Remind</span>
             </Button>
             <DataImport type="payments" onSuccess={() => queryClient.invalidateQueries({ queryKey: ['payments'] })} />
-            <Button variant="outline" onClick={() => setInitPaymentDialogOpen(true)}>
-              <CreditCard className="mr-2 h-4 w-4" />
-              Initiate Payment
+            <Button variant="outline" onClick={() => setInitPaymentDialogOpen(true)} className="text-xs md:text-sm">
+              <CreditCard className="h-3 md:h-4 w-3 md:w-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">Initiate Payment</span>
+              <span className="sm:hidden">Pay</span>
             </Button>
           </div>
         </div>
 
         {/* Summary Cards - Revenue card only for admins */}
-        <div className={`grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 ${isAdmin ? 'lg:grid-cols-3' : ''}`}>
+        <div className={`grid gap-2 md:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2 ${isAdmin ? 'lg:grid-cols-3' : ''}`}>
           {isAdmin && (
             <><Card className="gradient-primary text-primary-foreground shadow-primary">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs md:text-sm opacity-90 mb-1">Total Revenue</p>
-                  <h3 className="text-2xl md:text-3xl font-bold">GH₵ {totalRevenue.toLocaleString()}</h3>
+            <CardContent className="p-3 md:p-4 lg:p-6">
+              <div className="flex items-center justify-between gap-2 md:gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs md:text-sm opacity-90 mb-0.5 md:mb-1">Total Revenue</p>
+                  <h3 className="text-xl md:text-2xl lg:text-3xl font-bold">GH₵ {totalRevenue.toLocaleString()}</h3>
                 </div>
-
+                <div className="h-10 md:h-12 w-10 md:w-12 rounded-full flex items-center justify-center flex-shrink-0 bg-white/20">
+                  <DollarSign className="h-5 md:h-6 w-5 md:w-6" />
+                </div>
               </div>
             </CardContent>
           </Card><Card className="shadow-card">
-              <CardContent className="p-4 md:p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs md:text-sm text-muted-foreground mb-1">Pending/Overdue</p>
-                    <h3 className="text-2xl md:text-3xl font-bold text-orange-600">
+              <CardContent className="p-3 md:p-4 lg:p-6">
+                <div className="flex items-center justify-between gap-2 md:gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs md:text-sm text-muted-foreground mb-0.5 md:mb-1">Pending/Overdue</p>
+                    <h3 className="text-xl md:text-2xl lg:text-3xl font-bold text-orange-600">
                       GH₵ {pendingAmount.toLocaleString()}
                     </h3>
                   </div>
-
+                  <div className="h-10 md:h-12 w-10 md:w-12 rounded-full flex items-center justify-center flex-shrink-0 bg-orange-500/10">
+                    <Clock className="h-5 md:h-6 w-5 md:w-6 text-orange-600" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
           <Card className="shadow-card">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div className="w-full">
-                  <p className="text-xs md:text-sm text-muted-foreground mb-1">Payments Received</p>
-                  <h3 className="text-2xl md:text-3xl font-bold text-green-600">{paidCount}</h3>
-                  
+            <CardContent className="p-3 md:p-4 lg:p-6">
+              <div className="flex items-center justify-between gap-2 md:gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs md:text-sm text-muted-foreground mb-0.5 md:mb-1">Payments Received</p>
+                  <h3 className="text-xl md:text-2xl lg:text-3xl font-bold text-green-600">{paidCount}</h3>
                 </div>
-                
+                <div className="h-10 md:h-12 w-10 md:w-12 rounded-full flex items-center justify-center flex-shrink-0 bg-green-500/10">
+                  <CheckCircle className="h-5 md:h-6 w-5 md:w-6 text-green-600" />
+                </div>
               </div>
             </CardContent>
           </Card></>
@@ -1056,52 +1064,91 @@ const monthsFromStartOfYear = Array.from(
 
         {/* Charts Row - Admin Only */}
         {isAdmin && (
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-3 md:gap-4 lg:gap-6 lg:grid-cols-2">
             {/* Revenue vs Expenses Chart */}
-            <Card className="shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  
-                  Revenue vs Expenses
-                </CardTitle>
+            <Card className="shadow-card overflow-hidden">
+              <CardHeader className="p-3 md:p-4 lg:p-6">
+                <CardTitle className="text-sm md:text-base">Revenue vs Expenses</CardTitle>
               </CardHeader>
-              <CardContent>
-                {revenueData.some(d => d.revenue > 0 || d.expenses > 0) ? <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={revenueData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
-                      <YAxis stroke="hsl(var(--muted-foreground))" />
-                      <Tooltip contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px"
-                  }} />
-                      <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-                      <Bar dataKey="expenses" fill="hsl(var(--accent))" radius={[8, 8, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer> : <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+              <CardContent className="p-0 md:p-2 lg:p-4">
+                {revenueData.some(d => d.revenue > 0 || d.expenses > 0) ? <div className="w-full overflow-x-auto">
+                    <div className="min-w-[300px]">
+                      <ResponsiveContainer width="100%" height={180}>
+                        <BarChart data={revenueData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                          <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" style={{ fontSize: '10px' }} />
+                          <YAxis stroke="hsl(var(--muted-foreground))" style={{ fontSize: '10px' }} width={40} />
+                          <Tooltip contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                        fontSize: '11px'
+                      }} />
+                          <Bar dataKey="revenue" fill="hsl(170, 65%, 55%)" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="expenses" fill="hsl(0, 75%, 55%)" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div> : <div className="h-[180px] flex items-center justify-center text-muted-foreground text-xs md:text-sm">
                     No revenue data yet
                   </div>}
               </CardContent>
             </Card>
 
             {/* Payment Method Breakdown */}
-            <Card className="shadow-card">
-              <CardHeader>
-                <CardTitle>Payment Method Distribution</CardTitle>
+            <Card className="shadow-card overflow-hidden">
+              <CardHeader className="p-3 md:p-4 lg:p-6">
+                <CardTitle className="text-sm md:text-base">Payment Method Distribution</CardTitle>
               </CardHeader>
-              <CardContent>
-                {methodChartData.length > 0 ? <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie data={methodChartData} cx="50%" cy="50%" labelLine={false} label={({
-                    name,
-                    percent
-                  }) => `${name} ${(percent * 100).toFixed(0)}%`} outerRadius={90} fill="#8884d8" dataKey="value">
-                        {methodChartData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer> : <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+              <CardContent className="p-2 md:p-4">
+                {methodChartData.length > 0 ? <div className="flex flex-col gap-3">
+                    <div className="w-full flex justify-center">
+                      <div style={{ width: '200px', height: '200px' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie 
+                              data={methodChartData} 
+                              cx="50%" 
+                              cy="50%" 
+                              labelLine={false}
+                              outerRadius={70}
+                              innerRadius={35}
+                              fill="#8884d8" 
+                              dataKey="value"
+                              paddingAngle={2}
+                            >
+                              {methodChartData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                            </Pie>
+                            <Tooltip 
+                              contentStyle={{
+                                backgroundColor: "hsl(var(--card))",
+                                border: "1px solid hsl(var(--border))",
+                                borderRadius: "8px",
+                                fontSize: '11px'
+                              }}
+                              formatter={(value: number) => `GH₵${value.toLocaleString()}`}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 text-xs">
+                      {methodChartData.map((entry, index) => (
+                        <div key={entry.name} className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-sm flex-shrink-0" 
+                            style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                          />
+                          <div className="flex-1 min-w-0 flex items-baseline justify-between gap-2">
+                            <span className="font-medium truncate">{entry.name}</span>
+                            <span className="text-muted-foreground whitespace-nowrap text-xs">
+                              GH₵{entry.value.toLocaleString()} ({((entry.value / methodChartData.reduce((sum, item) => sum + item.value, 0)) * 100).toFixed(0)}%)
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div> : <div className="h-[200px] flex items-center justify-center text-muted-foreground text-xs md:text-sm">
                     No payment method data yet
                   </div>}
               </CardContent>
@@ -1242,18 +1289,19 @@ const monthsFromStartOfYear = Array.from(
 
         {/* Search and Filter Bar */}
         <Card className="shadow-card">
-          <CardContent className="p-4 space-y-4">
-            <div className="flex gap-2 items-center">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input placeholder="Search payments by student, invoice ID..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
+          <CardContent className="p-3 md:p-4 space-y-3 md:space-y-4">
+            <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 md:h-5 w-4 md:w-5 text-muted-foreground" />
+                <Input placeholder="Search by student, invoice..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-8 md:pl-10 text-xs md:text-sm" />
               </div>
               <Collapsible open={showFilters} onOpenChange={setShowFilters}>
                 <CollapsibleTrigger asChild>
-                  <Button variant="outline" className="relative">
-                    <Filter className="h-4 w-4 mr-2" />
-                    Filters
-                    {activeFilterCount > 0 && <Badge className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-primary text-primary-foreground">
+                  <Button variant="outline" className="relative text-xs md:text-sm h-8 md:h-10">
+                    <Filter className="h-3 md:h-4 w-3 md:w-4 mr-1 md:mr-2" />
+                    <span className="hidden sm:inline">Filters</span>
+                    <span className="sm:hidden">Filter</span>
+                    {activeFilterCount > 0 && <Badge className="ml-2 h-4 md:h-5 w-4 md:w-5 rounded-full p-0 flex items-center justify-center bg-primary text-primary-foreground text-xs">
                         {activeFilterCount}
                       </Badge>}
                   </Button>
@@ -1263,13 +1311,13 @@ const monthsFromStartOfYear = Array.from(
             
             {/* Filter Panel */}
             <Collapsible open={showFilters} onOpenChange={setShowFilters}>
-              <CollapsibleContent className="space-y-4 pt-4 border-t animate-accordion-down">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <CollapsibleContent className="space-y-3 md:space-y-4 pt-3 md:pt-4 border-t animate-accordion-down">
+                <div className="grid gap-2 md:gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                   {/* Status Filter */}
-                  <div className="space-y-2">
-                    <Label>Status</Label>
+                  <div className="space-y-1.5 md:space-y-2">
+                    <Label className="text-xs md:text-sm">Status</Label>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger>
+                      <SelectTrigger className="text-xs md:text-sm h-8 md:h-10">
                         <SelectValue placeholder="All statuses" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1282,10 +1330,10 @@ const monthsFromStartOfYear = Array.from(
                   </div>
 
                   {/* Package Type Filter */}
-                  <div className="space-y-2">
-                    <Label>Package Type</Label>
+                  <div className="space-y-1.5 md:space-y-2">
+                    <Label className="text-xs md:text-sm">Package Type</Label>
                     <Select value={packageTypeFilter} onValueChange={setPackageTypeFilter}>
-                      <SelectTrigger>
+                      <SelectTrigger className="text-xs md:text-sm h-8 md:h-10">
                         <SelectValue placeholder="All packages" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1296,10 +1344,10 @@ const monthsFromStartOfYear = Array.from(
                   </div>
 
                   {/* Payment Method Filter */}
-                  <div className="space-y-2">
-                    <Label>Payment Method</Label>
+                  <div className="space-y-1.5 md:space-y-2">
+                    <Label className="text-xs md:text-sm">Payment Method</Label>
                     <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
-                      <SelectTrigger>
+                      <SelectTrigger className="text-xs md:text-sm h-8 md:h-10">
                         <SelectValue placeholder="All methods" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1310,13 +1358,14 @@ const monthsFromStartOfYear = Array.from(
                   </div>
 
                   {/* Date Range - From */}
-                  <div className="space-y-2">
-                    <Label>Due Date From</Label>
+                  <div className="space-y-1.5 md:space-y-2">
+                    <Label className="text-xs md:text-sm">Due Date From</Label>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateRangeFilter.from && "text-muted-foreground")}>
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {dateRangeFilter.from ? format(dateRangeFilter.from, "PPP") : "Pick a date"}
+                        <Button variant="outline" className={cn("text-xs md:text-sm h-8 md:h-10 justify-start text-left font-normal", !dateRangeFilter.from && "text-muted-foreground")}>
+                          <CalendarIcon className="h-3 md:h-4 w-3 md:w-4 mr-1 md:mr-2 flex-shrink-0" />
+                          <span className="hidden sm:inline">{dateRangeFilter.from ? format(dateRangeFilter.from, "MMM d") : "Pick"}</span>
+                          <span className="sm:hidden text-xs">{dateRangeFilter.from ? format(dateRangeFilter.from, "MMM d") : "Date"}</span>
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -1329,13 +1378,14 @@ const monthsFromStartOfYear = Array.from(
                   </div>
 
                   {/* Date Range - To */}
-                  <div className="space-y-2">
-                    <Label>Due Date To</Label>
+                  <div className="space-y-1.5 md:space-y-2">
+                    <Label className="text-xs md:text-sm">Due Date To</Label>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateRangeFilter.to && "text-muted-foreground")}>
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {dateRangeFilter.to ? format(dateRangeFilter.to, "PPP") : "Pick a date"}
+                        <Button variant="outline" className={cn("text-xs md:text-sm h-8 md:h-10 justify-start text-left font-normal", !dateRangeFilter.to && "text-muted-foreground")}>
+                          <CalendarIcon className="h-3 md:h-4 w-3 md:w-4 mr-1 md:mr-2 flex-shrink-0" />
+                          <span className="hidden sm:inline">{dateRangeFilter.to ? format(dateRangeFilter.to, "MMM d") : "Pick"}</span>
+                          <span className="sm:hidden text-xs">{dateRangeFilter.to ? format(dateRangeFilter.to, "MMM d") : "Date"}</span>
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -1348,13 +1398,14 @@ const monthsFromStartOfYear = Array.from(
                   </div>
 
                   {/* Created At - From */}
-                  <div className="space-y-2">
-                    <Label>Created At From</Label>
+                  <div className="space-y-1.5 md:space-y-2">
+                    <Label className="text-xs md:text-sm">Created From</Label>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !createdAtRangeFilter.from && "text-muted-foreground")}>
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {createdAtRangeFilter.from ? format(createdAtRangeFilter.from, "PPP") : "Pick a date"}
+                        <Button variant="outline" className={cn("text-xs md:text-sm h-8 md:h-10 justify-start text-left font-normal", !createdAtRangeFilter.from && "text-muted-foreground")}>
+                          <CalendarIcon className="h-3 md:h-4 w-3 md:w-4 mr-1 md:mr-2 flex-shrink-0" />
+                          <span className="hidden sm:inline">{createdAtRangeFilter.from ? format(createdAtRangeFilter.from, "MMM d") : "Pick"}</span>
+                          <span className="sm:hidden text-xs">{createdAtRangeFilter.from ? format(createdAtRangeFilter.from, "MMM d") : "Date"}</span>
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -1367,13 +1418,14 @@ const monthsFromStartOfYear = Array.from(
                   </div>
 
                   {/* Created At - To */}
-                  <div className="space-y-2">
-                    <Label>Created At To</Label>
+                  <div className="space-y-1.5 md:space-y-2">
+                    <Label className="text-xs md:text-sm">Created To</Label>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !createdAtRangeFilter.to && "text-muted-foreground")}>
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {createdAtRangeFilter.to ? format(createdAtRangeFilter.to, "PPP") : "Pick a date"}
+                        <Button variant="outline" className={cn("text-xs md:text-sm h-8 md:h-10 justify-start text-left font-normal", !createdAtRangeFilter.to && "text-muted-foreground")}>
+                          <CalendarIcon className="h-3 md:h-4 w-3 md:w-4 mr-1 md:mr-2 flex-shrink-0" />
+                          <span className="hidden sm:inline">{createdAtRangeFilter.to ? format(createdAtRangeFilter.to, "MMM d") : "Pick"}</span>
+                          <span className="sm:hidden text-xs">{createdAtRangeFilter.to ? format(createdAtRangeFilter.to, "MMM d") : "Date"}</span>
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -1386,32 +1438,32 @@ const monthsFromStartOfYear = Array.from(
                   </div>
 
                   {/* Amount Range - Min */}
-                  <div className="space-y-2">
-                    <Label>Min Amount (GH₵)</Label>
+                  <div className="space-y-1.5 md:space-y-2">
+                    <Label className="text-xs md:text-sm">Min (GH₵)</Label>
                     <Input type="number" placeholder="0" value={amountRangeFilter.min} onChange={e => setAmountRangeFilter(prev => ({
                     ...prev,
                     min: e.target.value
-                  }))} />
+                  }))} className="text-xs md:text-sm h-8 md:h-10" />
                   </div>
 
                   {/* Amount Range - Max */}
-                  <div className="space-y-2">
-                    <Label>Max Amount (GH₵)</Label>
+                  <div className="space-y-1.5 md:space-y-2">
+                    <Label className="text-xs md:text-sm">Max (GH₵)</Label>
                     <Input type="number" placeholder="10000" value={amountRangeFilter.max} onChange={e => setAmountRangeFilter(prev => ({
                     ...prev,
                     max: e.target.value
-                  }))} />
+                  }))} className="text-xs md:text-sm h-8 md:h-10" />
                   </div>
                 </div>
 
                 {/* Filter Actions */}
-                <div className="flex items-center justify-between pt-2">
-                  <p className="text-sm text-muted-foreground">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-2">
+                  <p className="text-xs md:text-sm text-muted-foreground">
                     {filteredPayments.length} {filteredPayments.length === 1 ? 'payment' : 'payments'} found
                   </p>
-                  {activeFilterCount > 0 && <Button variant="ghost" size="sm" onClick={clearFilters}>
-                      <X className="h-4 w-4 mr-2" />
-                      Clear Filters
+                  {activeFilterCount > 0 && <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs md:text-sm h-7 md:h-8">
+                      <X className="h-3 md:h-4 w-3 md:w-4 mr-1" />
+                      Clear
                     </Button>}
                 </div>
               </CollapsibleContent>
@@ -1421,83 +1473,85 @@ const monthsFromStartOfYear = Array.from(
 
         {/* Payments Table */}
         <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CardTitle>Recent Payments</CardTitle>
-            </div>
-            <div className="flex gap-2">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 p-3 md:p-4 lg:p-6">
+            <CardTitle className="text-sm md:text-base lg:text-lg">Recent Payments</CardTitle>
+            <div className="flex flex-wrap gap-1 md:gap-2">
               {selectedPayments.size > 0 && (
                 <>
                   <Button
                     onClick={handleBulkEdit}
                     variant="outline"
                     size="sm"
+                    className="text-xs md:text-sm h-7 md:h-8"
                   >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Bulk Edit ({selectedPayments.size})
+                    <Edit className="h-3 md:h-4 w-3 md:w-4 mr-1" />
+                    <span className="hidden sm:inline">Edit</span>
                   </Button>
                   <Button
                     onClick={() => setBulkInvoiceDialogOpen(true)}
                     variant="outline"
                     size="sm"
+                    className="text-xs md:text-sm h-7 md:h-8"
                   >
-                    <ReceiptText className="h-4 w-4 mr-2" />
-                    Send Invoice ({selectedPayments.size})
+                    <ReceiptText className="h-3 md:h-4 w-3 md:w-4 mr-1" />
+                    <span className="hidden sm:inline">Invoice</span>
                   </Button>
                   <Button
                     onClick={handleBulkMarkPaid}
                     variant="outline"
                     size="sm"
+                    className="text-xs md:text-sm h-7 md:h-8"
                   >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Mark Paid ({selectedPayments.size})
+                    <CheckCircle className="h-3 md:h-4 w-3 md:w-4 mr-1" />
+                    <span className="hidden sm:inline">Paid</span>
                   </Button>
                   <Button
                     onClick={handleBulkDelete}
                     variant="outline"
                     size="sm"
+                    className="text-xs md:text-sm h-7 md:h-8"
                   >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete ({selectedPayments.size})
+                    <Trash2 className="h-3 md:h-4 w-3 md:w-4 mr-1" />
+                    <span className="hidden sm:inline">Delete</span>
                   </Button>
                 </>
               )}
             </div>
           </CardHeader>
-          <CardContent>
-            {payments.length === 0 ? <div className="text-center py-8 text-muted-foreground max-h-[200px]">
+          <CardContent className="p-3 md:p-4 lg:p-6">
+            {payments.length === 0 ? <div className="text-center py-6 md:py-8 text-xs md:text-sm text-muted-foreground">
                 No payments yet. Generate monthly payments to get started.
-              </div> : filteredPayments.length === 0 ? <div className="text-center py-8 text-muted-foreground">
+              </div> : filteredPayments.length === 0 ? <div className="text-center py-6 md:py-8 text-xs md:text-sm text-muted-foreground">
                   No payments match your filters. Try adjusting your search criteria.
                 </div> : <>
                 {selectedPayments.size > 0 && (
-                  <div className="mb-4 p-4 bg-primary/10 rounded-lg border-2 border-primary animate-in">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-primary">
+                  <div className="mb-3 md:mb-4 p-2 md:p-3 lg:p-4 bg-primary/10 rounded-lg border-2 border-primary animate-in">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <span className="text-xs md:text-sm font-medium text-primary">
                         {selectedPayments.size} of {filteredPayments.length} selected
                       </span>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1 md:gap-2">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleSelectAll(true, filteredPayments)}
-                          className="text-xs"
+                          className="text-xs h-7 md:h-8"
                         >
-                          Select All
+                          All
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => setSelectedPayments(new Set())}
-                          className="text-xs"
+                          className="text-xs h-7 md:h-8"
                         >
-                          Clear
+                          None
                         </Button>
                       </div>
                     </div>
                   </div>
                 )}
-                <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                <div className="space-y-2 md:space-y-3 max-h-[600px] overflow-y-auto">
                 {filteredPayments.map((payment, index) => {
                   const isSelected = selectedPayments.has(payment.id);
                   return <Card 
@@ -1511,95 +1565,102 @@ const monthsFromStartOfYear = Array.from(
                     animationDelay: `${index * 0.05}s`
                   }}
                 >
-                      <CardContent className="p-4">
-                        <div className="flex gap-3 flex-col md:flex-row md:items-start md:justify-between">
-                          <div className="flex gap-3 flex-1">
+                      <CardContent className="p-2 md:p-3 lg:p-4">
+                        <div className="flex flex-col gap-2 md:gap-3">
+                          {/* Row 1: Checkbox + Student + Status */}
+                          <div className="flex items-center gap-2 md:gap-3 flex-wrap">
                             <Checkbox 
                               checked={isSelected}
                               onCheckedChange={(checked) => handleSelectPayment(payment.id, checked as boolean)}
-                              className="mt-1 h-5 w-5 flex-shrink-0"
+                              className="h-4 md:h-5 w-4 md:w-5 flex-shrink-0"
                             />
-                            <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3 mb-2 flex-wrap">
-                              <h3 className="font-bold text-foreground">
-                                {payment.students?.name || "Unknown Student"}
-                              </h3>
-                              {getStatusBadge(payment.status)}
-                        
+                            <h3 className="font-bold text-xs md:text-sm text-foreground flex-1 min-w-0 truncate">
+                              {payment.students?.name || "Unknown"}
+                            </h3>
+                            {getStatusBadge(payment.status)}
+                          </div>
+
+                          {/* Row 2: Details Grid (2-4 columns) */}
+                          <div className="grid gap-1.5 md:gap-2 grid-cols-3 md:grid-cols-4 bg-muted/30 p-2 rounded-md">
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium text-muted-foreground">Invoice</p>
+                              <p className="text-xs truncate">{payment.id.slice(0, 8)}</p>
                             </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
-                              <div>
-                                <p className="font-medium">Invoice ID</p>
-                                <p>{payment.id.slice(0, 8)}</p>
-                              </div>
-                              <div>
-                                <p className="font-medium">Period</p>
-                                <p>{payment.created_at ? new Date(payment.due_date).toLocaleDateString('en-US', {
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium text-muted-foreground">Period</p>
+                              <p className="text-xs truncate">{payment.created_at ? new Date(payment.due_date).toLocaleDateString('en-US', {
                             month: 'short',
                             year: 'numeric'
                           }) : "-"}</p>
-                              </div>
-                              <div>
-                                <p className="font-medium">Student ID</p>
-                                <p className="truncate">{payment.student_id?.slice(0, 8) || "-"}</p>
-                              </div>
+                            </div>
+                            <div className="min-w-0 hidden md:block">
+                              <p className="text-xs font-medium text-muted-foreground">Student ID</p>
+                              <p className="text-xs truncate">{payment.student_id?.slice(0, 8) || "-"}</p>
+                            </div>
+                            <div className="text-right md:text-left">
+                              <p className="text-xs font-medium text-muted-foreground">Amount</p>
+                              <p className="text-sm md:text-base font-bold text-foreground">GH₵ {payment.amount}</p>
                             </div>
                           </div>
-                          <div className="text-right md:ml-4">
-                            <p className="text-xl md:text-2xl font-bold text-foreground">GH₵ {payment.amount}</p>
-                            {payment.paid_amount && Number(payment.paid_amount) > 0 && Number(payment.paid_amount) < Number(payment.amount) && <div className="mt-1 space-y-1">
-                                <p className="text-sm text-green-600">
-                                  Paid: GH₵{Number(payment.paid_amount).toFixed(2)}
-                                </p>
-                                <p className="text-sm text-orange-600 font-semibold">
-                                  Remaining: GH₵{getRemainingBalance(payment).toFixed(2)}
-                                </p>
-                              </div>}
-                            {payment.discount_amount > 0 && <p className="text-xs text-orange-600">Discount: GH₵{payment.discount_amount}</p>}
-                            <div className="flex justify-end gap-2 mt-2 flex-wrap">
-                              <Button size="sm" title="Edit Payment" variant="outline" onClick={() => openEditDialog(payment)}>
-                                <Edit className="h-4 w-4 mr-1" />
+
+                          {/* Row 3: Paid/Balance Info + Actions */}
+                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                            <div className="text-xs space-y-0.5">
+                              {payment.paid_amount && Number(payment.paid_amount) > 0 && Number(payment.paid_amount) < Number(payment.amount) && <>
+                                <p className="text-green-600">Paid: GH₵{Number(payment.paid_amount).toFixed(2)}</p>
+                                <p className="text-orange-600 font-semibold">Remaining: GH₵{getRemainingBalance(payment).toFixed(2)}</p>
+                              </>}
+                              {payment.discount_amount > 0 && <p className="text-orange-600">Discount: GH₵{payment.discount_amount}</p>}
+                            </div>
+                            <div className="flex flex-wrap gap-1 md:gap-2">
+                              <Button size="sm" variant="outline" onClick={() => openEditDialog(payment)} className="h-7 md:h-8 text-xs md:text-sm flex-1 md:flex-none">
+                                <Edit className="h-3 md:h-4 w-3 md:w-4 mr-1" />
+                                <span className="hidden md:inline">Edit</span>
                               </Button>
                               {(payment.status === "pending" || payment.status === "failed") && (
-                                <Button size="sm" title="Send Invoice" variant="outline" onClick={() => {
-                                  setSelectedInvoicePaymentId(payment.id);
-                                  setSelectedInvoiceChannel("email");
-                                  setIndividualInvoiceDialogOpen(true);
-                                }}>
-                                  <ReceiptText className="h-4 w-4 mr-1" />
-                                </Button>
+                                <>
+                                  <Button size="sm" variant="outline" onClick={() => {
+                                    setSelectedInvoicePaymentId(payment.id);
+                                    setSelectedInvoiceChannel("email");
+                                    setIndividualInvoiceDialogOpen(true);
+                                  }} className="h-7 md:h-8 text-xs md:text-sm flex-1 md:flex-none">
+                                    <ReceiptText className="h-3 md:h-4 w-3 md:w-4 mr-1" />
+                                    <span className="hidden md:inline">Invoice</span>
+                                  </Button>
+                                  {payment.status === "pending" && <Button size="sm" onClick={() => openVerifyDialog(payment.id)} className="h-7 md:h-8 text-xs md:text-sm flex-1 md:flex-none">
+                                      <CreditCard className="h-3 md:h-4 w-3 md:w-4 mr-1" />
+                                      <span className="hidden md:inline">Verify</span>
+                                    </Button>}
+                                  <Button size="sm" variant="outline" onClick={() => sendSingleReminderMutation.mutate(payment.id)} disabled={sendSingleReminderMutation.isPending} className="h-7 md:h-8 text-xs md:text-sm flex-1 md:flex-none">
+                                    <Send className="h-3 md:h-4 w-3 md:w-4 mr-1" />
+                                    <span className="hidden md:inline">Remind</span>
+                                  </Button>
+                                  <Button size="sm" variant="destructive" onClick={() => openDeleteDialog(payment.id)} disabled={deletePaymentMutation.isPending} className="h-7 md:h-8 text-xs md:text-sm flex-1 md:flex-none">
+                                    <Trash2 className="h-3 md:h-4 w-3 md:w-4 mr-1" />
+                                    <span className="hidden md:inline">Delete</span>
+                                  </Button>
+                                </>
                               )}
                               {payment.status === "completed" && (
                                 <Button 
                                   size="sm" 
-                                  title="Download Receipt" 
                                   variant="outline"
                                   onClick={() => handleDownloadReceipt(payment.id, payment.students?.name || 'Student')}
                                   disabled={downloadingReceipt === payment.id}
+                                  className="h-7 md:h-8 text-xs md:text-sm flex-1 md:flex-none"
                                 >
-                                  <FileText className="h-4 w-4 mr-1" />
-                                  {downloadingReceipt === payment.id ? "Downloading..." : ""}
+                                  <FileText className="h-3 md:h-4 w-3 md:w-4 mr-1" />
+                                  <span className="hidden md:inline">{downloadingReceipt === payment.id ? "..." : "Receipt"}</span>
                                 </Button>
                               )}
-                              {(payment.status === "pending" || payment.status === "failed") && <>
-                                  {payment.status === "pending" && <Button title="Verify Payment" size="sm" onClick={() => openVerifyDialog(payment.id)}>
-                                      <CreditCard className="h-4 w-4 mr-1" />
-                                    </Button>}
-                                  <Button size="sm" title="Send Reminder" variant="outline" onClick={() => sendSingleReminderMutation.mutate(payment.id)} disabled={sendSingleReminderMutation.isPending}>
-                                    <Send className="h-4 w-4 mr-1" />
-                                  </Button>
-                                
-                              <Button size="sm" title="Delete Payment" variant="destructive" onClick={() => openDeleteDialog(payment.id)} disabled={deletePaymentMutation.isPending}>
-                                <Trash2 className="h-4 w-4 mr-1" />
-                              </Button></>}
-                            </div>
                             </div>
                           </div>
                         </div>
                       </CardContent>
                     </Card>;
                 })}
-              </div></>}
+                </div>
+              </>}
           </CardContent>
         </Card>
 

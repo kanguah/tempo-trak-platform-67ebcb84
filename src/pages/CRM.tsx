@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Mail, Phone, MessageSquare, UserPlus, Search, Archive, GripVertical, Trash2 } from "lucide-react";
+import { Plus, Mail, Phone, MessageSquare, UserPlus, Search, Archive, GripVertical, Trash2, Sparkles, Phone as PhoneIcon, CheckCircle, TrendingUp, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -94,69 +94,68 @@ function DraggableLeadCard({
     animationDelay: `${stageIndex * 0.1 + index * 0.05}s`
   };
   return <Card ref={setNodeRef} style={style} className={`border-2 hover:shadow-lg transition-all cursor-grab active:cursor-grabbing animate-scale-in ${isDragging ? 'shadow-2xl ring-2 ring-primary' : ''} ${isSelected ? 'border-primary ring-2 ring-primary/60' : ''}`} onClick={() => !isDragging && onEdit(lead)}>
-      <CardContent className="p-3 md:p-4">
+      <CardContent className="p-2 md:p-3">
         <div className="flex items-start gap-2 mb-2">
           <div onClick={e => e.stopPropagation()}>
             <Checkbox checked={isSelected} onCheckedChange={checked => onToggleSelect(lead.id, checked === true)} className="mt-1" aria-label={`Select ${lead.name}`} />
           </div>
           <div {...listeners} {...attributes} className="touch-none mt-1">
-            <GripVertical className="h-4 w-4 text-muted-foreground" />
+            <GripVertical className="h-3 md:h-4 w-3 md:w-4 text-muted-foreground" />
           </div>
-          <h3 className="font-bold text-sm md:text-base text-foreground flex-1 truncate">{lead.name}</h3>
+          <h3 className="font-bold text-xs md:text-sm text-foreground flex-1 truncate">{lead.name}</h3>
           <div className="flex gap-1">
             <Button 
               size="icon" 
               variant="ghost" 
-              className="h-7 w-7 md:h-8 md:w-8 text-muted-foreground hover:text-foreground" 
+              className="h-6 w-6 md:h-7 md:w-7 text-muted-foreground hover:text-foreground" 
               onClick={e => {
                 e.stopPropagation();
                 onArchive(lead.id);
               }}
             >
-              <Archive className="h-3 w-3 md:h-4 md:w-4" />
+              <Archive className="h-3 w-3 md:h-3.5 md:w-3.5" />
             </Button>
             <Button 
               size="icon" 
               variant="ghost" 
-              className="h-7 w-7 md:h-8 md:w-8 text-muted-foreground hover:text-destructive" 
+              className="h-6 w-6 md:h-7 md:w-7 text-muted-foreground hover:text-destructive" 
               onClick={e => {
                 e.stopPropagation();
                 onDelete(lead.id);
               }}
             >
-              <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
+              <Trash2 className="h-3 w-3 md:h-3.5 md:w-3.5" />
             </Button>
           </div>
         </div>
         
-        
 
         
 
         
 
-        <div className="flex gap-2 mb-2">
-          <Button size="sm" variant="outline" className="flex-1 h-9 md:h-8 text-xs" onClick={e => {
+        <div className="flex gap-1.5 mb-2">
+          <Button size="sm" variant="outline" className="flex-1 h-7 md:h-8 text-[10px] md:text-xs px-2" onClick={e => {
           e.stopPropagation();
           document.location.href = `tel:+233${lead.phone}`;
           toast.success(`Calling ${lead.name}...`);
           onContact(lead, 'call');
         }}>
-            <Phone className="h-3 w-3 mr-1" />
-            <span className="hidden sm:inline">Call</span>
+            <Phone className="h-2.5 w-2.5 md:h-3 md:w-3" />
+            <span className="hidden sm:inline ml-1">Call</span>
           </Button>
-          <Button size="sm" variant="outline" className="flex-1 h-9 md:h-8 text-xs" onClick={e => {
+          <Button size="sm" variant="outline" className="flex-1 h-7 md:h-8 text-[10px] md:text-xs px-2" onClick={e => {
           e.stopPropagation();
           window.location.href = `mailto:${lead.email}?subject=Follow up - ${lead.instrument} Lessons`;
           onContact(lead, 'email');
         }}>
-            <Mail className="h-3 w-3 mr-1" />
-            <span className="hidden sm:inline">Email</span>
+            <Mail className="h-2.5 w-2.5 md:h-3 md:w-3" />
+            <span className="hidden sm:inline ml-1">Email</span>
           </Button>
         </div>
-          <div className=" flex justify-between">
-        <span className="text-xs text-muted-foreground">Added {lead.createdAt}</span>
-        <span className="text-xs text-muted-foreground mt-1">Last contacted: {lastContactedAt || lead.lastContact || 'Not yet'}</span>
+          <div className=" flex justify-between gap-1 text-[9px] md:text-xs">
+        <span className="text-muted-foreground truncate">Added {lead.createdAt}</span>
+        <span className="text-muted-foreground truncate">Last: {lastContactedAt || lead.lastContact || 'Not yet'}</span>
         </div>
       </CardContent>
     </Card>;
@@ -197,18 +196,18 @@ function DroppableStage({
   });
   const allSelected = leads.length > 0 && leads.every(lead => selectedLeadIds.includes(lead.id));
   const someSelected = leads.some(lead => selectedLeadIds.includes(lead.id));
-  return <Card className={`shadow-card animate-slide-up transition-all flex flex-col max-h-[80vh] overflow-hidden ${isOver ? 'ring-2 ring-primary' : ''}`} style={{
+  return <Card className={`shadow-card animate-slide-up transition-all flex flex-col max-h-[70vh] md:max-h-[80vh] overflow-hidden ${isOver ? 'ring-2 ring-primary' : ''}`} style={{
     animationDelay: `${stageIndex * 0.1}s`
   }}>
-      <CardHeader className={`${stage.color} text-white rounded-t-lg`}>
+      <CardHeader className={`${stage.color} text-white rounded-t-lg p-3 md:p-4`}>
         <div className="flex flex-col gap-2">
-          <CardTitle className="text-base md:text-lg flex items-center justify-between">
-            <span>{stage.label}</span>
-            <Badge className="bg-white/20 text-white border-white/30 text-xs md:text-sm">
+          <CardTitle className="text-sm md:text-base lg:text-lg flex items-center justify-between">
+            <span className="truncate">{stage.label}</span>
+            <Badge className="bg-white/20 text-white border-white/30 text-xs md:text-sm ml-2">
               {leads.length}
             </Badge>
           </CardTitle>
-          <div className="flex items-center gap-3 text-xs">
+          <div className="flex items-center gap-2 text-xs md:text-sm">
             <button className="text-white/80 hover:text-white transition-colors underline-offset-2 hover:underline disabled:opacity-50" onClick={e => {
             e.preventDefault();
             onToggleStageSelect(stage.id, true);
@@ -225,12 +224,12 @@ function DroppableStage({
           </div>
         </div>
       </CardHeader>
-      <CardContent ref={setNodeRef} className={`p-3 md:p-4 space-y-3 min-h-[300px] md:min-h-[400px] flex-1 overflow-y-auto transition-colors ${isOver ? 'bg-accent/50' : ''}`}>
+      <CardContent ref={setNodeRef} className={`p-2 md:p-3 space-y-2 md:space-y-3 min-h-[200px] md:min-h-[300px] flex-1 overflow-y-auto transition-colors ${isOver ? 'bg-accent/50' : ''}`}>
         {leads.map((lead, index) => <DraggableLeadCard key={lead.id} lead={lead} index={index} stageIndex={stageIndex} onArchive={onArchive} onDelete={onDelete} onEdit={onEdit} onContact={onContact} lastContactedAt={lead.lastContact} isSelected={selectedLeadIds.includes(lead.id)} onToggleSelect={onToggleSelect} />)}
 
-        {leads.length === 0 && <div className="text-center py-8 text-muted-foreground">
+        {leads.length === 0 && <div className="text-center py-6 md:py-8 text-muted-foreground">
             <p className="text-xs md:text-sm">No leads in this stage</p>
-            {isOver && <p className="text-xs mt-2">Drop here</p>}
+            {isOver && <p className="text-sm mt-2">Drop here</p>}
           </div>}
       </CardContent>
     </Card>;
@@ -619,57 +618,58 @@ export default function CRM() {
   };
   const hasSelection = selectedLeads.length > 0;
   return <div className="min-h-screen bg-background">
-      <div className="p-4 md:p-8 space-y-6 md:space-y-8 animate-fade-in">
+      <div className="p-3 md:p-4 lg:p-8 space-y-4 md:space-y-6 lg:space-y-8 animate-fade-in">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           <div>
-            <h1 className="text-2xl md:text-4xl font-bold text-foreground mb-2">CRM & Leads</h1>
-            <p className="text-sm md:text-base text-muted-foreground">Manage prospects and student recruitment</p>
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-1">CRM & Leads</h1>
+            <p className="text-xs md:text-sm lg:text-base text-muted-foreground">Manage prospects and student recruitment</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <DataImport type="leads" onSuccess={() => queryClient.invalidateQueries({ queryKey: ['crm-leads'] })} />
-            <Button className="gradient-primary text-primary-foreground shadow-primary w-full sm:w-auto" onClick={() => setAddDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4 md:h-5 md:w-5" />
-              Add Lead
+            <Button className="gradient-primary text-primary-foreground shadow-primary w-full sm:w-auto text-xs md:text-sm" onClick={() => setAddDialogOpen(true)}>
+              <Plus className="mr-1 md:mr-2 h-3 md:h-4 w-3 md:w-4" />
+              <span className="hidden sm:inline">Add Lead</span>
+              <span className="sm:hidden">Add</span>
             </Button>
           </div>
         </div>
 
         {/* Add Lead Dialog */}
         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-          <DialogContent className="max-w-md w-full mx-4">
+          <DialogContent className="max-w-md w-full mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-base md:text-lg">Add New Lead</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm">Name *</Label>
-                <Input id="name" className="h-11 md:h-10" value={newLead.name} onChange={e => setNewLead({
+            <div className="space-y-3 md:space-y-4 py-3 md:py-4">
+              <div className="space-y-1.5 md:space-y-2">
+                <Label htmlFor="name" className="text-xs md:text-sm">Name *</Label>
+                <Input id="name" className="h-8 md:h-10 text-xs md:text-sm" value={newLead.name} onChange={e => setNewLead({
                 ...newLead,
                 name: e.target.value
               })} placeholder="Enter full name" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm">Email *</Label>
-                <Input id="email" type="email" className="h-11 md:h-10" value={newLead.email} onChange={e => setNewLead({
+              <div className="space-y-1.5 md:space-y-2">
+                <Label htmlFor="email" className="text-xs md:text-sm">Email *</Label>
+                <Input id="email" type="email" className="h-8 md:h-10 text-xs md:text-sm" value={newLead.email} onChange={e => setNewLead({
                 ...newLead,
                 email: e.target.value
               })} placeholder="email@example.com" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-sm">Phone *</Label>
-                <Input id="phone" className="h-11 md:h-10" value={newLead.phone} onChange={e => setNewLead({
+              <div className="space-y-1.5 md:space-y-2">
+                <Label htmlFor="phone" className="text-xs md:text-sm">Phone *</Label>
+                <Input id="phone" className="h-8 md:h-10 text-xs md:text-sm" value={newLead.phone} onChange={e => setNewLead({
                 ...newLead,
                 phone: e.target.value
               })} placeholder="+233 24 000 0000" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="instrument" className="text-sm">Instrument *</Label>
+              <div className="space-y-1.5 md:space-y-2">
+                <Label htmlFor="instrument" className="text-xs md:text-sm">Instrument *</Label>
                 <Select value={newLead.instrument} onValueChange={value => setNewLead({
                 ...newLead,
                 instrument: value
               })}>
-                  <SelectTrigger className="h-11 md:h-10">
+                  <SelectTrigger className="h-8 md:h-10 text-xs md:text-sm">
                     <SelectValue placeholder="Select instrument" />
                   </SelectTrigger>
                   <SelectContent className="bg-background z-50">
@@ -682,13 +682,13 @@ export default function CRM() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="source">Source *</Label>
+              <div className="space-y-1.5 md:space-y-2">
+                <Label htmlFor="source" className="text-xs md:text-sm">Source *</Label>
                 <Select value={newLead.source} onValueChange={value => setNewLead({
                 ...newLead,
                 source: value
               })}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-8 md:h-10 text-xs md:text-sm">
                     <SelectValue placeholder="Select source" />
                   </SelectTrigger>
                   <SelectContent>
@@ -701,13 +701,13 @@ export default function CRM() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="stage">Stage</Label>
+              <div className="space-y-1.5 md:space-y-2">
+                <Label htmlFor="stage" className="text-xs md:text-sm">Stage</Label>
                 <Select value={newLead.stage} onValueChange={value => setNewLead({
                 ...newLead,
                 stage: value
               })}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-8 md:h-10 text-xs md:text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -719,19 +719,19 @@ export default function CRM() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notes</Label>
-                <Textarea id="notes" value={newLead.notes} onChange={e => setNewLead({
+              <div className="space-y-1.5 md:space-y-2">
+                <Label htmlFor="notes" className="text-xs md:text-sm">Notes</Label>
+                <Textarea id="notes" className="text-xs md:text-sm" value={newLead.notes} onChange={e => setNewLead({
                 ...newLead,
                 notes: e.target.value
               })} placeholder="Add any relevant notes..." rows={3} />
               </div>
             </div>
-            <div className="flex gap-3 justify-end">
-              <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
+            <div className="flex gap-2 justify-end flex-wrap">
+              <Button variant="outline" className="text-xs md:text-sm h-8 md:h-10" onClick={() => setAddDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleAddLead}>
+              <Button className="text-xs md:text-sm h-8 md:h-10" onClick={handleAddLead}>
                 Add Lead
               </Button>
             </div>
@@ -740,39 +740,39 @@ export default function CRM() {
 
         {/* Edit Lead Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md w-full mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Edit Lead</DialogTitle>
+              <DialogTitle className="text-base md:text-lg">Edit Lead</DialogTitle>
             </DialogHeader>
-            {editingLead && <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-name">Name *</Label>
-                  <Input id="edit-name" value={editingLead.name} onChange={e => setEditingLead({
+            {editingLead && <div className="space-y-3 md:space-y-4 py-3 md:py-4">
+                <div className="space-y-1.5 md:space-y-2">
+                  <Label htmlFor="edit-name" className="text-xs md:text-sm">Name *</Label>
+                  <Input id="edit-name" className="h-8 md:h-10 text-xs md:text-sm" value={editingLead.name} onChange={e => setEditingLead({
                 ...editingLead,
                 name: e.target.value
               })} placeholder="Enter full name" />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-email">Email *</Label>
-                  <Input id="edit-email" type="email" value={editingLead.email} onChange={e => setEditingLead({
+                <div className="space-y-1.5 md:space-y-2">
+                  <Label htmlFor="edit-email" className="text-xs md:text-sm">Email *</Label>
+                  <Input id="edit-email" type="email" className="h-8 md:h-10 text-xs md:text-sm" value={editingLead.email} onChange={e => setEditingLead({
                 ...editingLead,
                 email: e.target.value
               })} placeholder="email@example.com" />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-phone">Phone *</Label>
-                  <Input id="edit-phone" value={editingLead.phone} onChange={e => setEditingLead({
+                <div className="space-y-1.5 md:space-y-2">
+                  <Label htmlFor="edit-phone" className="text-xs md:text-sm">Phone *</Label>
+                  <Input id="edit-phone" className="h-8 md:h-10 text-xs md:text-sm" value={editingLead.phone} onChange={e => setEditingLead({
                 ...editingLead,
                 phone: e.target.value
               })} placeholder="+233 24 000 0000" />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-instrument">Instrument *</Label>
+                <div className="space-y-1.5 md:space-y-2">
+                  <Label htmlFor="edit-instrument" className="text-xs md:text-sm">Instrument *</Label>
                   <Select value={editingLead.instrument} onValueChange={value => setEditingLead({
                 ...editingLead,
                 instrument: value
               })}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-8 md:h-10 text-xs md:text-sm">
                       <SelectValue placeholder="Select instrument" />
                     </SelectTrigger>
                     <SelectContent>
@@ -785,13 +785,13 @@ export default function CRM() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-source">Source *</Label>
+                <div className="space-y-1.5 md:space-y-2">
+                  <Label htmlFor="edit-source" className="text-xs md:text-sm">Source *</Label>
                   <Select value={editingLead.source} onValueChange={value => setEditingLead({
                 ...editingLead,
                 source: value
               })}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-8 md:h-10 text-xs md:text-sm">
                       <SelectValue placeholder="Select source" />
                     </SelectTrigger>
                     <SelectContent>
@@ -804,13 +804,13 @@ export default function CRM() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-stage">Stage</Label>
+                <div className="space-y-1.5 md:space-y-2">
+                  <Label htmlFor="edit-stage" className="text-xs md:text-sm">Stage</Label>
                   <Select value={editingLead.stage} onValueChange={value => setEditingLead({
                 ...editingLead,
                 stage: value
               })}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-8 md:h-10 text-xs md:text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -822,22 +822,22 @@ export default function CRM() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-notes">Notes</Label>
-                  <Textarea id="edit-notes" value={editingLead.notes} onChange={e => setEditingLead({
+                <div className="space-y-1.5 md:space-y-2">
+                  <Label htmlFor="edit-notes" className="text-xs md:text-sm">Notes</Label>
+                  <Textarea id="edit-notes" className="text-xs md:text-sm" value={editingLead.notes} onChange={e => setEditingLead({
                 ...editingLead,
                 notes: e.target.value
               })} placeholder="Add any relevant notes..." rows={3} />
                 </div>
               </div>}
-            <div className="flex gap-3 justify-end">
-              <Button variant="outline" onClick={() => {
+            <div className="flex gap-2 justify-end flex-wrap">
+              <Button variant="outline" className="text-xs md:text-sm h-8 md:h-10" onClick={() => {
               setEditDialogOpen(false);
               setEditingLead(null);
             }}>
                 Cancel
               </Button>
-              <Button onClick={handleSaveEdit}>
+              <Button className="text-xs md:text-sm h-8 md:h-10" onClick={handleSaveEdit}>
                 Save Changes
               </Button>
             </div>
@@ -845,21 +845,40 @@ export default function CRM() {
         </Dialog>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-2 md:gap-3 lg:gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
           {stages.map((stage, index) => {
           const count = getLeadsByStage(stage.id).length;
+          
+          // Get icon for each stage
+          const getStageIcon = (stageId: string) => {
+            switch(stageId) {
+              case 'new':
+                return <Sparkles className={`h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 ${stage.color.replace("bg-", "text-")}`} />;
+              case 'contacted':
+                return <PhoneIcon className={`h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 ${stage.color.replace("bg-", "text-")}`} />;
+              case 'qualified':
+                return <CheckCircle className={`h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 ${stage.color.replace("bg-", "text-")}`} />;
+              case 'converted':
+                return <TrendingUp className={`h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 ${stage.color.replace("bg-", "text-")}`} />;
+              case 'lost':
+                return <XCircle className={`h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 ${stage.color.replace("bg-", "text-")}`} />;
+              default:
+                return <UserPlus className={`h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 ${stage.color.replace("bg-", "text-")}`} />;
+            }
+          };
+          
           return <Card key={stage.id} className={`shadow-card border-l-4 animate-scale-in`} style={{
             borderLeftColor: `${stage.color.replace("bg-", "var(--")}`,
             animationDelay: `${index * 0.1}s`
           }}>
-                <CardContent className="p-4 md:p-6">
-                  <div className="flex items-center justify-between">
+                <CardContent className="p-3 md:p-4 lg:p-6">
+                  <div className="flex items-center justify-between gap-2">
                     <div>
-                      <p className="text-xs md:text-sm text-muted-foreground mb-1">{stage.label}</p>
-                      <h3 className="text-2xl md:text-3xl font-bold text-foreground">{count}</h3>
+                      <p className="text-xs md:text-sm lg:text-base text-muted-foreground mb-1">{stage.label}</p>
+                      <h3 className="text-xl md:text-2xl lg:text-3xl font-bold text-foreground">{count}</h3>
                     </div>
-                    <div className={`h-10 w-10 md:h-12 md:w-12 rounded-full ${stage.color}/10 flex items-center justify-center`}>
-                      <UserPlus className={`h-5 w-5 md:h-6 md:w-6 ${stage.color.replace("bg-", "text-")}`} />
+                    <div className={`h-8 w-8 md:h-10 md:w-10 lg:h-12 lg:w-12 rounded-full ${stage.color}/10 flex items-center justify-center flex-shrink-0`}>
+                      {getStageIcon(stage.id)}
                     </div>
                   </div>
                 </CardContent>
@@ -869,19 +888,19 @@ export default function CRM() {
 
         {/* Search and Filters */}
         <Card className="shadow-card">
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input 
-                  placeholder="Search by name, email, phone, instrument..." 
-                  value={searchQuery} 
-                  onChange={e => setSearchQuery(e.target.value)} 
-                  className="pl-10 h-11 md:h-10" 
-                />
-              </div>
+          <CardContent className="p-3 md:p-4 space-y-2 md:space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 md:h-5 w-4 md:w-5 text-muted-foreground" />
+              <Input 
+                placeholder="Search by name, email, phone..." 
+                value={searchQuery} 
+                onChange={e => setSearchQuery(e.target.value)} 
+                className="pl-8 md:pl-10 h-8 md:h-10 text-xs md:text-sm" 
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
               <Select value={stageFilter} onValueChange={setStageFilter}>
-                <SelectTrigger className="w-full md:w-[180px] h-11 md:h-10">
+                <SelectTrigger className="h-8 md:h-10 text-xs md:text-sm">
                   <SelectValue placeholder="Filter by stage" />
                 </SelectTrigger>
                 <SelectContent>
@@ -894,7 +913,7 @@ export default function CRM() {
                 </SelectContent>
               </Select>
               <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                <SelectTrigger className="w-full md:w-[180px] h-11 md:h-10">
+                <SelectTrigger className="h-8 md:h-10 text-xs md:text-sm">
                   <SelectValue placeholder="Filter by source" />
                 </SelectTrigger>
                 <SelectContent>
@@ -911,22 +930,22 @@ export default function CRM() {
           </CardContent>
         </Card>
         {hasSelection && <Card className="shadow-card border border-primary/40">
-            <CardContent className="p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <p className="text-sm text-muted-foreground">
+            <CardContent className="p-3 md:p-4 flex flex-col gap-2 md:gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs md:text-sm text-muted-foreground">
                 {selectedLeads.length} lead{selectedLeads.length === 1 ? '' : 's'} selected
               </p>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={handleSelectAllLeads}>
+              <div className="flex flex-wrap gap-1.5 md:gap-2">
+                <Button variant="outline" size="sm" className="text-xs md:text-sm h-7 md:h-8" onClick={handleSelectAllLeads}>
                   Select All
                 </Button>
-                <Button variant="ghost" size="sm" onClick={handleClearSelection}>
+                <Button variant="ghost" size="sm" className="text-xs md:text-sm h-7 md:h-8" onClick={handleClearSelection}>
                   Clear
                 </Button>
-                <Button variant="secondary" size="sm" disabled={bulkArchiveMutation.isPending} onClick={handleBulkArchive}>
-                  {bulkArchiveMutation.isPending ? 'Archiving...' : 'Archive Selected'}
+                <Button variant="secondary" size="sm" className="text-xs md:text-sm h-7 md:h-8" disabled={bulkArchiveMutation.isPending} onClick={handleBulkArchive}>
+                  {bulkArchiveMutation.isPending ? 'Archiving...' : 'Archive'}
                 </Button>
-                <Button variant="destructive" size="sm" disabled={bulkDeleteMutation.isPending} onClick={handleBulkDelete}>
-                  {bulkDeleteMutation.isPending ? 'Deleting...' : 'Delete Selected'}
+                <Button variant="destructive" size="sm" className="text-xs md:text-sm h-7 md:h-8" disabled={bulkDeleteMutation.isPending} onClick={handleBulkDelete}>
+                  {bulkDeleteMutation.isPending ? 'Deleting...' : 'Delete'}
                 </Button>
               </div>
             </CardContent>
@@ -934,19 +953,19 @@ export default function CRM() {
 
         {/* Pipeline Board */}
         <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="grid gap-3 md:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 overflow-x-auto">
             {stages.map((stage, stageIndex) => <DroppableStage key={stage.id} stage={stage} leads={getLeadsByStage(stage.id)} stageIndex={stageIndex} onArchive={handleArchiveLead} onDelete={handleDeleteLead} onEdit={handleOpenEditDialog} onContact={handleContactLead} selectedLeadIds={selectedLeads} onToggleSelect={handleToggleLeadSelection} onToggleStageSelect={handleToggleStageSelection} />)}
           </div>
           <DragOverlay>
             {activeLead ? <Card className="border-2 shadow-2xl opacity-90 cursor-grabbing">
-                <CardContent className="p-4">
+                <CardContent className="p-3 md:p-4">
                   <div className="flex items-start gap-2">
-                    <GripVertical className="h-4 w-4 text-muted-foreground mt-1" />
+                    <GripVertical className="h-3 md:h-4 w-3 md:w-4 text-muted-foreground mt-1" />
                     <div className="flex-1">
-                      <h3 className="font-bold text-sm md:text-base text-foreground mb-2">{activeLead.name}</h3>
-                      <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
-                        <Mail className="h-4 w-4" />
-                        <span className="truncate">{activeLead.email}</span>
+                      <h3 className="font-bold text-xs md:text-sm text-foreground mb-2">{activeLead.name}</h3>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Mail className="h-3 md:h-4 w-3 md:w-4" />
+                        <span className="truncate text-xs md:text-sm">{activeLead.email}</span>
                       </div>
                     </div>
                   </div>

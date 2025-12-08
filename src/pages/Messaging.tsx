@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Send, Mail, Clock, CheckCircle2, XCircle, Edit, Trash2, Filter, Search, X } from "lucide-react";
+import { Send, Mail, Clock, CheckCircle2, XCircle, Edit, Trash2, Filter, Search, X, MoreVertical } from "lucide-react";
 import { useMessageTemplates, useMessages, useAutomatedReminders, useGetRecipientContacts, useSendMessage, useToggleReminder, useUpdateTemplate, useDeleteTemplate } from "@/hooks/useMessaging";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import CreateTemplateDialog from "@/components/messaging/CreateTemplateDialog";
@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 export default function Messaging() {
   const [selectedChannel, setSelectedChannel] = useState<"email" | "sms">("email");
   const [selectedTemplate, setSelectedTemplate] = useState("");
@@ -171,58 +172,60 @@ export default function Messaging() {
     message: "Hi {name}, your {subject} lesson with {tutor} is tomorrow at {time}. See you!"
   }];
   return <div className="min-h-screen bg-background">
-      <div className="p-4 md:p-8 space-y-6 md:space-y-8 animate-fade-in">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="p-3 md:p-6 lg:p-8 space-y-4 md:space-y-6 lg:space-y-8 animate-fade-in">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           <div>
-            <h1 className="text-2xl md:text-4xl font-bold text-foreground mb-2">Messaging Center</h1>
-            <p className="text-sm md:text-base text-muted-foreground">Send messages, manage templates, and track delivery</p>
+            <h1 className="text-xl md:text-3xl lg:text-4xl font-bold text-foreground mb-1 md:mb-2">Messaging Center</h1>
+            <p className="text-xs md:text-sm lg:text-base text-muted-foreground">Send messages, manage templates, and track delivery</p>
           </div>
           <CreateTemplateDialog />
         </div>
 
-        <Tabs defaultValue="send" className="space-y-4 md:space-y-6">
-          <TabsList className="bg-card w-full sm:w-auto grid grid-cols-2 sm:grid-cols-4 h-auto">
-            <TabsTrigger value="send" className="text-xs sm:text-sm py-2">Send Messages</TabsTrigger>
-            <TabsTrigger value="templates" className="text-xs sm:text-sm py-2">Templates</TabsTrigger>
-            <TabsTrigger value="history" className="text-xs sm:text-sm py-2">Tracking</TabsTrigger>
-            <TabsTrigger value="automation" className="text-xs sm:text-sm py-2">Reminders</TabsTrigger>
+        <Tabs defaultValue="send" className="space-y-3 md:space-y-4 lg:space-y-6">
+          <TabsList className="bg-card w-full grid grid-cols-2 md:grid-cols-4 h-auto gap-1">
+            <TabsTrigger value="send" className="text-xs sm:text-sm md:text-base py-2">Send</TabsTrigger>
+            <TabsTrigger value="templates" className="text-xs sm:text-sm md:text-base py-2">Templates</TabsTrigger>
+            <TabsTrigger value="history" className="text-xs sm:text-sm md:text-base py-2">Tracking</TabsTrigger>
+            <TabsTrigger value="automation" className="text-xs sm:text-sm md:text-base py-2">Reminders</TabsTrigger>
           </TabsList>
 
           {/* Send Messages Tab */}
-          <TabsContent value="send" className="space-y-4 md:space-y-6">
-            <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
+          <TabsContent value="send" className="space-y-3 md:space-y-4 lg:space-y-6">
+            <div className="grid gap-3 md:gap-4 lg:gap-6 grid-cols-1 lg:grid-cols-3">
               <Card className="lg:col-span-2 shadow-card">
                 <CardHeader>
-                  <CardTitle className="text-base md:text-lg">Compose Message</CardTitle>
+                  <CardTitle className="text-sm md:text-base lg:text-lg">Compose Message</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 md:space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-sm">Send Mode</Label>
+                    <Label className="text-xs md:text-sm">Send Mode</Label>
                     <div className="flex gap-2">
                       <Button type="button" variant={sendMode === "bulk" ? "default" : "outline"} onClick={() => {
                       setSendMode("bulk");
                       setRecipients([]);
-                    }} className="flex-1">
-                        Bulk Send
+                    }} className="flex-1 h-8 md:h-10 text-xs md:text-sm">
+                        <span className="hidden sm:inline">Bulk Send</span>
+                        <span className="sm:hidden">Bulk</span>
                       </Button>
                       <Button type="button" variant={sendMode === "individual" ? "default" : "outline"} onClick={() => {
                       setSendMode("individual");
                       setSelectedRecipientType("");
                       setRecipients([]);
-                    }} className="flex-1">
-                        Individual
+                    }} className="flex-1 h-8 md:h-10 text-xs md:text-sm">
+                        <span className="hidden sm:inline">Individual</span>
+                        <span className="sm:hidden">Single</span>
                       </Button>
                     </div>
                   </div>
 
-                  <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+                  <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label className="text-sm">Channel</Label>
+                      <Label className="text-xs md:text-sm">Channel</Label>
                       <Select value={selectedChannel} onValueChange={value => {
                       setSelectedChannel(value as "email" | "sms");
                       setRecipients([]);
                     }}>
-                        <SelectTrigger className="h-11 md:h-10">
+                        <SelectTrigger className="h-8 md:h-10 text-xs md:text-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-background z-50">
@@ -232,9 +235,9 @@ export default function Messaging() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm">Template (Optional)</Label>
+                      <Label className="text-xs md:text-sm">Template (Optional)</Label>
                       <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                        <SelectTrigger className="h-11 md:h-10">
+                        <SelectTrigger className="h-8 md:h-10 text-xs md:text-sm">
                           <SelectValue placeholder="Select template" />
                         </SelectTrigger>
                         <SelectContent className="bg-background z-50">
@@ -247,9 +250,9 @@ export default function Messaging() {
                   </div>
 
                   {sendMode === "bulk" ? <div className="space-y-2">
-                      <Label className="text-sm">Recipients</Label>
+                      <Label className="text-xs md:text-sm">Recipients</Label>
                       <Select value={selectedRecipientType} onValueChange={setSelectedRecipientType}>
-                        <SelectTrigger className="h-11 md:h-10">
+                        <SelectTrigger className="h-8 md:h-10 text-xs md:text-sm">
                           <SelectValue placeholder="Select recipients" />
                         </SelectTrigger>
                         <SelectContent className="bg-background z-50">
@@ -267,23 +270,24 @@ export default function Messaging() {
                 }} />}
 
                   {selectedChannel === "email" && <div className="space-y-2">
-                      <Label>Subject</Label>
-                      <Input placeholder="Email subject" value={subject} onChange={e => setSubject(e.target.value)} />
+                      <Label className="text-xs md:text-sm">Subject</Label>
+                      <Input placeholder="Email subject" value={subject} onChange={e => setSubject(e.target.value)} className="h-8 md:h-10 text-xs md:text-sm" />
                     </div>}
 
                   <div className="space-y-2">
-                    <Label>Message</Label>
-                    <Textarea placeholder="Type your message here..." className="min-h-[200px]" value={messageBody} onChange={e => setMessageBody(e.target.value)} />
-                    <p className="text-xs text-muted-foreground">
-                      Use variables: {"{name}"}, {"{amount}"}, {"{date}"}, {"{instrument}"}, {"{tutor}"}
+                    <Label className="text-xs md:text-sm">Message</Label>
+                    <Textarea placeholder="Type your message here..." className="min-h-[150px] md:min-h-[200px] text-xs md:text-sm" value={messageBody} onChange={e => setMessageBody(e.target.value)} />
+                    <p className="text-xs md:text-sm text-muted-foreground">
+                      Use variables: {"{"}name{"}"},  {"{"}amount{"}"},  {"{"}date{"}"},  {"{"}instrument{"}"},  {"{"}tutor{"}"}
                     </p>
-                    {selectedChannel === "sms" && <p className="text-xs text-muted-foreground">Character count: {messageBody.length}/160</p>}
+                    {selectedChannel === "sms" && <p className="text-xs md:text-sm text-muted-foreground">Character count: {messageBody.length}/160</p>}
                   </div>
 
-                  <div className="flex gap-3">
-                    <Button className="gradient-primary flex-1" onClick={handleSendMessage} disabled={sendMessage.isPending || !messageBody || recipients.length === 0}>
-                      <Send className="mr-2 h-4 w-4" />
-                      {sendMessage.isPending ? "Sending..." : "Send Now"}
+                  <div className="flex gap-2 md:gap-3">
+                    <Button className="gradient-primary flex-1 h-8 md:h-10 text-xs md:text-sm" onClick={handleSendMessage} disabled={sendMessage.isPending || !messageBody || recipients.length === 0}>
+                      <Send className="mr-1 md:mr-2 h-3 md:h-4 w-3 md:w-4" />
+                      <span className="hidden sm:inline">{sendMessage.isPending ? "Sending..." : "Send Now"}</span>
+                      <span className="sm:hidden">{sendMessage.isPending ? "..." : "Send"}</span>
                     </Button>
                   </div>
                 </CardContent>
@@ -292,29 +296,29 @@ export default function Messaging() {
               <div className="space-y-6">
                 <Card className="shadow-card">
                   <CardHeader>
-                    <CardTitle className="text-lg">Quick Stats</CardTitle>
+                    <CardTitle className="text-sm md:text-base lg:text-lg">Quick Stats</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-3 md:space-y-4">
                     <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-xs md:text-sm">
                         <span className="text-muted-foreground">Total Messages</span>
-                        <span className="font-semibold text-foreground">{messages.length}</span>
+                        <span className="font-semibold text-foreground text-xs md:text-sm">{messages.length}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-xs md:text-sm">
                         <span className="text-muted-foreground">Sent</span>
-                        <span className="font-semibold text-green-600">
+                        <span className="font-semibold text-green-600 text-xs md:text-sm">
                           {messages.filter(m => m.status === "sent").length}
                         </span>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-xs md:text-sm">
                         <span className="text-muted-foreground">Failed</span>
-                        <span className="font-semibold text-red-600">
+                        <span className="font-semibold text-red-600 text-xs md:text-sm">
                           {messages.filter(m => m.status === "failed").length}
                         </span>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-xs md:text-sm">
                         <span className="text-muted-foreground">Sending</span>
-                        <span className="font-semibold text-orange-600">
+                        <span className="font-semibold text-orange-600 text-xs md:text-sm">
                           {messages.filter(m => m.status === "sending").length}
                         </span>
                       </div>
@@ -328,29 +332,29 @@ export default function Messaging() {
           </TabsContent>
 
           {/* Templates Tab */}
-          <TabsContent value="templates" className="space-y-6">
+          <TabsContent value="templates" className="space-y-4 md:space-y-6">
             {/* Common Templates Section */}
             <Card className="shadow-card">
               <CardHeader>
-                <CardTitle className="text-lg">Quick Start Templates</CardTitle>
+                <CardTitle className="text-sm md:text-base lg:text-lg">Quick Start Templates</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                   {commonTemplates.map((template, index) => <Card key={index} className="border-2 border-dashed hover:border-primary transition-colors cursor-pointer">
-                      <CardContent className="p-4" onClick={() => {
+                      <CardContent className="p-3 md:p-4" onClick={() => {
                     setSelectedTemplate("");
                     setMessageBody(template.message);
                     if (template.subject) setSubject(template.subject);
                     setSelectedChannel(template.channel as "email" | "sms");
                   }}>
                         <div className="flex items-center gap-2 mb-2">
-                          <div className={`p-2 rounded-lg ${template.channel === "email" ? "bg-blue-500/10" : "bg-purple-500/10"}`}>
+                          <div className={`p-2 rounded-lg flex-shrink-0 ${template.channel === "email" ? "bg-blue-500/10" : "bg-purple-500/10"}`}>
                             {getChannelIcon(template.channel)}
                           </div>
-                          <h4 className="font-semibold text-sm text-foreground">{template.name}</h4>
+                          <h4 className="font-semibold text-xs md:text-sm text-foreground line-clamp-1">{template.name}</h4>
                         </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2">{template.message}</p>
-                        <Badge className="mt-2 text-xs" variant="outline">{template.category}</Badge>
+                        <p className="text-xs md:text-sm text-muted-foreground line-clamp-2">{template.message}</p>
+                        <Badge className="mt-2 text-xs md:text-sm" variant="outline">{template.category}</Badge>
                       </CardContent>
                     </Card>)}
                 </div>
@@ -360,34 +364,46 @@ export default function Messaging() {
             {/* User Templates Section */}
             <Card className="shadow-card">
               <CardHeader>
-                <CardTitle className="text-lg">My Templates</CardTitle>
+                <CardTitle className="text-sm md:text-base lg:text-lg">My Templates</CardTitle>
               </CardHeader>
               <CardContent>
-                {templatesLoading ? <p>Loading templates...</p> : templates.length === 0 ? <p className="text-center text-muted-foreground py-8">No custom templates yet. Create your first template!</p> : <div className="grid gap-6 md:grid-cols-2">
+                {templatesLoading ? <p className="text-xs md:text-sm">Loading templates...</p> : templates.length === 0 ? <p className="text-center text-muted-foreground py-6 md:py-8 text-xs md:text-sm">No custom templates yet. Create your first template!</p> : <div className="grid gap-3 md:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2">
                     {templates.map(template => <Card key={template.id} className="shadow-card hover:shadow-primary transition-all">
-                        <CardContent className="p-6">
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                              <div className={`p-3 rounded-lg ${template.channel === "email" ? "bg-blue-500/10" : "bg-purple-500/10"}`}>
+                        <CardContent className="p-3 md:p-4 lg:p-6">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-3 md:mb-4">
+                            <div className="flex items-start gap-2 md:gap-3 min-w-0">
+                              <div className={`p-2 md:p-3 rounded-lg flex-shrink-0 ${template.channel === "email" ? "bg-blue-500/10" : "bg-purple-500/10"}`}>
                                 {getChannelIcon(template.channel)}
                               </div>
-                              <div>
-                                <h3 className="font-semibold text-foreground">{template.name}</h3>
-                                <p className="text-sm text-muted-foreground capitalize">{template.channel}</p>
+                              <div className="min-w-0">
+                                <h3 className="font-semibold text-xs md:text-sm text-foreground line-clamp-1">{template.name}</h3>
+                                <p className="text-xs md:text-sm text-muted-foreground capitalize">{template.channel}</p>
                               </div>
+                              <div className="flex-shrink-0 text-right ml-auto">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button size="sm" variant="ghost" className="h-7 md:h-8 w-7 md:w-8 p-0">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleEditTemplate(template)} className="cursor-pointer">
+                                    <Edit className="mr-2 h-4 w-4" />
+                                  Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleDeleteTemplate(template.id)} className="cursor-pointer text-destructive focus:text-destructive">
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
-                            <div className="flex gap-2">
-                              <Button size="icon" variant="ghost" onClick={() => handleEditTemplate(template)}>
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button size="icon" variant="ghost" onClick={() => handleDeleteTemplate(template.id)}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
                             </div>
+                            
                           </div>
-                          {template.subject && <p className="text-sm font-medium text-foreground mb-2">Subject: {template.subject}</p>}
-                          <p className="text-sm text-muted-foreground line-clamp-3">{template.message}</p>
-                          <Badge className="mt-4" variant="outline">
+                          {template.subject && <p className="text-xs md:text-sm font-medium text-foreground mb-2">Subject: {template.subject}</p>}
+                          <p className="text-xs md:text-sm text-muted-foreground line-clamp-2 md:line-clamp-3">{template.message}</p>
+                          <Badge className="mt-2 md:mt-4 text-xs md:text-sm" variant="outline">
                             {template.category}
                           </Badge>
                         </CardContent>
@@ -398,34 +414,35 @@ export default function Messaging() {
           </TabsContent>
 
           {/* Delivery Tracking Tab */}
-          <TabsContent value="history" className="space-y-6">
+          <TabsContent value="history" className="space-y-4 md:space-y-6">
             <Card className="shadow-card">
               <CardHeader>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <CardTitle>Message History</CardTitle>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                  <CardTitle className="text-sm md:text-base lg:text-lg">Message History</CardTitle>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
-                      <Filter className="mr-2 h-4 w-4" />
-                      {showFilters ? "Hide Filters" : "Show Filters"}
+                    <Button variant="outline" size="sm" className="h-8 md:h-10 text-xs md:text-sm" onClick={() => setShowFilters(!showFilters)}>
+                      <Filter className="mr-1 md:mr-2 h-3 md:h-4 w-3 md:w-4" />
+                      <span className="hidden sm:inline">{showFilters ? "Hide Filters" : "Show Filters"}</span>
+                      <span className="sm:hidden">{showFilters ? "Hide" : "Show"}</span>
                     </Button>
                   </div>
                 </div>
                 
-                {showFilters && <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                {showFilters && <div className="mt-3 md:mt-4 grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-3">
                     <div className="space-y-2">
-                      <Label className="text-sm">Search</Label>
+                      <Label className="text-xs md:text-sm">Search</Label>
                       <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Search messages..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9" />
-                        {searchQuery && <Button variant="ghost" size="sm" className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0" onClick={() => setSearchQuery("")}>
-                            <X className="h-4 w-4" />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 md:h-4 w-3 md:w-4 text-muted-foreground" />
+                        <Input placeholder="Search..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-8 md:pl-10 h-8 md:h-10 text-xs md:text-sm" />
+                        {searchQuery && <Button variant="ghost" size="sm" className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0" onClick={() => setSearchQuery("")}>
+                            <X className="h-3 w-3" />
                           </Button>}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm">Status</Label>
+                      <Label className="text-xs md:text-sm">Status</Label>
                       <Select value={filterStatus} onValueChange={setFilterStatus}>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-8 md:h-10 text-xs md:text-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-background z-50">
@@ -438,9 +455,9 @@ export default function Messaging() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm">Channel</Label>
+                      <Label className="text-xs md:text-sm">Channel</Label>
                       <Select value={filterChannel} onValueChange={setFilterChannel}>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-8 md:h-10 text-xs md:text-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-background z-50">
@@ -453,36 +470,37 @@ export default function Messaging() {
                   </div>}
               </CardHeader>
               <CardContent>
-                {messagesLoading ? <p>Loading messages...</p> : filteredMessages.length === 0 ? <p className="text-center text-muted-foreground py-8">
+                {messagesLoading ? <p className="text-xs md:text-sm">Loading messages...</p> : filteredMessages.length === 0 ? <p className="text-center text-muted-foreground py-6 md:py-8 text-xs md:text-sm">
                     {messages.length === 0 ? "No messages sent yet" : "No messages match your filters"}
-                  </p> : <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
-                    {filteredMessages.map(message => <div key={message.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors">
-                        <div className="flex items-center gap-4">
-                          <div className={`p-2 rounded-lg ${message.channel === "email" ? "bg-blue-500/10" : "bg-purple-500/10"}`}>
+                  </p> : <div className="space-y-2 md:space-y-3 max-h-[600px] overflow-y-auto pr-2">
+                    {filteredMessages.map(message => <div key={message.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 p-3 md:p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors">
+                        <div className="flex items-start gap-2 md:gap-3 min-w-0">
+                          <div className={`p-2 rounded-lg flex-shrink-0 ${message.channel === "email" ? "bg-blue-500/10" : "bg-purple-500/10"}`}>
                             {getChannelIcon(message.channel)}
                           </div>
-                          <div>
-                            <p className="font-semibold text-foreground">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-xs md:text-sm text-foreground">
                               {message.message_recipients?.length || 0} recipient(s)
                             </p>
-                            <p className="text-sm text-muted-foreground line-clamp-1">
+                            <p className="text-xs md:text-sm text-muted-foreground line-clamp-1">
                               {message.message_body.substring(0, 50)}...
                             </p>
-                            <div className="flex items-center gap-3 mt-1">
-                              <span className="text-xs text-muted-foreground">
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              <span className="text-xs md:text-sm text-muted-foreground">
                                 {new Date(message.created_at).toLocaleString()}
                               </span>
-                              <Badge variant="outline" className="text-xs capitalize">
+                              <Badge variant="outline" className="text-xs md:text-sm capitalize">
                                 {message.channel}
                               </Badge>
                             </div>
                           </div>
                         </div>
-                        <Badge className={getStatusColor(message.status)} variant="outline">
-                          {message.status === "sent" && <CheckCircle2 className="mr-1 h-3 w-3" />}
-                          {message.status === "failed" && <XCircle className="mr-1 h-3 w-3" />}
-                          {message.status === "sending" && <Clock className="mr-1 h-3 w-3" />}
-                          {message.status}
+                        <Badge className={`${getStatusColor(message.status)} text-[9px] md:text-xs flex-shrink-0`} variant="outline">
+                          {message.status === "sent" && <CheckCircle2 className="mr-1 h-2 md:h-3 w-2 md:w-3" />}
+                          {message.status === "failed" && <XCircle className="mr-1 h-2 md:h-3 w-2 md:w-3" />}
+                          {message.status === "sending" && <Clock className="mr-1 h-2 md:h-3 w-2 md:w-3" />}
+                          <span className="hidden sm:inline">{message.status}</span>
+                          <span className="sm:hidden text-[8px]">{message.status}</span>
                         </Badge>
                       </div>)}
                   </div>}
@@ -491,30 +509,30 @@ export default function Messaging() {
           </TabsContent>
 
           {/* Automated Reminders Tab */}
-          <TabsContent value="automation" className="space-y-6">
+          <TabsContent value="automation" className="space-y-4 md:space-y-6">
             <Card className="shadow-card">
               <CardHeader>
-                <CardTitle>Automated Reminder Rules</CardTitle>
+                <CardTitle className="text-sm md:text-base lg:text-lg">Automated Reminder Rules</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {automatedReminders.map(reminder => <div key={reminder.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
-                      <div className="flex items-center gap-4">
-                        <div className={`p-2 rounded-lg ${reminder.channel === "email" ? "bg-blue-500/10" : "bg-purple-500/10"}`}>
+                <div className="space-y-2 md:space-y-3">
+                  {automatedReminders.map(reminder => <div key={reminder.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 p-3 md:p-4 border border-border rounded-lg">
+                      <div className="flex items-start gap-2 md:gap-3 min-w-0">
+                        <div className={`p-2 rounded-lg flex-shrink-0 ${reminder.channel === "email" ? "bg-blue-500/10" : "bg-purple-500/10"}`}>
                           {getChannelIcon(reminder.channel)}
                         </div>
-                        <div>
-                          <p className="font-semibold text-foreground">{reminder.name}</p>
-                          <p className="text-sm text-muted-foreground">{reminder.trigger_type}</p>
-                          <div className="flex items-center gap-3 mt-1">
-                            <Badge variant="outline" className="text-xs capitalize">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-xs md:text-sm text-foreground line-clamp-1">{reminder.name}</p>
+                          <p className="text-xs md:text-sm text-muted-foreground">{reminder.trigger_type}</p>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            <Badge variant="outline" className="text-xs md:text-sm capitalize">
                               {reminder.type}
                             </Badge>
-                            <span className="text-xs text-muted-foreground">Sent {reminder.times_sent} times</span>
+                            <span className="text-xs md:text-sm text-muted-foreground">Sent {reminder.times_sent} times</span>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         <Switch checked={reminder.is_active} onCheckedChange={checked => {
                       toggleReminder.mutate({
                         id: reminder.id,
@@ -531,39 +549,39 @@ export default function Messaging() {
       </div>
 
       {/* Edit Template Dialog */}
-      {editingTemplate && <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      {editingTemplate && <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3 sm:p-4">
           <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <CardHeader>
-              <CardTitle>Edit Template</CardTitle>
+              <CardTitle className="text-sm md:text-base lg:text-lg">Edit Template</CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleUpdateTemplate} className="space-y-4">
+              <form onSubmit={handleUpdateTemplate} className="space-y-3 md:space-y-4">
                 <div className="space-y-2">
-                  <Label>Template Name</Label>
+                  <Label className="text-xs md:text-sm">Template Name</Label>
                   <Input value={editingTemplate.name} onChange={e => setEditingTemplate({
                 ...editingTemplate,
                 name: e.target.value
-              })} required />
+              })} className="h-8 md:h-10 text-xs md:text-sm" required />
                 </div>
                 {editingTemplate.channel === "email" && <div className="space-y-2">
-                    <Label>Subject</Label>
+                    <Label className="text-xs md:text-sm">Subject</Label>
                     <Input value={editingTemplate.subject || ""} onChange={e => setEditingTemplate({
                 ...editingTemplate,
                 subject: e.target.value
-              })} />
+              })} className="h-8 md:h-10 text-xs md:text-sm" />
                   </div>}
                 <div className="space-y-2">
-                  <Label>Message</Label>
+                  <Label className="text-xs md:text-sm">Message</Label>
                   <Textarea value={editingTemplate.message} onChange={e => setEditingTemplate({
                 ...editingTemplate,
                 message: e.target.value
-              })} className="min-h-[200px]" required />
+              })} className="min-h-[150px] md:min-h-[200px] text-xs md:text-sm" required />
                 </div>
-                <div className="flex justify-end gap-3">
-                  <Button type="button" variant="outline" onClick={() => setEditingTemplate(null)}>
+                <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
+                  <Button type="button" variant="outline" className="h-8 md:h-10 text-xs md:text-sm" onClick={() => setEditingTemplate(null)}>
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={updateTemplate.isPending}>
+                  <Button type="submit" className="h-8 md:h-10 text-xs md:text-sm" disabled={updateTemplate.isPending}>
                     {updateTemplate.isPending ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>

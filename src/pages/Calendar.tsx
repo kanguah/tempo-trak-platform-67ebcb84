@@ -433,8 +433,8 @@ export default function Calendar() {
           <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
             <DialogTrigger asChild>
               <Button className="gradient-primary text-primary-foreground">
-                <Plus className="mr-2 h-4 w-4" />
-                Lesson
+                <Plus className="mr-2 h-4 w-4 " />
+                <span className="hidden sm:inline">Lesson</span>
               </Button>
             </DialogTrigger>
               <DialogContent className="max-h-[90vh]">
@@ -706,7 +706,7 @@ export default function Calendar() {
         {/* Main Content - Split Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 auto-rows-start">
         {/* Left: Calendar Picker */}
-        <div className="space-y-4 h-[calc(100vh-180px)] overflow-y-auto pr-2">
+        <div className="space-y-4 pr-2">
           <Card className="p-4">
             <CalendarPicker
               mode="single"
@@ -782,8 +782,8 @@ export default function Calendar() {
         </div>
 
         {/* Right: Event List */}
-        <Card className="p-6 flex flex-col h-[calc(100vh-180px)]">
-          <div className="space-y-6 overflow-y-auto pr-2 flex-1">
+        <Card className="p-3 md:p-6 flex flex-col h-[calc(100vh-180px)]">
+          <div className="space-y-4 md:space-y-6 overflow-y-auto pr-2 flex-1">
             {sortedDates
               .filter((dateKey) => {
                 const date = parseISO(dateKey);
@@ -799,14 +799,14 @@ export default function Calendar() {
                 return (
                   <div key={dateKey}>
                     {/* Date Header */}
-                    <div className="mb-4">
+                    <div className="mb-3">
                       <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                         {format(date, "EEEE d")}
                       </h3>
                     </div>
 
                     {/* Lessons for this date */}
-                    <div className="space-y-3">
+                    <div className="space-y-2 md:space-y-3">
                       {dayLessons.map((lesson) => {
                         const color = getInstrumentColor(lesson.instrument);
                         const endTime = `${parseInt(lesson.time.split(':')[0]) + lesson.duration}:${lesson.time.split(':')[1]}`;
@@ -814,71 +814,64 @@ export default function Calendar() {
                         return (
                           <div
                             key={lesson.id}
-                            className="flex gap-4 p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                            className="p-3 md:p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
                           >
-                            {/* Time */}
-                            <div className="flex flex-col items-center min-w-[60px]">
-                              <span className="text-sm font-medium text-foreground">{lesson.time}</span>
-                              <span className="text-xs text-muted-foreground">{endTime}</span>
+                            {/* Row 1: Student name and Actions */}
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <h4 className="font-semibold text-foreground text-sm md:text-base truncate flex-1">{lesson.student}</h4>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0">
+                                    <MoreVertical className="h-3.5 w-3.5" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedLesson(lesson);
+                                      setCancelDialogOpen(true);
+                                    }}
+                                    className="text-destructive"
+                                  >
+                                    <X className="h-4 w-4 mr-2" />
+                                    Cancel Lesson
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedLesson(lesson);
+                                      setMakeupDialogOpen(true);
+                                    }}
+                                  >
+                                    <CalendarIcon className="h-4 w-4 mr-2" />
+                                    Schedule Makeup
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
 
-                            {/* Color indicator */}
-                            <div className="flex items-start pt-1">
-                              <div 
-                                className="w-1 h-full rounded-full" 
-                                style={{ backgroundColor: `hsl(${color})` }}
-                              />
+                            {/* Row 2: Instrument and Time */}
+                            <div className="flex items-center gap-2 mb-2 text-xs md:text-sm text-muted-foreground">
+                              <span className="truncate flex-1">{lesson.instrument}</span>
+                              <span className="font-medium text-foreground flex-shrink-0">{lesson.time}</span>
+                              <span className="text-muted-foreground flex-shrink-0">→</span>
+                              <span className="font-medium text-foreground flex-shrink-0">{endTime}</span>
                             </div>
 
-                            {/* Lesson details */}
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-semibold text-foreground mb-1">{lesson.student}</h4>
-                              <p className="text-sm text-muted-foreground">{lesson.instrument}</p>
-                              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                                <div className="flex items-center gap-1">
-                                  <Music className="h-3 w-3" />
-                                  <span>{lesson.tutor}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" />
-                                  <span>{lesson.room || "No room"}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  <span>{lesson.duration}h</span>
-                                </div>
+                            {/* Row 3: Tutor, Room, Duration */}
+                            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                              <div className="flex items-center gap-1 min-w-0">
+                                <Music className="h-3 w-3 flex-shrink-0" />
+                                <span className="truncate">{lesson.tutor}</span>
+                              </div>
+                              <div className="flex items-center gap-1 min-w-0">
+                                <MapPin className="h-3 w-3 flex-shrink-0" />
+                                <span className="truncate">{lesson.room || "No room"}</span>
+                              </div>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <Clock className="h-3 w-3 flex-shrink-0" />
+                                <span>{lesson.duration}h</span>
                               </div>
                             </div>
-
-                            {/* Actions dropdown */}
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedLesson(lesson);
-                                    setCancelDialogOpen(true);
-                                  }}
-                                  className="text-destructive"
-                                >
-                                  <X className="h-4 w-4 mr-2" />
-                                  Cancel Lesson
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedLesson(lesson);
-                                    setMakeupDialogOpen(true);
-                                  }}
-                                >
-                                  <CalendarIcon className="h-4 w-4 mr-2" />
-                                  Schedule Makeup
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
                           </div>
                         );
                       })}

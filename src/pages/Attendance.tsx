@@ -218,99 +218,102 @@ export default function Attendance() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="p-8 space-y-8 animate-fade-in">
+      <div className="p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8 animate-fade-in">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-foreground mb-2">Attendance & Progress</h1>
-            <p className="text-muted-foreground">Track lesson attendance and student feedback</p>
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-1 md:mb-2">Attendance & Progress</h1>
+            <p className="text-xs md:text-sm text-muted-foreground">Track lesson attendance and student feedback</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             {pendingCount > 0 && (
               <>
                 <Button 
                   variant="outline"
-                  className="bg-[hsl(170,65%,55%)]/10 hover:bg-[hsl(170,65%,55%)]/20 border-[hsl(170,65%,55%)]/20"
+                  className="bg-[hsl(170,65%,55%)]/10 hover:bg-[hsl(170,65%,55%)]/20 border-[hsl(170,65%,55%)]/20 text-xs md:text-sm flex-1 sm:flex-initial"
                   onClick={() => markAllAttendanceMutation.mutate("present")}
                   disabled={markAllAttendanceMutation.isPending}
                 >
-                  <Check className="mr-2 h-5 w-5 text-[hsl(170,65%,45%)]" />
-                  Mark All Present
+                  <Check className="h-3.5 md:h-4 w-3.5 md:w-4 mr-1 md:mr-2"/>
+                  <span className="hidden md:inline">Mark All Present</span>
+                  <span className="md:hidden">All Present</span>
                 </Button>
                 <Button 
                   variant="outline"
-                  className="bg-[hsl(0,75%,55%)]/10 hover:bg-[hsl(0,75%,55%)]/20 border-[hsl(0,75%,55%)]/20"
+                  className="bg-[hsl(0,75%,55%)]/10 hover:bg-[hsl(0,75%,55%)]/20 border-[hsl(0,75%,55%)]/20 text-xs md:text-sm flex-1 sm:flex-initial"
                   onClick={() => markAllAttendanceMutation.mutate("absent")}
                   disabled={markAllAttendanceMutation.isPending}
                 >
-                  <X className="mr-2 h-5 w-5 text-[hsl(0,75%,45%)]" />
-                  Mark All Absent
+                  <X className="h-3.5 md:h-4 w-3.5 md:w-4 mr-1 md:mr-2"/>
+                  <span className="hidden md:inline">Mark All Absent</span>
+                  <span className="md:hidden">All Absent</span>
                 </Button>
               </>
             )}
-            <Button className="gradient-accent text-accent-foreground shadow-accent">
-              <Download className="mr-2 h-5 w-5" />
-              Export Report
+            <Button className="gradient-accent text-accent-foreground shadow-accent text-xs md:text-sm flex-1 sm:flex-initial">
+              <Download className="h-3.5 md:h-4 w-3.5 md:w-4 mr-1 md:mr-2" />
+              <span className="hidden md:inline">Export Report</span>
+              <span className="md:hidden">Export</span>
             </Button>
           </div>
         </div>
 
         {/* Date Navigation */}
         <Card className="shadow-card">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <Button variant="outline" size="icon" onClick={handlePreviousDay}>
-                <ChevronLeft className="h-5 w-5" />
+          <CardContent className="p-3 md:p-4">
+            <div className="flex items-center justify-between gap-2 md:gap-4">
+              <Button variant="outline" size="icon" onClick={handlePreviousDay} className="h-8 md:h-10 w-8 md:w-10">
+                <ChevronLeft className="h-4 md:h-5 w-4 md:w-5" />
               </Button>
-              <div className="flex items-center gap-4">
-                <h2 className="text-xl font-semibold">{displayDate}</h2>
+              <div className="flex-1 text-center min-w-0">
+                <h2 className="text-sm md:text-lg lg:text-xl font-semibold truncate">{displayDate}</h2>
               </div>
-              <Button variant="outline" size="icon" onClick={handleNextDay}>
-                <ChevronRight className="h-5 w-5" />
+              <Button variant="outline" size="icon" onClick={handleNextDay} className="h-8 md:h-10 w-8 md:w-10">
+                <ChevronRight className="h-4 md:h-5 w-4 md:w-5" />
               </Button>
             </div>
           </CardContent>
         </Card>
 
         {/* Summary Cards */}
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-3 md:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-3">
           <Card className="shadow-card border-l-4" style={{ borderLeftColor: "hsl(170, 65%, 55%)" }}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Present</p>
-                  <h3 className="text-3xl font-bold" style={{ color: "hsl(170, 65%, 45%)" }}>{presentCount}</h3>
+            <CardContent className="p-3 md:p-4 lg:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs md:text-sm text-muted-foreground mb-0.5 md:mb-1">Present</p>
+                  <h3 className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: "hsl(170, 65%, 45%)" }}>{presentCount}</h3>
                 </div>
-                <div className="h-12 w-12 rounded-full flex items-center justify-center" style={{ backgroundColor: "hsl(170, 65%, 55% / 0.1)" }}>
-                  <Check className="h-6 w-6" style={{ color: "hsl(170, 65%, 45%)" }} />
+                <div className="h-10 md:h-12 w-10 md:w-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "hsl(170, 65%, 55% / 0.1)" }}>
+                  <Check className="h-5 md:h-6 w-5 md:w-6" style={{ color: "hsl(170, 65%, 45%)" }} />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="shadow-card border-l-4" style={{ borderLeftColor: "hsl(0, 75%, 55%)" }}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Absent</p>
-                  <h3 className="text-3xl font-bold" style={{ color: "hsl(0, 75%, 45%)" }}>{absentCount}</h3>
+            <CardContent className="p-3 md:p-4 lg:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs md:text-sm text-muted-foreground mb-0.5 md:mb-1">Absent</p>
+                  <h3 className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: "hsl(0, 75%, 45%)" }}>{absentCount}</h3>
                 </div>
-                <div className="h-12 w-12 rounded-full flex items-center justify-center" style={{ backgroundColor: "hsl(0, 75%, 55% / 0.1)" }}>
-                  <X className="h-6 w-6" style={{ color: "hsl(0, 75%, 45%)" }} />
+                <div className="h-10 md:h-12 w-10 md:w-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "hsl(0, 75%, 55% / 0.1)" }}>
+                  <X className="h-5 md:h-6 w-5 md:w-6" style={{ color: "hsl(0, 75%, 45%)" }} />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="shadow-card border-l-4" style={{ borderLeftColor: "hsl(15, 95%, 75%)" }}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Pending</p>
-                  <h3 className="text-3xl font-bold" style={{ color: "hsl(15, 80%, 50%)" }}>{pendingCount}</h3>
+            <CardContent className="p-3 md:p-4 lg:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs md:text-sm text-muted-foreground mb-0.5 md:mb-1">Pending</p>
+                  <h3 className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: "hsl(15, 80%, 50%)" }}>{pendingCount}</h3>
                 </div>
-                <div className="h-12 w-12 rounded-full flex items-center justify-center" style={{ backgroundColor: "hsl(15, 95%, 75% / 0.1)" }}>
-                  <MessageSquare className="h-6 w-6" style={{ color: "hsl(15, 80%, 50%)" }} />
+                <div className="h-10 md:h-12 w-10 md:w-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "hsl(15, 95%, 75% / 0.1)" }}>
+                  <MessageSquare className="h-5 md:h-6 w-5 md:w-6" style={{ color: "hsl(15, 80%, 50%)" }} />
                 </div>
               </div>
             </CardContent>
@@ -320,84 +323,91 @@ export default function Attendance() {
         {/* Attendance List */}
         <div className="max-h-[1000px] overflow-y-auto">
         <Card className="shadow-card" >
-          <CardHeader>
-            <CardTitle>Today's Lessons</CardTitle>
+          <CardHeader className="p-3 md:p-4 lg:p-6">
+            <CardTitle className="text-lg md:text-xl">Today's Lessons</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 md:p-4 lg:p-6">
             <div className="space-y-4">
               {attendanceRecords.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   No lessons scheduled for this date
                 </div>
               ) : (
-                <div className="grid gap-3 md:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-2 md:gap-3 lg:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                 {attendanceRecords.map((record: any, index) => (
                 <Card
                   key={record.id}
                   className="border-2 animate-scale-in"
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
-                  <CardContent className="p-3 md:p-4">
+                  <CardContent className="p-2 md:p-3 lg:p-4">
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-bold text-foreground text-sm md:text-base truncate">{record.students?.name}</h3>
+                      {/* Row 1: Student name and Status */}
+                      <div className="flex items-center gap-2 justify-between">
+                        <h3 className="font-bold text-foreground text-xs md:text-sm lg:text-base truncate flex-1">{record.students?.name}</h3>
                         {getStatusBadge(record.status)}
                       </div>
-                      <div className="space-y-1 text-xs md:text-sm text-muted-foreground">
-                        <div>
-                          <span className="font-medium">Time:</span> {record.start_time.substring(0, 5)}
+                      {/* Row 2: Time and Subject */}
+                      <div className="text-xs md:text-sm text-muted-foreground space-y-0.5">
+                        <div className="flex gap-2">
+                          <span className="font-medium flex-shrink-0">Time:</span>
+                          <span>{record.start_time.substring(0, 5)}</span>
                         </div>
-                        <div className="truncate">
-                          <span className="font-medium">Subject:</span> {record.subject}
+                        <div className="flex gap-2 truncate">
+                          <span className="font-medium flex-shrink-0">Subject:</span>
+                          <span className="truncate">{record.subject}</span>
                         </div>
-                        <div className="truncate">
-                          <span className="font-medium">Tutor:</span> {record.tutors?.name}
-                        </div>
+                      </div>
+                      {/* Row 3: Tutor */}
+                      <div className="text-xs md:text-sm text-muted-foreground flex gap-2 truncate">
+                        <span className="font-medium flex-shrink-0">Tutor:</span>
+                        <span className="truncate">{record.tutors?.name}</span>
                       </div>
 
                       {record.status === "pending" && (
-                        <div className="flex gap-2 pt-2">
+                        <div className="flex gap-1.5 pt-1.5">
                           <Button
                             size="sm"
                             onClick={() => markAttendanceMutation.mutate({ id: record.id, status: "present" })}
                             style={{ backgroundColor: "hsl(170, 65%, 55%)", color: "white" }}
-                            className="hover:opacity-90 text-xs flex-1"
+                            className="hover:opacity-90 text-xs flex-1 h-7 md:h-8"
                           >
-                            <Check className="h-3 w-3 mr-1" />
-                            Present
+                            <Check className="h-3 w-3" />
+                            <span className="hidden sm:inline ml-1">Present</span>
                           </Button>
                           <Button
                             size="sm"
                             onClick={() => markAttendanceMutation.mutate({ id: record.id, status: "absent" })}
                             style={{ backgroundColor: "hsl(0, 75%, 55%)", color: "white" }}
-                            className="hover:opacity-90 text-xs flex-1"
+                            className="hover:opacity-90 text-xs flex-1 h-7 md:h-8"
                           >
-                            <X className="h-3 w-3 mr-1" />
-                            Absent
+                            <X className="h-3 w-3" />
+                            <span className="hidden sm:inline ml-1">Absent</span>
                           </Button>
                         </div>
                       )}
                     </div>
 
                     {record.status === "present" && (
-                      <div className="mt-3 pt-3 border-t border-border">
-                        <label className="text-xs md:text-sm font-medium text-foreground mb-2 block">
+                      <div className="mt-2 pt-2 border-t border-border">
+                        <label className="text-xs font-medium text-foreground mb-1.5 block">
                           Feedback
                         </label>
                         {editingFeedback === record.id ? (
-                          <div className="space-y-2">
+                          <div className="space-y-1.5">
                             <Textarea
                               value={feedbackText}
                               onChange={(e) => setFeedbackText(e.target.value)}
                               placeholder="Add feedback about the student's progress..."
-                              className="min-h-[100px]"
+                              className="min-h-[80px] text-xs"
                             />
-                            <div className="flex gap-2">
+                            <div className="flex gap-1.5">
                               <Button 
                                 size="sm" 
                                 onClick={() => updateFeedbackMutation.mutate({ id: record.id, feedback: feedbackText })}
+                                className="text-xs h-7"
                               >
-                                Save Feedback
+                                Save
                               </Button>
                               <Button
                                 size="sm"
@@ -406,6 +416,7 @@ export default function Attendance() {
                                   setEditingFeedback(null);
                                   setFeedbackText("");
                                 }}
+                                className="text-xs h-7"
                               >
                                 Cancel
                               </Button>
@@ -413,7 +424,7 @@ export default function Attendance() {
                           </div>
                         ) : record.feedback ? (
                           <div
-                            className="p-3 rounded-lg bg-muted/50 text-sm cursor-pointer hover:bg-muted transition-colors"
+                            className="p-2 rounded-lg bg-muted/50 text-xs cursor-pointer hover:bg-muted transition-colors"
                             onClick={() => {
                               setEditingFeedback(record.id);
                               setFeedbackText(record.feedback || "");
@@ -429,8 +440,9 @@ export default function Attendance() {
                               setEditingFeedback(record.id);
                               setFeedbackText("");
                             }}
+                            className="text-xs h-7 w-full"
                           >
-                            <MessageSquare className="h-4 w-4 mr-2" />
+                            <MessageSquare className="h-3 w-3 mr-1" />
                             Add Feedback
                           </Button>
                         )}

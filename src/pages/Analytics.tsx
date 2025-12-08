@@ -290,25 +290,27 @@ const monthsFromStartOfYear = Array.from(
 
           {/* Expense Breakdown */}
           <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-accent" />
+            <CardHeader className="p-3 md:p-4 lg:p-6">
+              <CardTitle className="flex items-center gap-2 text-sm md:text-base lg:text-lg">
+                <DollarSign className="h-4 md:h-5 w-4 md:w-5 text-accent" />
                 Expense Breakdown
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 md:p-4 lg:p-6">
               {expenseBreakdown.length > 0 ? (
-                <ResponsiveContainer width="100%" height={isMobile ? 250 : 300}>
-                  <PieChart margin={{ top: isMobile ? 10 : 20, right: isMobile ? 10 : 20, bottom: isMobile ? 10 : 20, left: isMobile ? 10 : 20 }}>
+                <ResponsiveContainer width="100%" height={isMobile ? 280 : 320}>
+                  <PieChart margin={{ top: 20, right: 5, bottom: 5, left: 5 }}>
                     <Pie
                       data={expenseBreakdown}
                       cx="50%"
-                      cy={isMobile ? "45%" : "50%"}
-                      labelLine={!isMobile}
-                      label={isMobile ? undefined : ({ percent }) => ` ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={isMobile ? 80 : 90}
+                      cy={isMobile ? "40%" : "45%"}
+                      labelLine={false}
+                      label={false}
+                      outerRadius={95}
+                      innerRadius={50}
                       fill="#8884d8"
                       dataKey="value"
+                      paddingAngle={2}
                     >
                       {expenseBreakdown.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -320,18 +322,35 @@ const monthsFromStartOfYear = Array.from(
                         backgroundColor: "hsl(var(--card))",
                         border: "1px solid hsl(var(--border))",
                         borderRadius: "8px",
-                        fontSize: isMobile ? "12px" : "14px"
+                        fontSize: isMobile ? "11px" : "13px",
+                        padding: isMobile ? "6px 8px" : "8px 12px"
+                      }}
+                      labelStyle={{
+                        fontSize: isMobile ? "11px" : "13px",
+                        fontWeight: 600
                       }}
                     />
                     <Legend 
                       verticalAlign="bottom"
-                      height={isMobile ? 40 : 36}
-                      wrapperStyle={{ fontSize: isMobile ? "12px" : "14px", paddingTop: isMobile ? "15px" : "0" }}
+                      height={isMobile ? 70 : 60}
+                      wrapperStyle={{ 
+                        fontSize: "12px",
+                        paddingTop: isMobile ? "10px" : "15px",
+                        lineHeight: isMobile ? "1.5" : "1.7"
+                      }}
+                      iconSize={isMobile ? 8 : 10}
+                      iconType="circle"
+                      formatter={(value: string, entry: any) => {
+                        const total = expenseBreakdown.reduce((sum, item) => sum + item.value, 0);
+                        const percentage = ((entry.payload.value / total) * 100).toFixed(1);
+                        const amount = `GH₵${Number(entry.payload.value).toLocaleString()}`;
+                        return isMobile ? `${value} (${percentage}%)` : `${value}: ${amount} (${percentage}%)`;
+                      }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className={`${isMobile ? 'h-[250px]' : 'h-[300px]'} flex items-center justify-center text-muted-foreground`}>
+                <div className="h-[280px] md:h-[320px] flex items-center justify-center text-muted-foreground text-xs md:text-sm">
                   No expense data yet
                 </div>
               )}

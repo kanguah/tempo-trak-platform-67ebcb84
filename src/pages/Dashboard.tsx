@@ -6,13 +6,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useQuery } from "@tanstack/react-query";
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 const COLORS = ["hsl(170 65% 60%)", "hsl(15 95% 68%)", "hsl(265 65% 65%)", "hsl(340 75% 65%)", "hsl(200 70% 60%)"];
 export default function Dashboard() {
   const {
     user
   } = useAuth();
   const { isAdmin } = useAdmin();
+  const isMobile = useIsMobile();
 
   // Fetch all data
   const {
@@ -276,21 +278,61 @@ export default function Dashboard() {
           <Card className="shadow-card animate-slide-up" style={{
           animationDelay: "0.2s"
         }}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base md:text-lg">Student Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {instrumentData.length > 0 ? <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
-                    <Pie data={instrumentData} cx="50%" cy="50%" labelLine={false} label={({
-                  name,
-                  percent
-                }) => `${name} ${(percent * 100).toFixed(0)}%`} outerRadius={80} fill="#8884d8" dataKey="value">
+            <CardHeader className="p-3 md:p-4 lg:p-6">
+            
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                <Calendar className="h-4 w-4 md:h-5 md:w-5 text-destructive" />
+                Student Subject Distribution
+              </CardTitle></CardHeader>
+            <CardContent className="p-3 md:p-4 lg:p-6">
+              {instrumentData.length > 0 ? <ResponsiveContainer width="100%" height={isMobile ? 280 : 300}>
+                  <PieChart margin={{ top: 20, right: 5, bottom: 5, left: 5 }}>
+                    <Pie 
+                      data={instrumentData} 
+                      cx="50%" 
+                      cy={isMobile ? "38%" : "42%"} 
+                      labelLine={false} 
+                      label={false}
+                      outerRadius={85} 
+                      innerRadius={45}
+                      fill="#8884d8" 
+                      dataKey="value"
+                      paddingAngle={2}
+                    >
                       {instrumentData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                        fontSize: isMobile ? "11px" : "13px",
+                        padding: isMobile ? "6px 8px" : "8px 12px"
+                      }}
+                      labelStyle={{
+                        fontSize: isMobile ? "11px" : "13px",
+                        fontWeight: 600
+                      }}
+                    />
+                    <Legend 
+                      verticalAlign="bottom"
+                      height={isMobile ? 70 : 60}
+                      wrapperStyle={{ 
+                        fontSize: "12px",
+                        paddingTop: isMobile ? "10px" : "15px",
+                        lineHeight: isMobile ? "1.5" : "1.7"
+                      }}
+                      iconSize={isMobile ? 8 : 10}
+                      iconType="circle"
+                      formatter={(value: string, entry: any) => {
+                        const total = instrumentData.reduce((sum, item) => sum + item.value, 0);
+                        const percentage = ((entry.payload.value / total) * 100).toFixed(1);
+                        const count = entry.payload.value;
+                        return isMobile ? `${value} (${percentage}%)` : `${value}: ${count} students (${percentage}%)`;
+                      }}
+                    />
                   </PieChart>
-                </ResponsiveContainer> : <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">
+                </ResponsiveContainer> : <div className="h-[280px] md:h-[300px] flex items-center justify-center text-muted-foreground text-xs md:text-sm">
                   No subject data yet
                 </div>}
             </CardContent>

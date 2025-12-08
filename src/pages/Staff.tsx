@@ -303,10 +303,10 @@ export default function Staff() {
           </div>
           <div className="flex gap-3">
             <Button
-              className="gradient-primary text-primary-foreground shadow-primary"
+              className="gradient-primary text-primary-foreground shadow-primary w-full md:w-auto"
               onClick={() => setDialogOpen(true)}
             >
-              <Plus className="mr-2 h-4 w-4 md:h-5 md:w-5" />
+              <Plus className="mr-2 h-4 w-4 md:h-5 md:w-5 hidden sm:inline" />
               <span className="hidden sm:inline">Add Staff</span>
               <span className="sm:hidden">Add</span>
             </Button>
