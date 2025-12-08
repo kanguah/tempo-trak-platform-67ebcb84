@@ -281,7 +281,7 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="p-8 space-y-8 animate-fade-in">
+      <div className="p-4 space-y-8 animate-fade-in">
         {/* Header */}
         <div>
           <h1 className="text-4xl font-bold text-foreground mb-2">Settings</h1>

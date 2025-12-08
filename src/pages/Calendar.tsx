@@ -418,7 +418,7 @@ export default function Calendar() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="p-6 max-w-[1400px] mx-auto">
+      <div className="p-2 max-w-[1400px] mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
