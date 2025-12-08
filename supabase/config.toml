@@ -1,1 +1,48 @@
 project_id = "euhmubptofhzlsbxltas"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://localhost"
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+
+[functions.send-message]
+verify_jwt = true
+
+[functions.send-invoice]
+verify_jwt = true
+
+[functions.generate-receipt]
+verify_jwt = true
+
+[functions.send-payment-reminders]
+verify_jwt = false
+
+[functions.get-recipient-contacts]
+verify_jwt = true
+
+[functions.generate-lesson-instances]
+verify_jwt = true
+
+[functions.generate-monthly-payments]
+verify_jwt = true
+
+[functions.create-flutterwave-payment]
+verify_jwt = true
+
+[functions.flutterwave-webhook]
+verify_jwt = false
