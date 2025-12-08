@@ -5,12 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import { OrganizationProvider, useOrganization } from "./contexts/OrganizationContext";
 import { Layout } from "@/components/Layout";
 import { AdminRoute } from "@/components/AdminRoute";
 import Auth from "./pages/Auth";
-import Onboarding from "./pages/Onboarding";
-import Billing from "./pages/Billing";
 import Dashboard from "./pages/Dashboard";
 import Students from "./pages/Students";
 import StudentProfile from "./pages/StudentProfile";
@@ -44,30 +41,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function OrganizationRoute({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
-  const { currentOrganization, isLoading } = useOrganization();
-  
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-  
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
-  
-  // If no organization, redirect to onboarding
-  if (!currentOrganization) {
-    return <Navigate to="/onboarding" replace />;
-  }
-  
-  return <>{children}</>;
-}
-
 function AuthRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   
@@ -78,34 +51,6 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-const AppRoutes = () => (
-  <Routes>
-    <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-    <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
-    <Route path="/billing" element={<OrganizationRoute><Layout><Billing /></Layout></OrganizationRoute>} />
-    <Route path="/" element={<OrganizationRoute><Layout><Dashboard /></Layout></OrganizationRoute>} />
-    <Route path="/students" element={<OrganizationRoute><Layout><Students /></Layout></OrganizationRoute>} />
-    <Route path="/students/:id" element={<OrganizationRoute><Layout><StudentProfile /></Layout></OrganizationRoute>} />
-    <Route path="/tutors" element={<OrganizationRoute><Layout><Tutors /></Layout></OrganizationRoute>} />
-    <Route path="/tutors/:id" element={<OrganizationRoute><Layout><TutorProfile /></Layout></OrganizationRoute>} />
-    <Route path="/staff" element={<OrganizationRoute><Layout><Staff /></Layout></OrganizationRoute>} />
-    <Route path="/staff/:id" element={<OrganizationRoute><Layout><StaffProfile /></Layout></OrganizationRoute>} />
-    <Route path="/calendar" element={<OrganizationRoute><Layout><Calendar /></Layout></OrganizationRoute>} />
-    <Route path="/attendance" element={<OrganizationRoute><Layout><Attendance /></Layout></OrganizationRoute>} />
-    <Route path="/payments" element={<OrganizationRoute><Layout><Payments /></Layout></OrganizationRoute>} />
-    <Route path="/crm" element={<OrganizationRoute><Layout><CRM /></Layout></OrganizationRoute>} />
-    <Route path="/archived-leads" element={<OrganizationRoute><Layout><ArchivedLeads /></Layout></OrganizationRoute>} />
-    <Route path="/messaging" element={<OrganizationRoute><Layout><Messaging /></Layout></OrganizationRoute>} />
-    <Route path="/expenses" element={<OrganizationRoute><AdminRoute><Layout><Expenses /></Layout></AdminRoute></OrganizationRoute>} />
-    <Route path="/payroll" element={<OrganizationRoute><AdminRoute><Layout><Payroll /></Layout></AdminRoute></OrganizationRoute>} />
-    <Route path="/analytics" element={<OrganizationRoute><AdminRoute><Layout><Analytics /></Layout></AdminRoute></OrganizationRoute>} />
-    <Route path="/reports" element={<OrganizationRoute><AdminRoute><Layout><Reports /></Layout></AdminRoute></OrganizationRoute>} />
-    <Route path="/notifications" element={<OrganizationRoute><Layout><Notifications /></Layout></OrganizationRoute>} />
-    <Route path="/settings" element={<OrganizationRoute><Layout><Settings /></Layout></OrganizationRoute>} />
-    <Route path="*" element={<NotFound />} />
-  </Routes>
-);
-
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
     <QueryClientProvider client={queryClient}>
@@ -114,9 +59,29 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <OrganizationProvider>
-              <AppRoutes />
-            </OrganizationProvider>
+          <Routes>
+            <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+            <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+            <Route path="/students" element={<ProtectedRoute><Layout><Students /></Layout></ProtectedRoute>} />
+            <Route path="/students/:id" element={<ProtectedRoute><Layout><StudentProfile /></Layout></ProtectedRoute>} />
+            <Route path="/tutors" element={<ProtectedRoute><Layout><Tutors /></Layout></ProtectedRoute>} />
+            <Route path="/tutors/:id" element={<ProtectedRoute><Layout><TutorProfile /></Layout></ProtectedRoute>} />
+            <Route path="/staff" element={<ProtectedRoute><Layout><Staff /></Layout></ProtectedRoute>} />
+            <Route path="/staff/:id" element={<ProtectedRoute><Layout><StaffProfile /></Layout></ProtectedRoute>} />
+            <Route path="/calendar" element={<ProtectedRoute><Layout><Calendar /></Layout></ProtectedRoute>} />
+            <Route path="/attendance" element={<ProtectedRoute><Layout><Attendance /></Layout></ProtectedRoute>} />
+            <Route path="/payments" element={<ProtectedRoute><Layout><Payments /></Layout></ProtectedRoute>} />
+            <Route path="/crm" element={<ProtectedRoute><Layout><CRM /></Layout></ProtectedRoute>} />
+            <Route path="/archived-leads" element={<ProtectedRoute><Layout><ArchivedLeads /></Layout></ProtectedRoute>} />
+            <Route path="/messaging" element={<ProtectedRoute><Layout><Messaging /></Layout></ProtectedRoute>} />
+            <Route path="/expenses" element={<ProtectedRoute><AdminRoute><Layout><Expenses /></Layout></AdminRoute></ProtectedRoute>} />
+            <Route path="/payroll" element={<ProtectedRoute><AdminRoute><Layout><Payroll /></Layout></AdminRoute></ProtectedRoute>} />
+            <Route path="/analytics" element={<ProtectedRoute><AdminRoute><Layout><Analytics /></Layout></AdminRoute></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute><AdminRoute><Layout><Reports /></Layout></AdminRoute></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><Layout><Notifications /></Layout></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

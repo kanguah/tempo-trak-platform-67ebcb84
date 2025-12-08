@@ -47,22 +47,22 @@ export default function Attendance() {
     const createAttendanceRecords = async () => {
       if (!user?.id) return;
 
-      // Fetch scheduled lessons for the selected date (only for active students)
+      const dayOfWeek = selectedDate.getDay();
+      const adjustedDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday=0 to Sunday=6
+
+      //alert( selectedDate.toISOString().substring(0, 10));
       const { data: lessons, error: lessonsError } = await supabase
         .from("lessons")
         .select(`
           *,
-          students (name, status),
+          students (name),
           tutors (name)
         `)
         .eq("user_id", user.id)
         .eq("lesson_date", selectedDate.toISOString().substring(0, 10))
         .eq("status", "scheduled");
-
+          //alert( lessons[0]?.lesson_date);
       if (lessonsError || !lessons) return;
-
-      // Filter out lessons where student is inactive
-      const activeLessons = lessons.filter((lesson: any) => lesson.students?.status === "active");
 
       // Check which lessons already have attendance records
       const { data: existingAttendance } = await supabase
@@ -74,7 +74,7 @@ export default function Attendance() {
       const existingLessonIds = new Set(existingAttendance?.map(a => a.lesson_id) || []);
 
       // Create attendance records for lessons that don't have them
-      const newAttendanceRecords = activeLessons
+      const newAttendanceRecords = lessons
         .filter(lesson => !existingLessonIds.has(lesson.id))
         .map(lesson => ({
           user_id: user.id,
@@ -89,21 +89,6 @@ export default function Attendance() {
 
       if (newAttendanceRecords.length > 0) {
         await supabase.from("attendance").insert(newAttendanceRecords);
-        queryClient.invalidateQueries({ queryKey: ["attendance"] });
-      }
-
-      // Clean up attendance records for inactive students or deleted lessons
-      const activelessonIds = new Set(activeLessons.map((l: any) => l.id));
-      const orphanedRecords = existingAttendance?.filter(
-        (a: any) => !activelessonIds.has(a.lesson_id)
-      ) || [];
-
-      if (orphanedRecords.length > 0) {
-        const orphanedIds = orphanedRecords.map((r: any) => r.id);
-        await supabase
-          .from("attendance")
-          .delete()
-          .in("id", orphanedIds);
         queryClient.invalidateQueries({ queryKey: ["attendance"] });
       }
     };
