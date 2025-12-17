@@ -178,15 +178,39 @@ export function useGetRecipientContacts() {
 
   return useMutation({
     mutationFn: async ({ recipientType, channel }: { recipientType: string; channel: string }) => {
-      const { data, error } = await supabase.functions.invoke("get-recipient-contacts", {
-        body: { recipientType, channel },
-      });
+      try {
+        console.log(`Fetching contacts: recipientType=${recipientType}, channel=${channel}`);
+        
+        const { data, error } = await supabase.functions.invoke("get-recipient-contacts", {
+          body: { recipientType, channel },
+        });
 
-      if (error) throw error;
-      return data.contacts;
+        console.log("get-recipient-contacts response:", { data, error });
+
+        if (error) {
+          console.error("Edge function error:", error);
+          throw new Error(error.message || "Failed to fetch contacts");
+        }
+
+        if (!data || !data.contacts) {
+          console.error("Invalid response structure:", data);
+          throw new Error("Invalid response from server");
+        }
+
+        console.log(`Successfully fetched ${data.contacts.length} contacts`);
+        return data.contacts;
+      } catch (err) {
+        console.error("Error in useGetRecipientContacts:", err);
+        throw err;
+      }
     },
     onError: (error: Error) => {
-      toast({ title: "Error fetching contacts", description: error.message, variant: "destructive" });
+      console.error("Mutation error:", error);
+      toast({ 
+        title: "Error fetching contacts", 
+        description: error.message || "Failed to fetch contacts. Please try again.",
+        variant: "destructive" 
+      });
     },
   });
 }
@@ -251,6 +275,12 @@ export function useSendMessage() {
             contact: r.contact,
             type: r.type,
             recipientId: r.id,
+            amount: r.amount,
+            date: r.date,
+            instrument: r.instrument,
+            subject: r.subject,
+            tutor: r.tutor,
+            time: r.time,
           })),
         },
       });
@@ -272,7 +302,7 @@ export function useSendMessage() {
           user.id, 
           "message_sent", 
           "Messages Sent", 
-          `${data.sent || 0} message(s) have been sent successfully.`
+          `${data.successCount || 0} message(s) have been sent successfully.`
         );
       }
     },

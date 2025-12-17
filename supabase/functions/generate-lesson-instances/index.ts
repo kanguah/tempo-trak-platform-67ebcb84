@@ -29,6 +29,31 @@ serve(async (req) => {
     
     console.log(`Generating lesson instances for ${year}-${month} for user ${user.id}`);
 
+    // Check if lesson generation is enabled for this user
+    const { data: settings, error: settingsError } = await supabase
+      .from("settings")
+      .select("lesson_generation_enabled")
+      .eq("user_id", user.id)
+      .single();
+
+    if (settingsError && settingsError.code !== "PGRST116") {
+      // PGRST116 is "not found" error, which we can ignore (default to enabled)
+      throw settingsError;
+    }
+
+    // If settings exist and lesson generation is disabled, skip generation
+    if (settings && !settings.lesson_generation_enabled) {
+      console.log("Lesson generation is currently disabled for this user");
+      return new Response(
+        JSON.stringify({ 
+          message: "Lesson generation is currently disabled. Enable it in Settings to generate lessons.", 
+          generated: 0,
+          disabled: true 
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
     // Get first and last day of the month
     const firstDay = new Date(year, month - 1, 1);
     const lastDay = new Date(year, month, 0);

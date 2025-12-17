@@ -12,6 +12,9 @@ interface RecipientContact {
   email?: string;
   phone?: string;
   type: string;
+  amount?: string;
+  date?: string;
+  subject?: string;
 }
 
 serve(async (req) => {
@@ -62,7 +65,7 @@ serve(async (req) => {
         console.log('Querying students with user_id:', user.id);
         const { data: students, error } = await supabaseClient
           .from("students")
-          .select("id, name, email, phone, parent_email, parent_phone")
+          .select("id, name, email, phone, parent_email, parent_phone, subjects")
           .eq("user_id", user.id)
           .eq("status", "active");
         
@@ -78,6 +81,7 @@ serve(async (req) => {
           email: student.email,
           phone: student.phone,
           type: "student",
+          subject: student.subjects?.[0] || "",
         }));
         break;
       }
@@ -85,7 +89,7 @@ serve(async (req) => {
       case "all-parents": {
         const { data: students, error } = await supabaseClient
           .from("students")
-          .select("id, parent_name, parent_email, parent_phone")
+          .select("id, parent_name, parent_email, parent_phone, subjects")
           .eq("user_id", user.id)
           .eq("status", "active")
           .not("parent_email", "is", null);
@@ -100,6 +104,7 @@ serve(async (req) => {
             email: student.parent_email,
             phone: student.parent_phone,
             type: "parent",
+            subject: student.subjects?.[0] || "",
           }));
         break;
       }
@@ -143,26 +148,34 @@ serve(async (req) => {
       }
 
       case "pending-payments": {
+        console.log('Fetching pending payments for user:', user.id);
         const { data: payments, error } = await supabaseClient
           .from("payments")
           .select(
             `
             id,
             student_id,
+            amount,
+            due_date,
             students!inner (
               id,
               name,
               email,
               phone,
               parent_email,
-              parent_phone
+              parent_phone,
+              subjects
             )
           `,
           )
           .eq("user_id", user.id)
           .eq("status", "pending");
 
-        if (error) throw error;
+        console.log('Payments query result:', { count: payments?.length, error });
+        if (error) {
+          console.error('Payments query error:', error);
+          throw error;
+        }
 
         const uniqueStudents = new Map();
         payments?.forEach((payment: any) => {
@@ -174,10 +187,14 @@ serve(async (req) => {
               email: student.email || student.parent_email,
               phone: student.phone || student.parent_phone,
               type: "student",
+              amount: payment.amount ? `GHS ${payment.amount}` : "",
+              date: payment.due_date ? new Date(payment.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : "",
+              subject: student.subjects?.[0] || "",
             });
           }
         });
 
+        console.log('Unique students from payments:', uniqueStudents.size);
         contacts = Array.from(uniqueStudents.values());
         break;
       }
@@ -187,18 +204,29 @@ serve(async (req) => {
     }
 
     console.log('Total contacts before filtering:', contacts.length);
+    console.log('Sample contact:', contacts[0]);
     
-    // Filter by channel - only return contacts that have the appropriate contact info
-    const filteredContacts = contacts.filter((contact) => {
-      if (channel === "email") {
-        return contact.email && contact.email.trim() !== "";
-      } else if (channel === "sms") {
-        return contact.phone && contact.phone.trim() !== "";
-      }
-      return true;
-    });
-
-    console.log(`Found ${filteredContacts.length} contacts for ${recipientType} (channel: ${channel})`);
+    // Filter by channel and set contact field
+    const filteredContacts = contacts
+      .filter((contact) => {
+        const hasEmail = contact.email && contact.email.trim() !== "";
+        const hasPhone = contact.phone && contact.phone.trim() !== "";
+        
+        if (channel === "email") {
+          return hasEmail;
+        } else if (channel === "sms") {
+          return hasPhone;
+        }
+        return true;
+      })
+      .map((contact) => {
+        const mapped = {
+          ...contact,
+          contact: channel === "email" ? contact.email || "" : contact.phone || "",
+        };
+        console.log('Mapped contact:', mapped);
+        return mapped;
+      });
 
     return new Response(
       JSON.stringify({
@@ -213,9 +241,16 @@ serve(async (req) => {
     );
   } catch (error: any) {
     console.error("Error in get-recipient-contacts function:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    return new Response(
+      JSON.stringify({ 
+        success: false,
+        error: error.message || "Unknown error",
+        details: error.toString()
+      }), 
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      },
+    );
   }
 });

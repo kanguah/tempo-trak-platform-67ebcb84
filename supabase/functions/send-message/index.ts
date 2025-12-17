@@ -11,12 +11,31 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SMSONLINEGH_API_KEY = Deno.env.get("SMSONLINEGH_API_KEY");
 const senderId = "49ice Music";
 
+/**
+ * Replaces template variables in a string with values from an object.
+ * Template variables are wrapped in double curly braces: {{variableName}}
+ */
+function replaceTemplateVariables(
+  template: string,
+  variables: Record<string, string | number>
+): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+    return key in variables ? String(variables[key]) : match;
+  });
+}
+
 interface Recipient {
   id?: string;
   name: string;
   contact: string;
   type: string;
   recipientId?: string;
+  amount?: string;
+  date?: string;
+  instrument?: string;
+  subject?: string;
+  tutor?: string;
+  time?: string;
 }
 
 interface SendMessageRequest {
@@ -80,18 +99,38 @@ serve(async (req) => {
       try {
         let deliveryStatus = "sent";
 
+        // Build variables object for template replacement
+        const templateVars: Record<string, string> = {
+          name: recipient.name || "",
+          type: recipient.type || "",
+          amount: recipient.amount || "",
+          date: recipient.date || "",
+          instrument: recipient.instrument || "",
+          subject: recipient.subject || "",
+          tutor: recipient.tutor || "",
+          time: recipient.time || "",
+        };
+
+        console.log(`Processing recipient: ${recipient.name}, templateVars:`, templateVars);
+
+        // Replace template variables in message body and subject
+        const personalizedBody = replaceTemplateVariables(messageBody, templateVars);
+        const personalizedSubject = subject ? replaceTemplateVariables(subject, templateVars) : undefined;
+
+        console.log(`Personalized body for ${recipient.name}:`, personalizedBody);
+
         if (channel === "email") {
           // Send email using Resend
           if (!resend) {
             throw new Error("Resend API key not configured");
           }
 
-          const emailHtml = messageBody.replace(/\n/g, "<br>");
+          const emailHtml = personalizedBody.replace(/\n/g, "<br>");
 
           const emailResponse = await resend.emails.send({
             from: "49ice Music Academy <noreply@49iceacademy.org>",
             to: [recipient.contact],
-            subject: subject || "Message from 49ice Music Academy",
+            subject: personalizedSubject || "Message from 49ice Music Academy",
             html: emailHtml,
           });
 
@@ -107,7 +146,7 @@ serve(async (req) => {
           smsUrl.searchParams.append("key", SMSONLINEGH_API_KEY);
           smsUrl.searchParams.append("to", recipient.contact);
           smsUrl.searchParams.append("type", "0");
-          smsUrl.searchParams.append("text", messageBody);
+          smsUrl.searchParams.append("text", personalizedBody);
           smsUrl.searchParams.append("sender", senderId);
 
           console.log(smsUrl);

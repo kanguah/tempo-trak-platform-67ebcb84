@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Send, Mail, Clock, CheckCircle2, XCircle, Edit, Trash2, Filter, Search, X, MoreVertical } from "lucide-react";
 import { useMessageTemplates, useMessages, useAutomatedReminders, useGetRecipientContacts, useSendMessage, useToggleReminder, useUpdateTemplate, useDeleteTemplate } from "@/hooks/useMessaging";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { replaceTemplateVariables } from "@/lib/utils";
 import CreateTemplateDialog from "@/components/messaging/CreateTemplateDialog";
 import IndividualRecipientSelector from "@/components/messaging/IndividualRecipientSelector";
 import { Button } from "@/components/ui/button";
@@ -47,13 +48,12 @@ export default function Messaging() {
   // Fetch recipients when recipient type or channel changes (only for bulk mode)
   useEffect(() => {
     if (sendMode === "bulk" && selectedRecipientType && selectedChannel) {
-      console.log("the is my debug data" + selectedRecipientType + selectedChannel);
       getRecipients.mutate({
         recipientType: selectedRecipientType,
         channel: selectedChannel
       }, {
         onSuccess: data => {
-          console.log("the is my debug data" + data + selectedRecipientType + selectedChannel);
+          console.log("Recipients fetched:", data);
           setRecipients(data);
         }
       });
@@ -74,6 +74,7 @@ export default function Messaging() {
     if (!messageBody || recipients.length === 0) {
       return;
     }
+    console.log("Sending message with recipients:", recipients);
     sendMessage.mutate({
       channel: selectedChannel,
       subject: selectedChannel === "email" ? subject : undefined,
@@ -146,30 +147,30 @@ export default function Messaging() {
     name: "Payment Reminder",
     channel: "email",
     category: "payment",
-    subject: "Payment Reminder for {name}",
-    message: "Dear {name},\n\nThis is a friendly reminder that your payment of {amount} is due on {date}.\n\nPlease make your payment at your earliest convenience.\n\nThank you!"
+    subject: "Payment Reminder for {{name}}",
+    message: "Dear {{name}},\n\nThis is a friendly reminder that your payment of {{amount}} is due on {{date}}.\n\nPlease make your payment at your earliest convenience.\n\nThank you!"
   }, {
     name: "Lesson Confirmation",
     channel: "email",
     category: "lesson",
-    subject: "Lesson Confirmation - {subject}",
-    message: "Hi {name},\n\nThis confirms your {subject} lesson scheduled for {date} at {time} with {tutor}.\n\nSee you there!"
+    subject: "Lesson Confirmation - {{subject}}",
+    message: "Hi {{name}},\n\nThis confirms your {{subject}} lesson scheduled for {{date}} at {{time}} with {{tutor}}.\n\nSee you there!"
   }, {
     name: "Welcome Message",
     channel: "email",
     category: "general",
     subject: "Welcome to Our Academy!",
-    message: "Dear {name},\n\nWelcome! We're excited to have you join us. Your lessons will begin on {date}.\n\nIf you have any questions, feel free to reach out.\n\nBest regards"
+    message: "Dear {{name}},\n\nWelcome! We're excited to have you join us. Your lessons will begin on {{date}}.\n\nIf you have any questions, feel free to reach out.\n\nBest regards"
   }, {
     name: "Payment Reminder SMS",
     channel: "sms",
     category: "payment",
-    message: "Hi {name}, reminder: {amount} payment due on {date}. Thank you!"
+    message: "Hi {{name}}, reminder: {{amount}} payment due on {{date}}. Thank you!"
   }, {
     name: "Lesson Reminder SMS",
     channel: "sms",
     category: "lesson",
-    message: "Hi {name}, your {subject} lesson with {tutor} is tomorrow at {time}. See you!"
+    message: "Hi {{name}}, your {{subject}} lesson with {{tutor}} is tomorrow at {{time}}. See you!"
   }];
   return <div className="min-h-screen bg-background">
       <div className="p-3 md:p-6 lg:p-8 space-y-4 md:space-y-6 lg:space-y-8 animate-fade-in">
@@ -278,7 +279,7 @@ export default function Messaging() {
                     <Label className="text-xs md:text-sm">Message</Label>
                     <Textarea placeholder="Type your message here..." className="min-h-[150px] md:min-h-[200px] text-xs md:text-sm" value={messageBody} onChange={e => setMessageBody(e.target.value)} />
                     <p className="text-xs md:text-sm text-muted-foreground">
-                      Use variables: {"{"}name{"}"},  {"{"}amount{"}"},  {"{"}date{"}"},  {"{"}instrument{"}"},  {"{"}tutor{"}"}
+                      Use variables: {"{{"}"name{"}}"}, {"{{"}"amount{"}}"}, {"{{"}"date{"}}"}, {"{{"}"subject{"}}"}, {"{{"}"tutor{"}}"}, {"{{"}"time{"}}"}
                     </p>
                     {selectedChannel === "sms" && <p className="text-xs md:text-sm text-muted-foreground">Character count: {messageBody.length}/160</p>}
                   </div>

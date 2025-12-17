@@ -42,10 +42,34 @@ export default function Attendance() {
     enabled: !!user,
   });
 
+  // Fetch settings to check if lesson generation is enabled
+  const { data: settings, isLoading: settingsLoading } = useQuery({
+    queryKey: ["settings", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("settings")
+        .select("lesson_generation_enabled")
+        .eq("user_id", user?.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
   // Fetch scheduled lessons for the selected date and create attendance records if they don't exist
   useEffect(() => {
     const createAttendanceRecords = async () => {
       if (!user?.id) return;
+
+      // Wait for settings to load before proceeding
+      if (settingsLoading) return;
+
+      // If lesson generation is disabled, don't create attendance records
+      if (settings && !settings.lesson_generation_enabled) {
+        return;
+      }
 
       const dayOfWeek = selectedDate.getDay();
       const adjustedDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday=0 to Sunday=6
@@ -55,7 +79,7 @@ export default function Attendance() {
         .from("lessons")
         .select(`
           *,
-          students (name),
+          students (name, status),
           tutors (name)
         `)
         .eq("user_id", user.id)
@@ -63,6 +87,11 @@ export default function Attendance() {
         .eq("status", "scheduled");
           //alert( lessons[0]?.lesson_date);
       if (lessonsError || !lessons) return;
+
+      // Filter out lessons for inactive students
+      const activeLessons = lessons.filter(lesson => 
+        lesson.students?.status === 'active'
+      );
 
       // Check which lessons already have attendance records
       const { data: existingAttendance } = await supabase
@@ -74,7 +103,7 @@ export default function Attendance() {
       const existingLessonIds = new Set(existingAttendance?.map(a => a.lesson_id) || []);
 
       // Create attendance records for lessons that don't have them
-      const newAttendanceRecords = lessons
+      const newAttendanceRecords = activeLessons
         .filter(lesson => !existingLessonIds.has(lesson.id))
         .map(lesson => ({
           user_id: user.id,
@@ -94,7 +123,7 @@ export default function Attendance() {
     };
 
     createAttendanceRecords();
-  }, [selectedDate, user?.id, formattedDate, queryClient]);
+  }, [selectedDate, user?.id, formattedDate, queryClient, settings, settingsLoading]);
 
   // Mark attendance mutation
   const markAttendanceMutation = useMutation({
@@ -257,6 +286,28 @@ export default function Attendance() {
             </Button>
           </div>
         </div>
+
+        {/* Vacation Mode Notice */}
+        {settings && !settings.lesson_generation_enabled && (
+          <Card className="shadow-card border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-950/20">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                  <MessageSquare className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-orange-900 dark:text-orange-100 mb-1">
+                    Lesson Generation Disabled
+                  </h3>
+                  <p className="text-sm text-orange-800 dark:text-orange-200">
+                    Automatic lesson and attendance creation is currently disabled (vacation/break mode). 
+                    No new attendance records will be created. Enable it in Settings to resume normal operations.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Date Navigation */}
         <Card className="shadow-card">

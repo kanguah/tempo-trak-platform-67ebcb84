@@ -1,8 +1,9 @@
-import { Settings as SettingsIcon, User, Bell, Lock, Database, Palette, Download, Upload, Shield } from "lucide-react";
+import { Settings as SettingsIcon, User, Bell, Lock, Database, Palette, Download, Upload, Shield, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
@@ -20,6 +21,7 @@ export default function Settings() {
   const [zapierWebhook, setZapierWebhook] = useState("");
   const [isSyncing, setIsSyncing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [lessonGenerationEnabled, setLessonGenerationEnabled] = useState(true);
   
   // Profile form state
   const [academyName, setAcademyName] = useState("");
@@ -43,7 +45,23 @@ export default function Settings() {
         .eq('id', user?.id)
         .single();
       
-      if (error) throw error;
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch settings data
+  const { data: settings } = useQuery({
+    queryKey: ['settings', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('*')
+        .eq('user_id', user?.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
       return data;
     },
     enabled: !!user?.id,
@@ -54,27 +72,38 @@ export default function Settings() {
     if (profile) {
       setAcademyName(profile.full_name || "");
       setContactEmail(profile.email || "");
+      setPhone(profile.phone || "");
+      setLocation(profile.location || "");
     }
   }, [profile]);
+
+  // Initialize settings data
+  useEffect(() => {
+    if (settings) {
+      setLessonGenerationEnabled(settings.lesson_generation_enabled ?? true);
+    }
+  }, [settings]);
 
   useEffect(() => {
     const saved = localStorage.getItem("zapier-webhook-url");
     if (saved) setZapierWebhook(saved);
-    
-    // Load additional settings from localStorage
-    const savedPhone = localStorage.getItem("academy-phone");
-    const savedLocation = localStorage.getItem("academy-location");
-    if (savedPhone) setPhone(savedPhone);
-    if (savedLocation) setLocation(savedLocation);
   }, []);
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: { full_name: string }) => {
+    mutationFn: async (data: { full_name: string; phone?: string; location?: string }) => {
       const { error } = await supabase
         .from('profiles')
-        .update({ full_name: data.full_name, updated_at: new Date().toISOString() })
-        .eq('id', user?.id);
+        .upsert({ 
+          id: user?.id,
+          email: user?.email,
+          full_name: data.full_name,
+          phone: data.phone,
+          location: data.location,
+          updated_at: new Date().toISOString() 
+        }, {
+          onConflict: 'id'
+        });
       
       if (error) throw error;
     },
@@ -87,13 +116,46 @@ export default function Settings() {
     },
   });
 
+  // Update settings mutation
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (data: { lesson_generation_enabled: boolean }) => {
+      // First try to update
+      const { data: existing } = await supabase
+        .from('settings')
+        .select('id')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (existing) {
+        const { error } = await supabase
+          .from('settings')
+          .update({ ...data, updated_at: new Date().toISOString() })
+          .eq('user_id', user?.id);
+        if (error) throw error;
+      } else {
+        // If no record exists, insert one
+        const { error } = await supabase
+          .from('settings')
+          .insert({ user_id: user?.id, ...data });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] });
+      toast.success("Settings updated successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update settings");
+    },
+  });
+
   const handleSaveProfile = () => {
-    // Save profile to database
-    updateProfileMutation.mutate({ full_name: academyName });
-    
-    // Save additional settings to localStorage (these could be moved to a settings table later)
-    localStorage.setItem("academy-phone", phone);
-    localStorage.setItem("academy-location", location);
+    // Save all profile data to database
+    updateProfileMutation.mutate({ 
+      full_name: academyName,
+      phone: phone,
+      location: location
+    });
   };
 
   const handleChangePassword = async () => {
@@ -288,23 +350,62 @@ export default function Settings() {
           <p className="text-muted-foreground">Manage your academy's configuration</p>
         </div>
 
-        {/* Academy Profile */}
+        {/* Lesson Management */}
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              Lesson Management
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between space-x-4 p-4 bg-muted/50 rounded-lg">
+              <div className="flex-1 space-y-1">
+                <Label htmlFor="lesson-generation" className="text-base font-medium">
+                  Automatic Lesson Generation
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Enable or disable automatic lesson generation. Turn this off during school vacations, holidays, or breaks to prevent lessons from being created.
+                </p>
+              </div>
+              <Switch
+                id="lesson-generation"
+                checked={lessonGenerationEnabled}
+                onCheckedChange={(checked) => {
+                  setLessonGenerationEnabled(checked);
+                  updateSettingsMutation.mutate({ lesson_generation_enabled: checked });
+                }}
+                disabled={updateSettingsMutation.isPending}
+              />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              <p>
+                <strong>Status:</strong> Lesson generation is currently{' '}
+                <span className={lessonGenerationEnabled ? "text-green-600 dark:text-green-400 font-semibold" : "text-orange-600 dark:text-orange-400 font-semibold"}>
+                  {lessonGenerationEnabled ? 'enabled' : 'disabled'}
+                </span>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* User Profile */}
         <Card className="shadow-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5 text-primary" />
-              Academy Profile
+              User Profile
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="academy-name">Academy Name</Label>
+                <Label htmlFor="academy-name">Full Name</Label>
                 <Input 
                   id="academy-name" 
                   value={academyName}
                   onChange={(e) => setAcademyName(e.target.value)}
-                  placeholder="Enter academy name"
+                  placeholder="Enter your full name"
                 />
               </div>
               <div className="space-y-2">

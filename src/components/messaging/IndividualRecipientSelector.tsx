@@ -42,11 +42,18 @@ export default function IndividualRecipientSelector({
 
   useEffect(() => {
     // Convert selected recipients to the format expected by the parent
+    // Preserve all fields including template variables
     const formattedRecipients = selectedRecipients.map(r => ({
       id: r.id,
       name: r.name,
       contact: r.contact,
       type: r.type,
+      amount: (r as any).amount,
+      date: (r as any).date,
+      instrument: (r as any).instrument,
+      subject: (r as any).subject,
+      tutor: (r as any).tutor,
+      time: (r as any).time,
     }));
     onRecipientsChange(formattedRecipients, recipientType);
     
@@ -61,7 +68,7 @@ export default function IndividualRecipientSelector({
         case "all-students":
           const { data: students } = await supabase
             .from("students")
-            .select("id, name, email, phone")
+            .select("id, name, email, phone, subjects")
             .eq("status", "active");
           
           recipients = (students || []).map(s => ({
@@ -69,13 +76,14 @@ export default function IndividualRecipientSelector({
             name: s.name,
             contact: channel === "email" ? s.email || "" : s.phone || "",
             type: "student",
+            subject: s.subjects?.[0] || "",
           })).filter(r => r.contact);
           break;
 
         case "all-parents":
           const { data: parents } = await supabase
             .from("students")
-            .select("id, parent_name, parent_email, parent_phone")
+            .select("id, parent_name, parent_email, parent_phone, subjects")
             .eq("status", "active")
             .not("parent_name", "is", null);
           
@@ -84,6 +92,7 @@ export default function IndividualRecipientSelector({
             name: p.parent_name || "",
             contact: channel === "email" ? p.parent_email || "" : p.parent_phone || "",
             type: "parent",
+            subject: p.subjects?.[0] || "",
           })).filter(r => r.contact && r.name);
           break;
 
